@@ -23,8 +23,9 @@
 ```bash
 bun install
 cp .env.example .env                 # 카카오 JS/REST 키 입력
-docker compose -f infra/docker/docker-compose.yml up -d postgres
-bun run dev                          # web :3000, api :8787
+docker compose -f infra/docker/docker-compose.yml up -d postgres   # :5433
+bun run db:migrate
+bun run dev                          # web :3001, api :8788
 
 node .harness/gates/run-checks.mjs   # 전체 검증 (.harness/config.json 의 checks 순차 실행)
 ```

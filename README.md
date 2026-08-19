@@ -14,10 +14,14 @@ Turborepo 모노레포 — Next.js 15(web) + Bun/Hono(api) + PostgreSQL/Drizzle.
 
 ```bash
 bun install
-cp .env.example .env    # 카카오 JS 키 / REST 키 입력
-docker compose -f infra/docker/docker-compose.yml up -d postgres
-bun run dev             # web :3000, api :8787
+cp .env.example .env    # 카카오 JS 키 / REST 키 / 경기데이터드림 키 입력
+docker compose -f infra/docker/docker-compose.yml up -d postgres   # :5433
+bun run db:migrate
+bun run dev             # web :3001, api :8788
 ```
+
+> 포트가 원본 저장소(`real-estate-agent-review`)와 겹치지 않게 어긋나 있다 —
+> postgres 5433 / api 8788 / web 3001. 이유는 [decisions.md](docs/decisions.md) #6.
 
 ## 검증
 
