@@ -7,9 +7,10 @@
     "dev": "bun run --env-file=../../.env next dev --turbopack --port 3001",
     "build": "NODE_ENV=production bun run --env-file=../../.env next build",
     "start": "bun run --env-file=../../.env next start --port 3001",
-    "lint": "eslint app --max-warnings=0",
+    "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "echo \"No tests yet\""
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@next/env": "^15.3.1",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.3.1",
     "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2"
+    "@types/react-dom": "^19.1.2",
+    "vitest": "^4.1.5"
   }
 }
