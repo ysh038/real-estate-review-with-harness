@@ -2,13 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TOfficeInsert } from "../../db/schema";
 import type { TGyeonggiRawRow } from "../../lib/gyeonggiClient";
+import type { IGeocodeOfficeQuery } from "../../lib/kakaoGeocoder";
 import { createSeedService, normalizeOfficeRow } from "../../services/seedService";
 
 const buildRow = (overrides: Partial<TGyeonggiRawRow> = {}): TGyeonggiRawRow => ({
   COPRTN_REG_NO: "41135-2020-00001",
   BIZMAN_CMPNM_INFO: "분당공인중개사사무소",
   BRKR_NM: "홍길동",
-  REFINE_LOTNO_ADDR: "경기도 성남시 분당구 판교로 1",
+  LEGALDONG_NM: "경기도 성남시 분당구",
   TELNO_INFO: "031-000-0000",
   SIGUN_NM: "성남시",
   ...overrides,
@@ -19,9 +20,9 @@ const buildGyeonggiClient = (rows: TGyeonggiRawRow[]) => ({
 });
 
 const buildKakaoGeocoder = (
-  resolver: (address: string) => { lat: number; lng: number } | null,
+  resolver: (query: IGeocodeOfficeQuery) => { lat: number; lng: number } | null,
 ) => ({
-  geocodeAddress: vi.fn(async (address: string) => resolver(address)),
+  geocodeOffice: vi.fn(async (query: IGeocodeOfficeQuery) => resolver(query)),
 });
 
 const buildOfficeRepository = () => {
@@ -37,14 +38,14 @@ const buildOfficeRepository = () => {
 };
 
 describe("normalizeOfficeRow", () => {
-  it("AC1: 원천 필드를 정규화된 사무소 레코드로 변환한다", () => {
+  it("AC1: 원천 필드를 정규화된 사무소 레코드로 변환한다 (address = 법정동명)", () => {
     const result = normalizeOfficeRow(buildRow(), "성남시");
 
     expect(result).toEqual({
       id: "41135-2020-00001",
       name: "분당공인중개사사무소",
       ownerName: "홍길동",
-      address: "경기도 성남시 분당구 판교로 1",
+      address: "경기도 성남시 분당구",
       phone: "031-000-0000",
       sigungu: "성남시",
     });
@@ -56,17 +57,21 @@ describe("normalizeOfficeRow", () => {
     expect(result?.ownerName).toBeNull();
   });
 
-  it("등록번호가 없으면 사무소명-주소 조합을 id 로 쓴다", () => {
+  it("등록번호가 없으면 사무소명-법정동명 조합을 id 로 쓴다", () => {
     const result = normalizeOfficeRow(
       buildRow({ COPRTN_REG_NO: undefined }),
       "성남시",
     );
 
-    expect(result?.id).toBe("분당공인중개사사무소-경기도 성남시 분당구 판교로 1");
+    expect(result?.id).toBe("분당공인중개사사무소-경기도 성남시 분당구");
   });
 
   it("사무소명이 없으면 null 을 반환한다 (시딩 불가 레코드)", () => {
     expect(normalizeOfficeRow(buildRow({ BIZMAN_CMPNM_INFO: "" }), "성남시")).toBeNull();
+  });
+
+  it("법정동명이 없으면 null 을 반환한다 (위치 정보 없는 레코드)", () => {
+    expect(normalizeOfficeRow(buildRow({ LEGALDONG_NM: "" }), "성남시")).toBeNull();
   });
 });
 
@@ -84,7 +89,7 @@ describe("seedService.seedSigungu", () => {
         id: "41135-2020-00001",
         name: "분당공인중개사사무소",
         ownerName: "홍길동",
-        address: "경기도 성남시 분당구 판교로 1",
+        address: "경기도 성남시 분당구",
         phone: "031-000-0000",
         sigungu: "성남시",
         lat: 37.4,
@@ -94,14 +99,28 @@ describe("seedService.seedSigungu", () => {
     expect(summary).toEqual({ fetched: 1, upserted: 1, skipped: 0 });
   });
 
+  it("지오코딩 쿼리로 법정동명 + 사무소명을 넘긴다", async () => {
+    const gyeonggiClient = buildGyeonggiClient([buildRow()]);
+    const kakaoGeocoder = buildKakaoGeocoder(() => ({ lat: 37.4, lng: 127.1 }));
+    const officeRepository = buildOfficeRepository();
+    const service = createSeedService({ gyeonggiClient, kakaoGeocoder, officeRepository });
+
+    await service.seedSigungu("성남시");
+
+    expect(kakaoGeocoder.geocodeOffice).toHaveBeenCalledWith({
+      name: "분당공인중개사사무소",
+      legalDong: "경기도 성남시 분당구",
+    });
+  });
+
   it("AC2: 지오코딩 실패한 레코드는 건너뛰고 나머지는 계속 처리한다", async () => {
     const rows = [
-      buildRow({ COPRTN_REG_NO: "A", REFINE_LOTNO_ADDR: "실패주소" }),
-      buildRow({ COPRTN_REG_NO: "B", REFINE_LOTNO_ADDR: "성공주소" }),
+      buildRow({ COPRTN_REG_NO: "A", BIZMAN_CMPNM_INFO: "실패사무소" }),
+      buildRow({ COPRTN_REG_NO: "B", BIZMAN_CMPNM_INFO: "성공사무소" }),
     ];
     const gyeonggiClient = buildGyeonggiClient(rows);
-    const kakaoGeocoder = buildKakaoGeocoder((address) =>
-      address === "성공주소" ? { lat: 37.4, lng: 127.1 } : null,
+    const kakaoGeocoder = buildKakaoGeocoder((query) =>
+      query.name === "성공사무소" ? { lat: 37.4, lng: 127.1 } : null,
     );
     const officeRepository = buildOfficeRepository();
     const service = createSeedService({ gyeonggiClient, kakaoGeocoder, officeRepository });
