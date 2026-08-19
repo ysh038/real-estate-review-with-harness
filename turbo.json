@@ -1,0 +1,39 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "//": "[하네스 적용 수정 G6] 하네스 설정은 워크스페이스 밖에 있어 turbo 해시에 안 잡힌다. 등록하지 않으면 규칙을 바꿔도 캐시된 '통과'가 재생돼 게이트가 위조된다.",
+  "globalDependencies": [
+    "eslint.config.mjs",
+    "eslint.harness.config.js",
+    "stylelint.config.js",
+    "prettier.config.js",
+    "tsconfig.json",
+    ".harness/config.json",
+    "packages/config/**"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "cache": false,
+      "outputs": ["coverage/**"]
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+    "packageManager": "bun",
+    "checks": [
+        {
+            "id": "typecheck",
+            "command": "bun run typecheck"
+        },
+        {
+            "id": "lint",
+            "command": "bun run lint"
+        },
+        {
+            "id": "stylelint",
+            "command": "bunx stylelint \"apps/**/*.css\" \"packages/**/*.css\""
+        },
+        {
+            "id": "test",
+            "command": "bun run test"
+        },
+        {
+            "id": "build",
+            "command": "bun run build"
+        }
+    ]
+}

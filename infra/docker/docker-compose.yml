@@ -1,0 +1,23 @@
+# compose 프로젝트 이름을 명시한다.
+# 기본값은 compose 파일의 부모 디렉터리명(= infra/docker 의 "docker")이라,
+# 같은 경로 규약을 쓰는 원본 저장소(real-estate-agent-review)와 프로젝트명이 충돌한다.
+# 충돌하면 서로의 컨테이너를 갈아치우고 named volume(docker_postgres_data)까지 공유한다.
+name: harness-review
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: harness-review-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    # 원본과 같은 5432를 잡으면 둘 중 하나만 뜬다. 이 프로젝트는 5433을 기본으로 쓴다.
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - harness_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  harness_postgres_data:
