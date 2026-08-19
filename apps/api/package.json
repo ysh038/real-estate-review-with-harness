@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun --env-file=../../.env drizzle-kit migrate"
+    "db:migrate": "bun --env-file=../../.env drizzle-kit migrate",
+    "seed:sigungu": "bun --env-file=../../.env src/scripts/seed-sigungu.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "0.4.3",

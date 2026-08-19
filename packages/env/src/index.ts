@@ -20,6 +20,7 @@ const seedEnvSchema = z.object({
   /** 경기데이터드림 OpenAPI — 중개업소 원천 목록 */
   GYEONGGI_API_KEY: z.string().min(1),
   GYEONGGI_API_BASE_URL: z.string().url().default("https://openapi.gg.go.kr"),
+  GYEONGGI_API_PATH: z.string().min(1).default("Rlestatebrkragofc"),
   /** 카카오 REST 키 — 주소 → 좌표 지오코딩. 서버 밖으로 나가지 않는다 */
   KAKAO_REST_API_KEY: z.string().min(1),
   SEED_TARGET_SIGUNGU: z.string().min(1).default("성남시"),

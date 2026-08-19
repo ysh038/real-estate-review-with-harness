@@ -180,6 +180,22 @@ bunx turbo lint --force → @repo/api  error  import/order   ✖ 1 problem
 
 → 우회: `turbo.json` 에 `globalDependencies` 로 하네스 설정 파일 등록.
 
+### 예외 — seed-sigungu 명세는 원본의 API 클라이언트 코드를 참고했다
+
+`docs/specs/seed-sigungu.md` 작성 중 경기데이터드림 OpenAPI의 정확한 서비스명·필드명을
+알 방법이 없었다(문서 조회 도구 미사용, 추측 금지 원칙). 사용자에게 확인받은 뒤
+원본 저장소의 `gyeonggi-realestate.service.ts`·`kakao-geocoder.service.ts` 를 읽어
+**API 호출 방식(엔드포인트·파라미터·응답 구조·필드명 후보)만** 참고했다.
+
+가져오지 않은 것: 원본의 다단계 지오코딩(주소→복합키워드→사무소명→fallback, 5단계),
+`match_confidence` 스코어링, `LEGALDONG_NM` 기반 오매칭 방지. 명세는 "주소 검색 단순
+매칭만" 으로 이미 범위를 좁혔고(사용자 결정), 그 결정대로 새로 구현한다.
+
+이건 통제변인(소스 미복사) 원칙의 계획된 예외이지 위반이 아니다 — 원본도 하네스도
+API 스펙 자체(제3자 서비스의 필드명)를 발명할 수는 없다. 다만 **비교 해석 시 유의점**:
+"경기데이터드림 클라이언트 구현"이라는 작업 단위는 두 저장소가 완전히 독립적이지
+않으므로, M3(재작업 커밋)·M6(소요 시간) 지표에서 이 기능은 참고 표시하고 별도로 본다.
+
 ### G7 — task-log 기록이 구조적으로 한 커밋 늦는다 · **경미**
 
 `/ship` 절차는 4단계에서 커밋하고 5단계에서 `docs/task-log.md` 에 **커밋 해시**를 적는다.
