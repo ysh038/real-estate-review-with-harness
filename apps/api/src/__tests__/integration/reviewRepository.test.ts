@@ -1,5 +1,4 @@
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createDb } from "../../db/client";
@@ -12,27 +11,14 @@ import {
 } from "../../db/schema";
 import { createOfficeRepository } from "../../repositories/officeRepository";
 import { createReviewRepository } from "../../repositories/reviewRepository";
+import { TEST_DATABASE_URL, canConnect } from "../helpers/testDb";
 
 /**
  * 실제 DB가 필요한 테스트. 접속할 수 없으면 통째로 skip한다
  * (officeRepository.test.ts 와 같은 이유 — 게이트가 로컬 환경에 인질로 잡히면 안 된다).
+ * TEST_DATABASE_URL 을 쓰는 이유는 helpers/testDb.ts 참고.
  */
-const databaseUrl = process.env.DATABASE_URL;
-
-const canConnect = async (url: string | undefined): Promise<boolean> => {
-  if (!url) return false;
-  const probe = postgres(url, { max: 1, connect_timeout: 2, onnotice: () => {} });
-  try {
-    await probe`select 1`;
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await probe.end({ timeout: 1 });
-  }
-};
-
-const isDbReachable = await canConnect(databaseUrl);
+const isDbReachable = await canConnect(TEST_DATABASE_URL);
 
 const OFFICE: TOfficeInsert = {
   id: "review-test-office",
@@ -48,7 +34,7 @@ const OFFICE: TOfficeInsert = {
 const CONTENT = "열 자를 넘기는 충분한 길이의 리뷰 본문입니다";
 
 describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
-  const db = createDb(databaseUrl ?? "");
+  const db = createDb(TEST_DATABASE_URL ?? "");
   const officeRepository = createOfficeRepository(db);
   const reviewRepository = createReviewRepository(db);
 

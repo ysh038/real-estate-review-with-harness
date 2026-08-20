@@ -2,6 +2,7 @@ import { officesByBboxResponseSchema, type TOfficeSummary } from "@repo/types";
 import { describe, expect, it } from "vitest";
 
 import { createApp } from "../../app";
+import { createFakeAuthAppDeps } from "../helpers/fakeAuthDeps";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
@@ -22,6 +23,7 @@ const buildApp = (rows: TOfficeSummary[] = [OFFICE]) => {
     app: createApp({
       officeRepository,
       reviewRepository: createFakeReviewRepository(),
+      ...createFakeAuthAppDeps(),
     }),
     officeRepository,
   };

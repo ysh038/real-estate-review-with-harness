@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../../app";
 import { encodeCursor } from "../../lib/cursor";
 import type { IReviewListRow } from "../../services/reviewService";
+import { createFakeAuthAppDeps } from "../helpers/fakeAuthDeps";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
@@ -46,6 +47,7 @@ const buildApp = ({
   return createApp({
     officeRepository,
     reviewRepository: createFakeReviewRepository(reviewRows),
+    ...createFakeAuthAppDeps(),
   });
 };
 

@@ -80,10 +80,15 @@
   가리키게 하지 않는 한 `DATABASE_URL=... vitest run` 형태로 직접 실행하지 않는다.
   기본 게이트(`bun run test`, env 파일 없음)는 원래도 이 테스트들을 skip하므로 안전하다 —
   위험한 것은 "확인 삼아 실DB 붙여서 한 번 더 돌려보자"는 수동 실행이다.
-- **후속 검토(미결정)**: 근본적으로는 `docker-compose.yml` 에 테스트 전용 postgres 서비스를
-  하나 더 두거나(`harness_postgres_test_data` 볼륨), 통합 테스트가 매 실행마다 임시 스키마를
-  만들고 지우게(`CREATE SCHEMA test_$RANDOM`) 바꾸는 안이 있다. 지금은 "위 결정"(수동 실행
-  금지)으로 막아두고, 이 사고가 반복되면 그때 구조적으로 고친다.
+- **후속 조치 — 완료 (2026-08-20, kakao-oauth-login 작업 중)**: `userRepository` 통합
+  테스트를 추가하는 시점에 저렴한 구조적 해법을 바로 적용했다. 같은 postgres 서버에
+  `app_test` 데이터베이스를 하나 더 만들고(`CREATE DATABASE app_test`, 컨테이너 재사용,
+  compose 변경 없음), 통합 테스트 3개 파일(`officeRepository`·`reviewRepository`·
+  `userRepository`)이 전부 `DATABASE_URL` 대신 **`TEST_DATABASE_URL`** 이라는 별도 변수만
+  읽게 바꿨다(`__tests__/helpers/testDb.ts`). 이제 `DATABASE_URL=... vitest run` 을 실수로
+  쳐도 통합 테스트가 그 값을 아예 보지 않아 자동 skip된다 — "돌리지 마라"는 규칙이 아니라
+  변수명을 분리해 구조로 막았다. 안전하게 실DB 검증하려면
+  `TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5433/app_test bunx vitest run`.
 
 ### 2026-08-20 #7 — 브라우저 검증은 3000에서 한다 (3001 도메인 등록은 하지 않는다)
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createApp } from "../../app";
+import { createFakeAuthAppDeps } from "../helpers/fakeAuthDeps";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
@@ -9,6 +10,7 @@ describe("GET /health", () => {
     const app = createApp({
       officeRepository: createFakeOfficeRepository(),
       reviewRepository: createFakeReviewRepository(),
+      ...createFakeAuthAppDeps(),
     });
 
     const res = await app.request("/health");

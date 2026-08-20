@@ -143,3 +143,24 @@ export const reviewReports = pgTable(
 
 export type TReviewReportRow = typeof reviewReports.$inferSelect;
 export type TReviewReportInsert = typeof reviewReports.$inferInsert;
+
+/**
+ * 로그인 세션. 쿠키엔 이 행의 `id`(불투명 랜덤 토큰)만 담는다.
+ *
+ * 서명된 stateless 값 대신 DB 세션 테이블을 쓴 이유: 로그아웃이 즉시 무효화돼야 하고,
+ * SESSION_SECRET 같은 새 시크릿을 만들지 않아도 된다 (근거: docs/specs/kakao-oauth-login.md
+ * 열린 질문 #2).
+ */
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type TSessionRow = typeof sessions.$inferSelect;
+export type TSessionInsert = typeof sessions.$inferInsert;

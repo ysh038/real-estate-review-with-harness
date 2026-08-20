@@ -13,6 +13,18 @@ const serverEnvSchema = z.object({
     .default("development"),
   DATABASE_URL: z.string().url(),
   API_PORT: z.coerce.number().int().positive().default(8787),
+  /** 카카오 로그인 REST API 키. 시딩용 KAKAO_REST_API_KEY 와 물리적으로 같은 키지만
+   * 지오코딩과 달리 런타임 서버가 항상 필요로 하므로 서버 스키마에도 둔다. */
+  KAKAO_OAUTH_CLIENT_ID: z.string().min(1),
+  /** 콘솔의 "Client Secret 사용"이 켜져 있어 필수 (docs/specs/kakao-oauth-login.md #3) */
+  KAKAO_OAUTH_CLIENT_SECRET: z.string().min(1),
+  /** 콘솔에 등록한 것과 정확히 일치해야 한다 */
+  KAKAO_OAUTH_REDIRECT_URI: z
+    .string()
+    .url()
+    .default("http://localhost:8788/auth/kakao/callback"),
+  /** 로그인 성공 후 302 리다이렉트할 web origin */
+  WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
 });
 
 /** 시딩 스크립트 전용. 런타임 서버는 이 값들을 읽지 않는다. */

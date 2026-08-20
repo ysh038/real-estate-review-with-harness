@@ -1,33 +1,20 @@
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createDb } from "../../db/client";
 import { offices, type TOfficeInsert } from "../../db/schema";
 import { createOfficeRepository } from "../../repositories/officeRepository";
+import { TEST_DATABASE_URL, canConnect } from "../helpers/testDb";
 
 /**
  * 실제 DB가 필요한 테스트. 접속할 수 없으면 통째로 skip한다.
  *
  * 게이트(.harness/config.json 의 test 체크)가 로컬 Postgres 유무에 인질로 잡히면
  * 결국 게이트를 꺼버리게 된다. DB가 있으면 더 검증하고, 없으면 단위 테스트만 돈다.
+ * TEST_DATABASE_URL 을 쓰는 이유는 helpers/testDb.ts 참고 — 시딩 데이터가 든
+ * DATABASE_URL 을 절대 재사용하지 않는다.
  */
-const databaseUrl = process.env.DATABASE_URL;
-
-const canConnect = async (url: string | undefined): Promise<boolean> => {
-  if (!url) return false;
-  const probe = postgres(url, { max: 1, connect_timeout: 2, onnotice: () => {} });
-  try {
-    await probe`select 1`;
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await probe.end({ timeout: 1 });
-  }
-};
-
-const isDbReachable = await canConnect(databaseUrl);
+const isDbReachable = await canConnect(TEST_DATABASE_URL);
 
 const buildOffice = (
   id: string,
@@ -47,7 +34,7 @@ const buildOffice = (
 });
 
 describe.skipIf(!isDbReachable)("officeRepository (real DB)", () => {
-  const db = createDb(databaseUrl ?? "");
+  const db = createDb(TEST_DATABASE_URL ?? "");
   const repository = createOfficeRepository(db);
 
   beforeAll(async () => {
