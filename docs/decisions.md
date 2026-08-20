@@ -80,6 +80,22 @@
      (포트 분리 결정 #6과 정면으로 충돌).
 - 결정 전까지: 로컬에서 지도를 켜려면 원본 FE(3000)를 끄고 `bun run --cwd apps/web dev -- --port 3000`
   처럼 수동으로 3000을 쓰거나, 콘솔에 3001을 등록한다.
+- **2026-08-20 재현 확인** — 추정이 아니라 확정이다. 같은 앱키로 referer만 바꿔 SDK를 직접 받아봤다:
+
+  ```
+  Referer: http://localhost:3001 → 401 {"errorType":"AccessDeniedError",
+      "message":"domain mismatched! caller=http://localhost:3001. check out registered web domains."}
+  Referer: http://localhost:3000 → 200 (SDK 정상 반환)
+  ```
+
+  3001로 `bun run dev` 하면 `window.kakao` 가 `undefined` 로 남아 지도 컴포넌트가 에러 상태
+  ("지도를 불러오지 못했습니다")로 떨어진다. **SDK와 무관한 층(오피스 API·CORS)은 3001 origin
+  에서 정상**임도 같이 확인했다(200, `Access-Control-Allow-Origin` 응답).
+  → 즉 막힌 것은 카카오 도메인 등록 하나뿐이고, 나머지 배선은 3001에서 이미 맞다.
+- **검증 이력에 대한 정직한 표기**: `kakao-map-render`·`office-marker-bbox-sync`·`marker-clustering`
+  세 명세의 브라우저 검증은 전부 **3000에서** 수행됐다. 컴포넌트 로직은 이 저장소 코드가 맞지만
+  (마커 데이터가 이 저장소 DB `:5433`, API 호출이 `:8788` 인 것으로 확인), **저장소 기본 경로인
+  `bun run dev`(3001)로는 아직 한 번도 통과된 적이 없다.** 도메인 등록 후 재검증이 필요하다.
 
 ### 지도 기본 줌 레벨 — 레벨 8이 예상보다 훨씬 넓다
 
