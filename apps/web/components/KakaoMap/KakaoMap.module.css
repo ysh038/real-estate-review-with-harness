@@ -1,0 +1,26 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+}
+
+.mapContainer {
+  width: 100%;
+  height: 100%;
+}
+
+.status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-text-muted);
+}
+
+.statusError {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-error);
+}

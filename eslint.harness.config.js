@@ -118,6 +118,17 @@ export default [
         },
     },
     {
+        // [실사용 발견] 앰비언트 선언(.d.ts)은 외부 전역(DOM lib 등)과 이름이
+        // 정확히 일치해야 선언 병합이 된다 — `declare global { interface Window }`
+        // 를 `IWindow`로 바꾸면 병합이 깨져 타입 자체가 무의미해진다.
+        // 명명 규칙은 "우리가 짓는 이름"을 위한 것이지 "외부가 정한 이름"까지
+        // 강제할 수 없다. 근거: docs/experiment.md.
+        files: ['**/*.d.ts'],
+        rules: {
+            '@typescript-eslint/naming-convention': 'off',
+        },
+    },
+    {
         // 참고용 템플릿·하네스 인프라는 린트 대상이 아니다
         ignores: ['.harness/**', '**/_story-template.tsx'],
     },

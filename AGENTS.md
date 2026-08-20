@@ -33,6 +33,20 @@ node .harness/gates/run-checks.mjs   # 전체 검증 (.harness/config.json 의 c
 `bun run lint` 등 개별 스크립트는 turbo 캐시를 탄다. 하네스 설정을 고친 직후에는
 `turbo lint --force` 로 확인한다 (캐시된 '통과'가 재생될 수 있다 — `docs/experiment.md` G6).
 
+## 새 컴퓨터에서 이어서 작업하기
+
+git이 옮기지 못하는 두 가지가 있다 — 위 "자주 쓰는 명령어"만 따라 하면 서버는 뜨지만
+**빈 지도**가 뜬다.
+
+1. **시딩 데이터**는 로컬 docker 볼륨(`harness_postgres_data`)에만 있다. `db:migrate` 뒤에
+   반드시 `bun run --cwd apps/api seed:sigungu` 를 한 번 더 돌려야 `offices` 테이블이 찬다
+   (2273건 → 약 1913건 upsert, 몇 분 걸림 — 카카오 REST 키로 실제 지오코딩을 호출한다).
+2. **카카오 지도 JS 키의 도메인 등록**은 `localhost:3001`(이 저장소 기본 포트)에 아직
+   안 돼 있어 지도가 401로 안 뜬다. 해결 전이면 `docs/decisions.md` 의 "카카오 지도 JS 키"
+   항목을 먼저 읽는다.
+
+착수 전 항상 `docs/decisions.md` 의 "논의 중" 섹션을 확인한다 — 미해결 결정 사항이 있다.
+
 ## 검증 게이트
 
 - 커밋 전 **반드시** `node .harness/gates/run-checks.mjs` 가 통과해야 한다.

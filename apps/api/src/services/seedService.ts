@@ -32,16 +32,16 @@ const pickField = (row: TGyeonggiRawRow, key: string): string | null => {
 };
 
 /**
- * 사무소명·주소가 없으면 null — 이 레코드는 시딩할 수 없다.
- * 등록번호가 없으면 사무소명-주소 조합으로 대체 id를 만든다.
+ * 사무소명·법정동명이 없으면 null — 이 레코드는 시딩할 수 없다.
+ * 원천 데이터셋에 상세 주소가 없어 `address` 컬럼엔 법정동명(구 단위)이 들어간다
+ * (예: "경기도 성남시 분당구"). 등록번호가 없으면 사무소명-법정동명 조합으로 대체 id를 만든다.
  */
 export const normalizeOfficeRow = (
   row: TGyeonggiRawRow,
   sigungu: string,
 ): INormalizedOfficeRow | null => {
   const name = pickField(row, "BIZMAN_CMPNM_INFO");
-  const address =
-    pickField(row, "REFINE_LOTNO_ADDR") ?? pickField(row, "REFINE_ROADNM_ADDR");
+  const address = pickField(row, "LEGALDONG_NM");
   if (!name || !address) return null;
 
   return {
@@ -73,7 +73,10 @@ export const createSeedService = (deps: ISeedServiceDeps) => ({
 
     const inserts: TOfficeInsert[] = [];
     for (const row of normalizedById.values()) {
-      const point = await deps.kakaoGeocoder.geocodeAddress(row.address);
+      const point = await deps.kakaoGeocoder.geocodeOffice({
+        name: row.name,
+        legalDong: row.address,
+      });
       if (!point) {
         skipped += 1;
         continue;

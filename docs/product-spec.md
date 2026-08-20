@@ -22,6 +22,8 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 
 - [x] 모노레포 스켈레톤 + 하네스 설치·배선 (검증 5종 통과)
 - [x] `offices` 스키마 + Drizzle 마이그레이션 + `GET /api/offices?bbox=` (명세: `specs/offices-schema-and-bbox-query.md`)
+- [x] 성남시 중개업소 시딩 (2273건 → 1913건 upsert, 명세: `specs/seed-sigungu.md`)
+- [x] 카카오 지도 SDK 로드 + 렌더링 (레벨·도메인 후속 결정 대기, 명세: `specs/kakao-map-render.md`)
 
 ## TODO
 
@@ -30,8 +32,6 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 
 ### MVP — 지도와 마커
 
-- [ ] 경기데이터드림 API → 성남시 중개업소 시딩 스크립트 (주소 → 카카오 지오코딩)
-- [ ] 카카오 지도 SDK 로드 + 지도 렌더링
 - [ ] 지도 이동 시 bbox 기준 마커 동적 로딩 (300ms debounce)
 - [ ] 마커 클러스터링
 - [ ] 마커 클릭 → 사이드 패널에 사무소 정보 (대표자명·주소·전화번호)
