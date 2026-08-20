@@ -24,6 +24,7 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 - [x] `offices` 스키마 + Drizzle 마이그레이션 + `GET /api/offices?bbox=` (명세: `specs/offices-schema-and-bbox-query.md`)
 - [x] 성남시 중개업소 시딩 (2273건 → 1913건 upsert, 명세: `specs/seed-sigungu.md`)
 - [x] 카카오 지도 SDK 로드 + 렌더링 (레벨·도메인 후속 결정 대기, 명세: `specs/kakao-map-render.md`)
+- [x] bbox 기준 오피스 마커 동적 로딩 + 300ms debounce (명세: `specs/office-marker-bbox-sync.md`)
 
 ## TODO
 
@@ -32,7 +33,6 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 
 ### MVP — 지도와 마커
 
-- [ ] 지도 이동 시 bbox 기준 마커 동적 로딩 (300ms debounce)
 - [ ] 마커 클러스터링
 - [ ] 마커 클릭 → 사이드 패널에 사무소 정보 (대표자명·주소·전화번호)
 - [ ] 패널 닫기: ESC · 백드롭 클릭 · 동일 마커 재클릭

@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./KakaoMap.module.css";
+import { useOfficeMarkers } from "../../hooks/useOfficeMarkers";
 import { buildKakaoMapScriptUrl } from "../../lib/kakaoMapSdk";
 
 const SEONGNAM_CITY_HALL = { lat: 37.4201, lng: 127.1265 };
@@ -20,6 +21,9 @@ export const KakaoMap = () => {
   const mapRef = useRef<kakao.maps.Map | null>(null);
   const [status, setStatus] = useState<TSdkStatus>("loading");
   const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? "";
+  const { isTruncated } = useOfficeMarkers(
+    status === "loaded" ? mapRef.current : null,
+  );
 
   const handleLoad = () => {
     window.kakao.maps.load(() => {
@@ -64,6 +68,11 @@ export const KakaoMap = () => {
       {status === "error" ? (
         <p className={styles.statusError}>
           지도를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+        </p>
+      ) : null}
+      {isTruncated ? (
+        <p className={styles.truncatedNotice}>
+          결과가 많아 일부만 표시됩니다. 지도를 확대해보세요.
         </p>
       ) : null}
       <div ref={containerRef} className={styles.mapContainer} />
