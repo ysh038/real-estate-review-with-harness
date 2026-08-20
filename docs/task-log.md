@@ -2,6 +2,7 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-20 191658f 카카오 OAuth 로그인 + 세션 (덩이 B, AC1~7 자동검증, AC8~10 대기)
 - 2026-08-20 ddb8ce9 reviews 스키마 + 읽기 API (Phase 1 덩이 A, integration 실DB 검증)
 - 2026-08-20 b82ece3 마커 클릭 → 사무소 상세 패널 + 닫기 (비모달 확정, MVP 완료)
 - 2026-08-20 76fa825 마커 클러스터링 (카카오 MarkerClusterer)
