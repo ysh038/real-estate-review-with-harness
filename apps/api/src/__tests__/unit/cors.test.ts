@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../../app";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
+import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
 /**
  * apps/web(Next.js)과 apps/api(Hono)는 항상 다른 origin(포트)이다 — CORS 미설정이면
@@ -10,7 +11,10 @@ import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
  */
 describe("CORS", () => {
   it("다른 origin에서의 요청에도 Access-Control-Allow-Origin 헤더를 내려준다", async () => {
-    const app = createApp({ officeRepository: createFakeOfficeRepository([]) });
+    const app = createApp({
+      officeRepository: createFakeOfficeRepository([]),
+      reviewRepository: createFakeReviewRepository(),
+    });
 
     const res = await app.request("/health", {
       headers: { Origin: "http://localhost:3001" },

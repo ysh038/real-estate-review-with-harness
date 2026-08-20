@@ -1,7 +1,10 @@
 import type { TBbox, TOfficeSummary } from "@repo/types";
 import { vi } from "vitest";
 
-import type { IOfficeRepository } from "../../services/officeService";
+import type {
+  IOfficeDetailRepository,
+  IOfficeRepository,
+} from "../../services/officeService";
 
 /**
  * bbox 필터링은 하지 않는다 — 그건 repository의 SQL이 하는 일이고
@@ -10,6 +13,9 @@ import type { IOfficeRepository } from "../../services/officeService";
  */
 export const createFakeOfficeRepository = (
   rows: TOfficeSummary[] = [],
-): IOfficeRepository => ({
+  ratings: number[] = [],
+): IOfficeRepository & IOfficeDetailRepository => ({
   findByBbox: vi.fn(async (_bbox: TBbox, limit: number) => rows.slice(0, limit)),
+  findById: vi.fn(async (id: string) => rows.find((row) => row.id === id) ?? null),
+  findVisibleRatingsByOfficeId: vi.fn(async () => ratings),
 });

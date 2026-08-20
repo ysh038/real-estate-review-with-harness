@@ -3,10 +3,15 @@ import { cors } from "hono/cors";
 
 import { createHealthRoute } from "./routes/health";
 import { createOfficesRoute } from "./routes/offices";
-import type { IOfficeRepository } from "./services/officeService";
+import type {
+  IOfficeDetailRepository,
+  IOfficeRepository,
+} from "./services/officeService";
+import type { IReviewRepository } from "./services/reviewService";
 
 export interface IAppDeps {
-  officeRepository: IOfficeRepository;
+  officeRepository: IOfficeRepository & IOfficeDetailRepository;
+  reviewRepository: IReviewRepository;
 }
 
 /**
@@ -23,4 +28,4 @@ export const createApp = (deps: IAppDeps) =>
   new Hono()
     .use("*", cors())
     .route("/health", createHealthRoute())
-    .route("/api/offices", createOfficesRoute(deps.officeRepository));
+    .route("/api/offices", createOfficesRoute(deps));

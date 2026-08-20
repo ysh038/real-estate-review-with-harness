@@ -1,7 +1,7 @@
 import type { TOfficeInsert } from "../db/schema";
 import type { IGyeonggiClient, TGyeonggiRawRow } from "../lib/gyeonggiClient";
 import type { IKakaoGeocoder } from "../lib/kakaoGeocoder";
-import type { IOfficeWriteRepository } from "../repositories/officeRepository";
+import type { IOfficeUpsertRepository } from "../repositories/officeRepository";
 
 export interface INormalizedOfficeRow {
   id: string;
@@ -21,7 +21,7 @@ export interface ISeedSummary {
 export interface ISeedServiceDeps {
   gyeonggiClient: IGyeonggiClient;
   kakaoGeocoder: IKakaoGeocoder;
-  officeRepository: IOfficeWriteRepository;
+  officeRepository: IOfficeUpsertRepository;
 }
 
 const pickField = (row: TGyeonggiRawRow, key: string): string | null => {

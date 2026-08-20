@@ -1,5 +1,6 @@
 import type {
   TBbox,
+  TOfficeDetailResponse,
   TOfficeSummary,
   TOfficesByBboxResponse,
 } from "@repo/types";
@@ -29,3 +30,36 @@ export const createOfficeService = (repository: IOfficeRepository) => ({
 });
 
 export type TOfficeService = ReturnType<typeof createOfficeService>;
+
+export interface IOfficeDetailRepository {
+  findById: (id: string) => Promise<TOfficeSummary | null>;
+  /** 숨겨지지 않은(hidden_at IS NULL) 리뷰의 평점만 — 숨김은 집계에서 빠진다 (AC5). */
+  findVisibleRatingsByOfficeId: (officeId: string) => Promise<number[]>;
+}
+
+/** 평점 표시는 소수 한 자리면 충분하다. 그 이상은 정밀해 보일 뿐 의미가 없다. */
+const roundToOneDecimal = (value: number): number => Math.round(value * 10) / 10;
+
+export const createOfficeDetailService = (
+  repository: IOfficeDetailRepository,
+) => ({
+  findDetailById: async (
+    id: string,
+  ): Promise<TOfficeDetailResponse | null> => {
+    const office = await repository.findById(id);
+    if (!office) return null;
+
+    const ratings = await repository.findVisibleRatingsByOfficeId(id);
+    const total = ratings.reduce((sum, rating) => sum + rating, 0);
+
+    return {
+      ...office,
+      reviewCount: ratings.length,
+      // 리뷰가 없으면 null — 0으로 두면 "최악 평점"과 구분되지 않는다.
+      avgRating:
+        ratings.length === 0 ? null : roundToOneDecimal(total / ratings.length),
+    };
+  },
+});
+
+export type TOfficeDetailService = ReturnType<typeof createOfficeDetailService>;

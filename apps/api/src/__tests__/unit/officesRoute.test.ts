@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../../app";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
+import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
 const OFFICE: TOfficeSummary = {
   id: "41135-2020-00001",
@@ -17,7 +18,13 @@ const OFFICE: TOfficeSummary = {
 
 const buildApp = (rows: TOfficeSummary[] = [OFFICE]) => {
   const officeRepository = createFakeOfficeRepository(rows);
-  return { app: createApp({ officeRepository }), officeRepository };
+  return {
+    app: createApp({
+      officeRepository,
+      reviewRepository: createFakeReviewRepository(),
+    }),
+    officeRepository,
+  };
 };
 
 const VALID_BBOX = "127.0,37.3,127.2,37.5";

@@ -1,9 +1,14 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   doublePrecision,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
+  unique,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -41,3 +46,100 @@ export const offices = pgTable(
 
 export type TOfficeRow = typeof offices.$inferSelect;
 export type TOfficeInsert = typeof offices.$inferInsert;
+
+/**
+ * 서비스 사용자. 카카오 OAuth로만 생성된다 (덩이 B).
+ * 지금은 리뷰 표시에 실제로 필요한 최소 필드만 둔다 — 토큰 저장 등은 OAuth 붙일 때 판단한다.
+ */
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** 카카오 회원번호. OAuth 콜백에서 이 값으로 기존 사용자를 찾거나 새로 만든다. */
+  kakaoId: text("kakao_id").notNull().unique(),
+  nickname: text("nickname").notNull(),
+  profileImageUrl: text("profile_image_url"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type TUserRow = typeof users.$inferSelect;
+export type TUserInsert = typeof users.$inferInsert;
+
+/**
+ * 사무소 리뷰. 사무소당 1인 1건.
+ *
+ * 1인 1리뷰·평점 범위·본문 길이를 DB 제약으로도 거는 이유는 경합이다 — 앱 검사에만 맡기면
+ * 동시 요청 두 건이 둘 다 "아직 없음"을 확인하고 둘 다 쓴다
+ * (근거: docs/specs/reviews-schema-and-read-api.md 설계 메모).
+ */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    officeId: text("office_id")
+      .notNull()
+      .references(() => offices.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    content: text("content").notNull(),
+    /** 신고 누적으로 숨겨진 시각. NULL이면 노출된다 (soft hide). */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("reviews_office_user_unique").on(table.officeId, table.userId),
+    // 목록 조회 + 커서 페이지네이션의 정렬 키와 같은 순서로 잡는다.
+    index("reviews_office_created_idx").on(
+      table.officeId,
+      table.createdAt.desc(),
+      table.id.desc(),
+    ),
+    check("reviews_rating_range", sql`${table.rating} between 1 and 5`),
+    check(
+      "reviews_content_min_length",
+      sql`char_length(${table.content}) >= 10`,
+    ),
+  ],
+);
+
+export type TReviewRow = typeof reviews.$inferSelect;
+export type TReviewInsert = typeof reviews.$inferInsert;
+
+/**
+ * 리뷰 신고. 한 사람이 같은 리뷰를 여러 번 신고할 수 없다 —
+ * 그렇지 않으면 혼자서 누적 임계치를 채워 남의 리뷰를 숨길 수 있다.
+ */
+export const reviewReports = pgTable(
+  "review_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    reporterUserId: uuid("reporter_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("review_reports_review_reporter_unique").on(
+      table.reviewId,
+      table.reporterUserId,
+    ),
+  ],
+);
+
+export type TReviewReportRow = typeof reviewReports.$inferSelect;
+export type TReviewReportInsert = typeof reviewReports.$inferInsert;

@@ -39,11 +39,15 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 
 ### Phase 1 — 리뷰 시스템
 
-- [ ] `users` · `reviews` · `review_reports` 테이블 + 마이그레이션
+> 10개 항목을 4덩이로 나눠 진행한다: **A** 스키마+읽기 API(완료) → **B** OAuth →
+> **C** 쓰기·신고·rate limit → **D** UI. 인증 없이 검증 가능한 구간을 A로 먼저 잘랐다.
+
+- [x] `users` · `reviews` · `review_reports` 테이블 + 마이그레이션 (덩이 A,
+      명세: `specs/reviews-schema-and-read-api.md`)
+- [x] `GET /api/offices/:id` — 사무소 + 리뷰 집계(`avgRating`, `reviewCount`) (덩이 A)
+- [x] `GET /api/offices/:id/reviews` — 커서 페이지네이션 (덩이 A)
 - [ ] 카카오 OAuth — 콜백 라우트, HttpOnly 세션 쿠키, OAuth state(CSRF)
 - [ ] 로그인/로그아웃 UI + 세션 컨텍스트
-- [ ] `GET /api/offices/:id` — 사무소 + 리뷰 집계(`avgRating`, `reviewCount`)
-- [ ] `GET /api/offices/:id/reviews` — 커서 페이지네이션
 - [ ] `POST /api/offices/:id/reviews` — 작성 (인증 필수, 사무소당 1인 1리뷰)
 - [ ] `PATCH` / `DELETE /api/reviews/:id` — 본인 리뷰 수정·삭제
 - [ ] `POST /api/reviews/:id/report` — 신고, 5회 누적 시 `hidden_at` 자동 설정
