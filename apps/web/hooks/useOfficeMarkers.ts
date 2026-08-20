@@ -1,7 +1,7 @@
 "use client";
 
 import type { TOfficeSummary } from "@repo/types";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { toBboxQuery } from "../lib/kakaoBounds";
 import { addMapListener, removeMapListener } from "../lib/kakaoMapEvents";
@@ -14,6 +14,8 @@ const BOUNDS_CHANGED_EVENT = "bounds_changed";
 export interface IUseOfficeMarkersResult {
   offices: TOfficeSummary[];
   isTruncated: boolean;
+  selectedOffice: TOfficeSummary | null;
+  clearSelection: () => void;
 }
 
 /**
@@ -25,7 +27,19 @@ export const useOfficeMarkers = (
 ): IUseOfficeMarkersResult => {
   const [offices, setOffices] = useState<TOfficeSummary[]>([]);
   const [isTruncated, setIsTruncated] = useState(false);
+  const [selectedOffice, setSelectedOffice] = useState<TOfficeSummary | null>(
+    null,
+  );
   const clustererRef = useRef<kakao.maps.MarkerClusterer | null>(null);
+
+  const clearSelection = useCallback(() => setSelectedOffice(null), []);
+
+  /** 같은 사무소를 다시 누르면 닫는다 (토글) — office-detail-panel AC3 */
+  const handleMarkerClick = useCallback((office: TOfficeSummary) => {
+    setSelectedOffice((current) =>
+      current?.id === office.id ? null : office,
+    );
+  }, []);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -78,13 +92,25 @@ export const useOfficeMarkers = (
     const clusterer = clustererRef.current;
     if (!clusterer) return undefined;
 
-    const markers = offices.map((office) => createOfficeMarker(office));
+    const markers = offices.map((office) =>
+      createOfficeMarker(office, handleMarkerClick),
+    );
     clusterer.addMarkers(markers);
 
     return () => {
       clusterer.removeMarkers(markers);
     };
+  }, [offices, handleMarkerClick]);
+
+  // AC5: 목록이 갱신돼 선택된 사무소가 화면 밖으로 나가면 패널을 남겨두지 않는다.
+  useEffect(() => {
+    setSelectedOffice((current) => {
+      if (!current) return current;
+      return offices.some((office) => office.id === current.id)
+        ? current
+        : null;
+    });
   }, [offices]);
 
-  return { offices, isTruncated };
+  return { offices, isTruncated, selectedOffice, clearSelection };
 };

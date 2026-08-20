@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 
 import styles from "./KakaoMap.module.css";
 import { useOfficeMarkers } from "../../hooks/useOfficeMarkers";
+import { addMapListener, removeMapListener } from "../../lib/kakaoMapEvents";
 import { buildKakaoMapScriptUrl } from "../../lib/kakaoMapSdk";
+import { OfficeDetailPanel } from "../OfficeDetailPanel";
 
 const SEONGNAM_CITY_HALL = { lat: 37.4201, lng: 127.1265 };
 const DEFAULT_LEVEL = 8;
@@ -21,9 +23,18 @@ export const KakaoMap = () => {
   const mapRef = useRef<kakao.maps.Map | null>(null);
   const [status, setStatus] = useState<TSdkStatus>("loading");
   const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? "";
-  const { isTruncated } = useOfficeMarkers(
-    status === "loaded" ? mapRef.current : null,
-  );
+  const map = status === "loaded" ? mapRef.current : null;
+  const { isTruncated, selectedOffice, clearSelection } =
+    useOfficeMarkers(map);
+
+  // AC15: 백드롭 대신 지도 클릭으로 닫는다 — 패널이 열려 있어도 지도 조작이 살아 있어야
+  // 하기 때문이다 (근거: docs/specs/office-detail-panel.md 설계 메모).
+  useEffect(() => {
+    if (!map) return undefined;
+
+    addMapListener(map, "click", clearSelection);
+    return () => removeMapListener(map, "click", clearSelection);
+  }, [map, clearSelection]);
 
   const handleLoad = () => {
     window.kakao.maps.load(() => {
@@ -76,6 +87,9 @@ export const KakaoMap = () => {
         </p>
       ) : null}
       <div ref={containerRef} className={styles.mapContainer} />
+      {selectedOffice ? (
+        <OfficeDetailPanel office={selectedOffice} onClose={clearSelection} />
+      ) : null}
     </div>
   );
 };

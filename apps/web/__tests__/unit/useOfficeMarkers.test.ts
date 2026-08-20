@@ -50,6 +50,19 @@ const getBoundsChangedHandler = (): (() => void) => {
   return call[2] as () => void;
 };
 
+/**
+ * createOfficeMarker(office, onClick) 로 넘어간 클릭 핸들러를 꺼낸다 —
+ * 실제 마커 클릭을 흉내낸다 (office-detail-panel AC1~AC3).
+ */
+const clickMarkerOf = (officeId: string): void => {
+  const call = createOfficeMarker.mock.calls.find(
+    (args) => (args[0] as TOfficeSummary).id === officeId,
+  );
+  if (!call) throw new Error(`${officeId} 마커가 생성되지 않았습니다`);
+  const onClick = call[1] as (office: TOfficeSummary) => void;
+  onClick(call[0] as TOfficeSummary);
+};
+
 interface IFakeClusterer {
   addMarkers: ReturnType<typeof vi.fn>;
   removeMarkers: ReturnType<typeof vi.fn>;
@@ -216,8 +229,8 @@ describe("useOfficeMarkers", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    // 마운트 시 빈 배열로 1번(초기 렌더), 조회 성공 후 실제 목록으로 1번 더 호출된다.
-    expect(createOfficeMarker).toHaveBeenCalledWith(OFFICE_A);
+    // office-detail-panel 이후 시그니처는 (office, onClick) 이다.
+    expect(createOfficeMarker).toHaveBeenCalledWith(OFFICE_A, expect.any(Function));
     const lastCall = fakeClusterer.addMarkers.mock.calls.at(-1);
     expect(lastCall?.[0]).toHaveLength(1);
   });
@@ -258,5 +271,146 @@ describe("useOfficeMarkers", () => {
     unmount();
 
     expect(fakeClusterer.removeMarkers).toHaveBeenCalledWith(batch);
+  });
+
+  it("AC1(office-detail-panel): 마커를 클릭하면 그 사무소가 selectedOffice 가 된다", async () => {
+    fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.selectedOffice).toBeNull();
+
+    act(() => {
+      clickMarkerOf(OFFICE_A.id);
+    });
+
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
+  });
+
+  it("AC2(office-detail-panel): 다른 마커를 클릭하면 선택이 그 사무소로 교체된다", async () => {
+    const OFFICE_B: TOfficeSummary = { ...OFFICE_A, id: "office-b", name: "나 공인중개사" };
+    fetchOfficesByBbox.mockResolvedValue({
+      offices: [OFFICE_A, OFFICE_B],
+      isTruncated: false,
+    });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    act(() => {
+      clickMarkerOf(OFFICE_A.id);
+    });
+    act(() => {
+      clickMarkerOf(OFFICE_B.id);
+    });
+
+    expect(result.current.selectedOffice).toEqual(OFFICE_B);
+  });
+
+  it("AC3(office-detail-panel): 이미 선택된 마커를 다시 클릭하면 선택이 해제된다", async () => {
+    fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    act(() => {
+      clickMarkerOf(OFFICE_A.id);
+    });
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
+
+    act(() => {
+      clickMarkerOf(OFFICE_A.id);
+    });
+
+    expect(result.current.selectedOffice).toBeNull();
+  });
+
+  it("AC4(office-detail-panel): clearSelection() 을 호출하면 선택이 해제된다", async () => {
+    fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => {
+      clickMarkerOf(OFFICE_A.id);
+    });
+
+    act(() => {
+      result.current.clearSelection();
+    });
+
+    expect(result.current.selectedOffice).toBeNull();
+  });
+
+  it("AC5(office-detail-panel): 목록이 갱신돼 선택된 사무소가 사라지면 선택이 해제된다", async () => {
+    const OFFICE_B: TOfficeSummary = { ...OFFICE_A, id: "office-b", name: "나 공인중개사" };
+    fetchOfficesByBbox.mockResolvedValueOnce({
+      offices: [OFFICE_A],
+      isTruncated: false,
+    });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => {
+      clickMarkerOf(OFFICE_A.id);
+    });
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
+
+    // 지도를 옮겨 OFFICE_A 가 화면 밖으로 나간 상황
+    fetchOfficesByBbox.mockResolvedValueOnce({
+      offices: [OFFICE_B],
+      isTruncated: false,
+    });
+    act(() => {
+      getBoundsChangedHandler()();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(result.current.selectedOffice).toBeNull();
+  });
+
+  it("AC5(office-detail-panel): 목록이 갱신돼도 선택된 사무소가 남아 있으면 선택이 유지된다", async () => {
+    fetchOfficesByBbox.mockResolvedValueOnce({
+      offices: [OFFICE_A],
+      isTruncated: false,
+    });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => {
+      clickMarkerOf(OFFICE_A.id);
+    });
+
+    fetchOfficesByBbox.mockResolvedValueOnce({
+      offices: [OFFICE_A],
+      isTruncated: false,
+    });
+    act(() => {
+      getBoundsChangedHandler()();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
   });
 });

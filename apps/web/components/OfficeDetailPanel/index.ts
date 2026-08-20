@@ -1,0 +1,1 @@
+export { OfficeDetailPanel } from "./OfficeDetailPanel";
