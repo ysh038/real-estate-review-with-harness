@@ -56,6 +56,12 @@ git이 옮기지 못하는 두 가지가 있다 — 위 "자주 쓰는 명령어
 
 착수 전 항상 `docs/decisions.md` 의 "논의 중" 섹션을 확인한다 — 미해결 결정 사항이 있다.
 
+**절대 하지 말 것**: `DATABASE_URL=... vitest run` 으로 통합 테스트를 직접 실행하지 않는다.
+`officeRepository.test.ts`·`reviewRepository.test.ts` 가 `beforeEach`/`afterAll`에서
+`offices`/`reviews`/`users` 테이블을 통째로 지운다 — 격리된 테스트 DB가 아니라 시딩 데이터가
+든 개발 DB에 붙이는 순간 데이터가 날아간다. 실제로 한 번 있었다(`docs/decisions.md` #8).
+기본 게이트(`bun run test`, env 파일 없음)는 이 테스트들을 자동으로 skip하므로 안전하다.
+
 ## 검증 게이트
 
 - 커밋 전 **반드시** `node .harness/gates/run-checks.mjs` 가 통과해야 한다.
