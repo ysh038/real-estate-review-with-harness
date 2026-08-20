@@ -41,9 +41,18 @@ git이 옮기지 못하는 두 가지가 있다 — 위 "자주 쓰는 명령어
 1. **시딩 데이터**는 로컬 docker 볼륨(`harness_postgres_data`)에만 있다. `db:migrate` 뒤에
    반드시 `bun run --cwd apps/api seed:sigungu` 를 한 번 더 돌려야 `offices` 테이블이 찬다
    (2273건 → 약 1913건 upsert, 몇 분 걸림 — 카카오 REST 키로 실제 지오코딩을 호출한다).
-2. **카카오 지도 JS 키의 도메인 등록**은 `localhost:3001`(이 저장소 기본 포트)에 아직
-   안 돼 있어 지도가 401로 안 뜬다. 해결 전이면 `docs/decisions.md` 의 "카카오 지도 JS 키"
-   항목을 먼저 읽는다.
+2. **지도를 보려면 3000 포트로 띄운다.** 카카오 콘솔에 등록된 도메인이 `localhost:3000`
+   뿐이라 기본 포트(3001)로는 지도가 401로 안 뜬다. 3001을 등록하지 않기로 결정했다
+   (`docs/decisions.md` #7). 원본 저장소가 3000을 쓰고 있으면 잠시 내리고 쓴다:
+
+   ```bash
+   docker stop app-web                          # 원본 FE 잠시 중지
+   bun run --cwd apps/web dev -- --port 3000
+   docker start app-web                         # 검증 끝나면 복구
+   ```
+
+3. **`.env` 의 `KAKAO_REST_API_KEY`** 는 시딩(위 1번)에만 쓰이고 저장소에 없다.
+   카카오 콘솔에서 가져와 채워야 시딩이 돈다.
 
 착수 전 항상 `docs/decisions.md` 의 "논의 중" 섹션을 확인한다 — 미해결 결정 사항이 있다.
 
