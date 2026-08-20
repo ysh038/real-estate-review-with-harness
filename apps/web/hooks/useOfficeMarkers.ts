@@ -1,11 +1,11 @@
 "use client";
 
 import type { TOfficeSummary } from "@repo/types";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { toBboxQuery } from "../lib/kakaoBounds";
 import { addMapListener, removeMapListener } from "../lib/kakaoMapEvents";
-import { createOfficeMarker, removeMarker } from "../lib/kakaoMarkers";
+import { createMarkerClusterer, createOfficeMarker } from "../lib/kakaoMarkers";
 import { fetchOfficesByBbox } from "../lib/officesApi";
 
 const DEBOUNCE_MS = 300;
@@ -25,6 +25,7 @@ export const useOfficeMarkers = (
 ): IUseOfficeMarkersResult => {
   const [offices, setOffices] = useState<TOfficeSummary[]>([]);
   const [isTruncated, setIsTruncated] = useState(false);
+  const clustererRef = useRef<kakao.maps.MarkerClusterer | null>(null);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -65,12 +66,25 @@ export const useOfficeMarkers = (
   useEffect(() => {
     if (!map) return undefined;
 
-    const markers = offices.map((office) => createOfficeMarker(map, office));
+    // 클러스터러는 map당 1번만 만든다 — 오피스가 바뀔 때마다 재생성하면 클러스터 상태가 끊긴다.
+    clustererRef.current = createMarkerClusterer(map);
 
     return () => {
-      markers.forEach(removeMarker);
+      clustererRef.current = null;
     };
-  }, [map, offices]);
+  }, [map]);
+
+  useEffect(() => {
+    const clusterer = clustererRef.current;
+    if (!clusterer) return undefined;
+
+    const markers = offices.map((office) => createOfficeMarker(office));
+    clusterer.addMarkers(markers);
+
+    return () => {
+      clusterer.removeMarkers(markers);
+    };
+  }, [offices]);
 
   return { offices, isTruncated };
 };

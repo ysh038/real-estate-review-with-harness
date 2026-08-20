@@ -12,5 +12,7 @@ export const buildKakaoMapScriptUrl = (appKey: string): string => {
   const url = new URL(SDK_BASE_URL);
   url.searchParams.set("appkey", appKey);
   url.searchParams.set("autoload", "false");
+  // marker-clustering 명세: MarkerClusterer는 코어 SDK에 없는 별도 라이브러리다.
+  url.searchParams.set("libraries", "clusterer");
   return url.toString();
 };

@@ -10,11 +10,14 @@ const { addMapListener, removeMapListener } = vi.hoisted(() => ({
 }));
 vi.mock("../../lib/kakaoMapEvents", () => ({ addMapListener, removeMapListener }));
 
-const { createOfficeMarker, removeMarker } = vi.hoisted(() => ({
+const { createOfficeMarker, createMarkerClusterer } = vi.hoisted(() => ({
   createOfficeMarker: vi.fn(),
-  removeMarker: vi.fn(),
+  createMarkerClusterer: vi.fn(),
 }));
-vi.mock("../../lib/kakaoMarkers", () => ({ createOfficeMarker, removeMarker }));
+vi.mock("../../lib/kakaoMarkers", () => ({
+  createOfficeMarker,
+  createMarkerClusterer,
+}));
 
 const { fetchOfficesByBbox } = vi.hoisted(() => ({
   fetchOfficesByBbox: vi.fn(),
@@ -47,14 +50,25 @@ const getBoundsChangedHandler = (): (() => void) => {
   return call[2] as () => void;
 };
 
+interface IFakeClusterer {
+  addMarkers: ReturnType<typeof vi.fn>;
+  removeMarkers: ReturnType<typeof vi.fn>;
+  clear: ReturnType<typeof vi.fn>;
+}
+
+let fakeClusterer: IFakeClusterer;
+
 describe("useOfficeMarkers", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     fetchOfficesByBbox.mockReset();
     addMapListener.mockReset();
     removeMapListener.mockReset();
-    createOfficeMarker.mockReset().mockReturnValue({ setMap: vi.fn() });
-    removeMarker.mockReset();
+    createOfficeMarker.mockReset().mockImplementation((office: TOfficeSummary) => ({
+      __officeId: office.id,
+    }));
+    fakeClusterer = { addMarkers: vi.fn(), removeMarkers: vi.fn(), clear: vi.fn() };
+    createMarkerClusterer.mockReset().mockReturnValue(fakeClusterer);
   });
 
   afterEach(() => {
@@ -168,5 +182,81 @@ describe("useOfficeMarkers", () => {
       "bounds_changed",
       handleBoundsChanged,
     );
+  });
+
+  it("AC2(marker-clustering): 클러스터러는 지도 마운트 시 1번만 생성된다", async () => {
+    fetchOfficesByBbox.mockResolvedValueOnce({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(createMarkerClusterer).toHaveBeenCalledTimes(1);
+
+    const OFFICE_B: TOfficeSummary = { ...OFFICE_A, id: "office-b" };
+    fetchOfficesByBbox.mockResolvedValueOnce({ offices: [OFFICE_B], isTruncated: false });
+    const handleBoundsChanged = getBoundsChangedHandler();
+    act(() => {
+      handleBoundsChanged();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(createMarkerClusterer).toHaveBeenCalledTimes(1);
+  });
+
+  it("AC3(marker-clustering): 오피스 목록이 바뀌면 클러스터러에 마커 전체를 추가하고, 개별 마커는 map을 받지 않는다", async () => {
+    fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // 마운트 시 빈 배열로 1번(초기 렌더), 조회 성공 후 실제 목록으로 1번 더 호출된다.
+    expect(createOfficeMarker).toHaveBeenCalledWith(OFFICE_A);
+    const lastCall = fakeClusterer.addMarkers.mock.calls.at(-1);
+    expect(lastCall?.[0]).toHaveLength(1);
+  });
+
+  it("AC4(marker-clustering): 오피스 목록이 바뀌면 이전 마커 배치를 클러스터러에서 제거한다", async () => {
+    fetchOfficesByBbox.mockResolvedValueOnce({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const firstBatch = fakeClusterer.addMarkers.mock.calls[0]?.[0];
+
+    const OFFICE_B: TOfficeSummary = { ...OFFICE_A, id: "office-b" };
+    fetchOfficesByBbox.mockResolvedValueOnce({ offices: [OFFICE_B], isTruncated: false });
+    const handleBoundsChanged = getBoundsChangedHandler();
+    act(() => {
+      handleBoundsChanged();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(fakeClusterer.removeMarkers).toHaveBeenCalledWith(firstBatch);
+  });
+
+  it("AC4(marker-clustering): 언마운트되면 그 시점의 마커 배치가 클러스터러에서 제거된다", async () => {
+    fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    const { unmount } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const batch = fakeClusterer.addMarkers.mock.calls[0]?.[0];
+
+    unmount();
+
+    expect(fakeClusterer.removeMarkers).toHaveBeenCalledWith(batch);
   });
 });

@@ -39,6 +39,20 @@ declare global {
       setMap(map: Map | null): void;
     }
 
+    interface IMarkerClustererOptions {
+      map: Map;
+      markers?: Marker[];
+      averageCenter?: boolean;
+      minLevel?: number;
+    }
+
+    class MarkerClusterer {
+      constructor(options: IMarkerClustererOptions);
+      addMarkers(markers: Marker[]): void;
+      removeMarkers(markers: Marker[]): void;
+      clear(): void;
+    }
+
     namespace event {
       function addListener(
         target: object,
@@ -59,6 +73,7 @@ declare global {
       LatLngBounds: typeof kakao.maps.LatLngBounds;
       Map: typeof kakao.maps.Map;
       Marker: typeof kakao.maps.Marker;
+      MarkerClusterer: typeof kakao.maps.MarkerClusterer;
       event: typeof kakao.maps.event;
       load: (callback: () => void) => void;
     };

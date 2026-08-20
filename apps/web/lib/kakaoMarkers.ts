@@ -1,16 +1,20 @@
 import type { TOfficeSummary } from "@repo/types";
 
-/** window.kakao.maps.Marker 를 얇게 감싼다 — 훅 테스트에서 실제 SDK 없이 모킹하기 위함. */
-export const createOfficeMarker = (
-  map: kakao.maps.Map,
-  office: TOfficeSummary,
-): kakao.maps.Marker =>
+/** 클러스터러가 지도 부착을 전담한다 — 마커 자체는 map을 받지 않는다 (marker-clustering 명세). */
+export const createOfficeMarker = (office: TOfficeSummary): kakao.maps.Marker =>
   new window.kakao.maps.Marker({
     position: new window.kakao.maps.LatLng(office.lat, office.lng),
-    map,
     title: office.name,
   });
 
-export const removeMarker = (marker: kakao.maps.Marker): void => {
-  marker.setMap(null);
-};
+/** 카카오 예제가 흔히 쓰는 minLevel(6)에서 시작 — 실제 밀도로 브라우저 확인 후 조정. */
+const CLUSTER_MIN_LEVEL = 6;
+
+export const createMarkerClusterer = (
+  map: kakao.maps.Map,
+): kakao.maps.MarkerClusterer =>
+  new window.kakao.maps.MarkerClusterer({
+    map,
+    averageCenter: true,
+    minLevel: CLUSTER_MIN_LEVEL,
+  });
