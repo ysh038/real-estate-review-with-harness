@@ -47,8 +47,8 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 - [x] `GET /api/offices/:id` — 사무소 + 리뷰 집계(`avgRating`, `reviewCount`) (덩이 A)
 - [x] `GET /api/offices/:id/reviews` — 커서 페이지네이션 (덩이 A)
 - [x] 카카오 OAuth — 콜백 라우트, HttpOnly 세션 쿠키, OAuth state(CSRF) (덩이 B,
-      명세: `specs/kakao-oauth-login.md` — AC1~7 자동 검증 완료, AC8~10 실로그인 검증 대기)
-- [x] 로그인/로그아웃 UI + 세션 컨텍스트 (덩이 B)
+      명세: `specs/kakao-oauth-login.md` — AC1~10 전부 실로그인까지 확인 완료)
+- [x] 로그인/로그아웃 UI + 세션 컨텍스트 (덩이 B — **완료**)
 - [ ] `POST /api/offices/:id/reviews` — 작성 (인증 필수, 사무소당 1인 1리뷰)
 - [ ] `PATCH` / `DELETE /api/reviews/:id` — 본인 리뷰 수정·삭제
 - [ ] `POST /api/reviews/:id/report` — 신고, 5회 누적 시 `hidden_at` 자동 설정

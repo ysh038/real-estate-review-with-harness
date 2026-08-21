@@ -1,6 +1,14 @@
 const TOKEN_ENDPOINT = "https://kauth.kakao.com/oauth/token";
 const PROFILE_ENDPOINT = "https://kapi.kakao.com/v2/user/me";
 
+/**
+ * fetchProfile 이 실제로 읽는 필드(닉네임·프로필 사진)만 명시적으로 요청한다.
+ * scope를 생략하면 카카오 콘솔의 "필수 동의" 설정에 조용히 기대게 되는데, 그 항목이
+ * "선택 동의"거나 아예 비어 있으면 kakao_account.profile 이 통째로 빠져 nickname이
+ * fallback("카카오 사용자")으로만 나온다 — 실제로 겪은 문제다.
+ */
+const REQUESTED_SCOPES = ["profile_nickname", "profile_image"];
+
 export interface IKakaoProfile {
   kakaoId: string;
   nickname: string;
@@ -46,6 +54,7 @@ export const createKakaoOAuthClient = (
     url.searchParams.set("redirect_uri", config.redirectUri);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("state", state);
+    url.searchParams.set("scope", REQUESTED_SCOPES.join(","));
     return url.toString();
   },
 
