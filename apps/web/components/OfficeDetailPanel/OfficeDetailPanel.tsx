@@ -4,6 +4,7 @@ import type { TOfficeSummary } from "@repo/types";
 import { useEffect, useId, useRef } from "react";
 
 import styles from "./OfficeDetailPanel.module.css";
+import { ReviewSection } from "../ReviewSection";
 
 const EMPTY_VALUE = "정보 없음";
 
@@ -67,6 +68,7 @@ export const OfficeDetailPanel = ({
           <dd className={styles.value}>{office.phone ?? EMPTY_VALUE}</dd>
         </div>
       </dl>
+      <ReviewSection officeId={office.id} />
     </aside>
   );
 };

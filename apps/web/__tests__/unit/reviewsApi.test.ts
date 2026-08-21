@@ -1,0 +1,132 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import {
+  createReview,
+  fetchOfficeDetail,
+  fetchReviews,
+} from "../../lib/reviewsApi";
+
+const BASE_URL = "http://localhost:8788";
+
+describe("reviewsApi", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("fetchOfficeDetail: GET /api/offices/:id 를 호출하고 계약 스키마로 파싱한다", async () => {
+    const body = {
+      id: "office-1",
+      name: "분당공인중개사사무소",
+      ownerName: "홍길동",
+      address: "경기도 성남시 분당구 판교로 1",
+      phone: "031-000-0000",
+      sigungu: "성남시",
+      lat: 37.4,
+      lng: 127.1,
+      avgRating: 4.3,
+      reviewCount: 12,
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchOfficeDetail("office-1", BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/offices/office-1`,
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("fetchReviews: 커서·limit 없이 호출하면 쿼리 없이 요청한다", async () => {
+    const body = { reviews: [], nextCursor: null };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchReviews("office-1", {}, BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/offices/office-1/reviews`,
+    );
+  });
+
+  it("fetchReviews: 커서가 있으면 쿼리스트링에 실어 보낸다", async () => {
+    const body = { reviews: [], nextCursor: null };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchReviews("office-1", { cursor: "abc" }, BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/offices/office-1/reviews?cursor=abc`,
+    );
+  });
+
+  it("fetchOfficeDetail: 실패 응답이면 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({}),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchOfficeDetail("no-such", BASE_URL)).rejects.toThrow();
+  });
+
+  it("createReview: POST /api/offices/:id/reviews 를 credentials 포함해 호출한다", async () => {
+    const body = {
+      id: "00000000-0000-4000-8000-000000000001",
+      officeId: "office-1",
+      rating: 5,
+      content: "충분히 긴 리뷰 본문입니다 열 자 이상",
+      author: { nickname: "홍길동", profileImageUrl: null },
+      createdAt: "2026-08-21T00:00:00.000Z",
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createReview(
+      "office-1",
+      { rating: 5, content: "충분히 긴 리뷰 본문입니다 열 자 이상" },
+      BASE_URL,
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/offices/office-1/reviews`,
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: 5,
+          content: "충분히 긴 리뷰 본문입니다 열 자 이상",
+        }),
+      }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("createReview: 실패 응답이면 status를 포함한 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ message: "이미 작성했습니다" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createReview("office-1", { rating: 5, content: "x".repeat(10) }, BASE_URL),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+});
