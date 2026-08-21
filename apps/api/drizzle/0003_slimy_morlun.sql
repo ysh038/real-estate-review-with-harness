@@ -1,0 +1,1 @@
+ALTER TABLE "reviews" ADD COLUMN "created_from_ip" text;

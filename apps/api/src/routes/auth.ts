@@ -5,10 +5,11 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import type { IKakaoOAuthClient } from "../lib/kakaoOAuthClient";
+import { SESSION_COOKIE_NAME } from "../lib/sessionCookie";
+import { requireAuth, type IAuthedVariables } from "../middleware/requireAuth";
 import { createAuthService, type IAuthServiceDeps } from "../services/authService";
 
 const STATE_COOKIE = "kakao_oauth_state";
-const SESSION_COOKIE = "session_id";
 // 로그인 시작~콜백 사이에만 필요 — 카카오 로그인 화면 왕복 시간이면 충분하다.
 const STATE_COOKIE_MAX_AGE_SEC = 10 * 60;
 // authService 의 SESSION_TTL_MS(30일)와 맞춘다. 쿠키 만료가 서버 세션보다 먼저 끝나면
@@ -66,7 +67,7 @@ export const createKakaoOAuthRoute = (deps: IAuthRouteDeps) => {
           state,
           expectedState,
         });
-        setCookie(c, SESSION_COOKIE, sessionId, {
+        setCookie(c, SESSION_COOKIE_NAME, sessionId, {
           ...cookieOptions,
           maxAge: SESSION_COOKIE_MAX_AGE_SEC,
           expires: expiresAt,
@@ -81,29 +82,20 @@ export const createKakaoOAuthRoute = (deps: IAuthRouteDeps) => {
 };
 
 /** GET /api/me — 세션으로 현재 사용자 확인 (AC5·AC6) */
-export const createMeRoute = (deps: IAuthServiceDeps) => {
-  const service = createAuthService(deps);
-
-  return new Hono().get("/", async (c) => {
-    const sessionId = getCookie(c, SESSION_COOKIE);
-    if (!sessionId) return c.json({ error: "인증이 필요합니다" }, 401);
-
-    const user = await service.getUserBySessionId(sessionId);
-    if (!user) return c.json({ error: "인증이 필요합니다" }, 401);
-
-    return c.json(user);
-  });
-};
+export const createMeRoute = (deps: IAuthServiceDeps) =>
+  new Hono<{ Variables: IAuthedVariables }>().get("/", requireAuth(deps), (c) =>
+    c.json(c.get("authUser")),
+  );
 
 /** POST /api/auth/logout — 세션 무효화 (AC7) */
 export const createAuthActionsRoute = (deps: IAuthServiceDeps) => {
   const service = createAuthService(deps);
 
   return new Hono().post("/logout", async (c) => {
-    const sessionId = getCookie(c, SESSION_COOKIE);
+    const sessionId = getCookie(c, SESSION_COOKIE_NAME);
     if (sessionId) {
       await service.logout(sessionId);
-      deleteCookie(c, SESSION_COOKIE, { path: "/" });
+      deleteCookie(c, SESSION_COOKIE_NAME, { path: "/" });
     }
     return c.body(null, 204);
   });

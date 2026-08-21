@@ -49,11 +49,14 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 - [x] 카카오 OAuth — 콜백 라우트, HttpOnly 세션 쿠키, OAuth state(CSRF) (덩이 B,
       명세: `specs/kakao-oauth-login.md` — AC1~10 전부 실로그인까지 확인 완료)
 - [x] 로그인/로그아웃 UI + 세션 컨텍스트 (덩이 B — **완료**)
-- [ ] `POST /api/offices/:id/reviews` — 작성 (인증 필수, 사무소당 1인 1리뷰)
-- [ ] `PATCH` / `DELETE /api/reviews/:id` — 본인 리뷰 수정·삭제
-- [ ] `POST /api/reviews/:id/report` — 신고, 5회 누적 시 `hidden_at` 자동 설정
-- [ ] Rate limit — IP + 사무소 조합 24시간 1건 (초과 429)
-- [ ] 리뷰 목록·작성 폼 UI (별점 + 본문 10자 이상), 로딩·에러 상태
+- [x] `POST /api/offices/:id/reviews` — 작성 (인증 필수, 사무소당 1인 1리뷰) (덩이 C,
+      명세: `specs/review-write-and-report.md`)
+- [x] `PATCH` / `DELETE /api/reviews/:id` — 본인 리뷰 수정·삭제 (덩이 C)
+- [x] `POST /api/reviews/:id/report` — 신고, 5회 누적 시 `hidden_at` 자동 설정 (덩이 C —
+      실서버 스모크로 4건 노출 유지 → 5번째 자동 숨김까지 확인)
+- [x] Rate limit — IP + 사무소 조합 24시간 1건 (초과 429) (덩이 C — 작성에만 적용,
+      근거는 명세 "범위 밖")
+- [ ] 리뷰 목록·작성 폼 UI (별점 + 본문 10자 이상), 로딩·에러 상태 (덩이 D, 마지막)
 
 ## 하지 않기로 한 것
 

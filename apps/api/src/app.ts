@@ -9,15 +9,16 @@ import {
 } from "./routes/auth";
 import { createHealthRoute } from "./routes/health";
 import { createOfficesRoute } from "./routes/offices";
+import { createReviewsRoute } from "./routes/reviews";
 import type {
   IOfficeDetailRepository,
   IOfficeRepository,
 } from "./services/officeService";
-import type { IReviewRepository } from "./services/reviewService";
+import type { IReviewWriteRepository } from "./services/reviewService";
 
 export interface IAppDeps extends IAuthRouteDeps {
   officeRepository: IOfficeRepository & IOfficeDetailRepository;
-  reviewRepository: IReviewRepository;
+  reviewRepository: IReviewWriteRepository;
 }
 
 /**
@@ -36,5 +37,6 @@ export const createApp = (deps: IAppDeps) =>
     .route("/health", createHealthRoute())
     .route("/auth/kakao", createKakaoOAuthRoute(deps))
     .route("/api/offices", createOfficesRoute(deps))
+    .route("/api/reviews", createReviewsRoute(deps))
     .route("/api/me", createMeRoute(deps))
     .route("/api/auth", createAuthActionsRoute(deps));

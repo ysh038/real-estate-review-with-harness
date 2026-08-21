@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -82,6 +83,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       userId,
       rating: 5,
       content: CONTENT,
+      createdFromIp: null,
     });
 
     await expect(
@@ -90,6 +92,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         userId,
         rating: 3,
         content: CONTENT,
+        createdFromIp: null,
       }),
     ).rejects.toThrow();
   });
@@ -102,6 +105,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       userId: authorId,
       rating: 5,
       content: CONTENT,
+      createdFromIp: null,
     });
     const [review] = await reviewRepository.findByOfficeId(OFFICE.id, 1);
 
@@ -125,6 +129,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         userId,
         rating: 6,
         content: CONTENT,
+        createdFromIp: null,
       }),
     ).rejects.toThrow();
   });
@@ -138,6 +143,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         userId,
         rating: 5,
         content: "짧다",
+        createdFromIp: null,
       }),
     ).rejects.toThrow();
   });
@@ -150,12 +156,14 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       userId: first,
       rating: 5,
       content: CONTENT,
+      createdFromIp: null,
     });
     await reviewRepository.insert({
       officeId: OFFICE.id,
       userId: second,
       rating: 4,
       content: CONTENT,
+      createdFromIp: null,
     });
 
     const ratings = await officeRepository.findVisibleRatingsByOfficeId(
@@ -173,8 +181,11 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       userId: visible,
       rating: 5,
       content: CONTENT,
+      createdFromIp: null,
     });
-    await reviewRepository.insert({
+    // "이미 숨겨진 리뷰"는 신고 흐름을 거치지 않고 픽스처로 직접 만든다 —
+    // insert()는 이제 실제 작성 API가 쓰는 메서드라 hiddenAt을 받지 않는다.
+    await db.insert(reviews).values({
       officeId: OFFICE.id,
       userId: hidden,
       rating: 1,
@@ -252,5 +263,127 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
 
     expect(page1.map((row) => row.nickname)).toEqual(["첫번째", "두번째"]);
     expect(page2.map((row) => row.nickname)).toEqual(["세번째"]);
+  });
+
+  it("AC7: 24시간 안에 같은 (사무소, IP)로 작성된 리뷰가 있으면 true", async () => {
+    const userId = await insertUser("kakao-ip-1", "아이피테스트1");
+    await reviewRepository.insert({
+      officeId: OFFICE.id,
+      userId,
+      rating: 5,
+      content: CONTENT,
+      createdFromIp: "203.0.113.1",
+    });
+
+    await expect(
+      reviewRepository.hasRecentReviewFromIp(OFFICE.id, "203.0.113.1"),
+    ).resolves.toBe(true);
+  });
+
+  it("AC7: 다른 IP거나 24시간이 지난 리뷰면 false", async () => {
+    const sameIpOldUser = await insertUser("kakao-ip-2", "아이피테스트2");
+    const otherIpUser = await insertUser("kakao-ip-3", "아이피테스트3");
+    // 24시간을 넘긴 리뷰 — repository.insert는 createdAt을 지정할 수 없으니 db로 직접 만든다.
+    await db.insert(reviews).values({
+      officeId: OFFICE.id,
+      userId: sameIpOldUser,
+      rating: 5,
+      content: CONTENT,
+      createdFromIp: "203.0.113.1",
+      createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+    });
+    await reviewRepository.insert({
+      officeId: OFFICE.id,
+      userId: otherIpUser,
+      rating: 5,
+      content: CONTENT,
+      createdFromIp: "198.51.100.1",
+    });
+
+    await expect(
+      reviewRepository.hasRecentReviewFromIp(OFFICE.id, "203.0.113.1"),
+    ).resolves.toBe(false);
+    await expect(
+      reviewRepository.hasRecentReviewFromIp(OFFICE.id, "192.0.2.1"),
+    ).resolves.toBe(false);
+  });
+
+  it("AC12: 수정하면 updatedAt이 이전보다 커진다", async () => {
+    const userId = await insertUser("kakao-update", "수정테스트");
+    const created = await reviewRepository.insert({
+      officeId: OFFICE.id,
+      userId,
+      rating: 3,
+      content: CONTENT,
+      createdFromIp: null,
+    });
+    const [before] = await db
+      .select({ updatedAt: reviews.updatedAt })
+      .from(reviews)
+      .where(eq(reviews.id, created.id));
+
+    await reviewRepository.update(created.id, {
+      rating: 5,
+      content: "수정된 충분히 긴 리뷰 본문입니다",
+    });
+    const [after] = await db
+      .select({ updatedAt: reviews.updatedAt })
+      .from(reviews)
+      .where(eq(reviews.id, created.id));
+
+    expect(after!.updatedAt.getTime()).toBeGreaterThan(
+      before!.updatedAt.getTime(),
+    );
+  });
+
+  it("AC13: 삭제하면 목록·단건 조회 모두에서 사라진다", async () => {
+    const userId = await insertUser("kakao-delete", "삭제테스트");
+    const created = await reviewRepository.insert({
+      officeId: OFFICE.id,
+      userId,
+      rating: 3,
+      content: CONTENT,
+      createdFromIp: null,
+    });
+
+    await reviewRepository.deleteById(created.id);
+
+    await expect(reviewRepository.findById(created.id)).resolves.toBeNull();
+    const rows = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+    expect(rows.find((row) => row.id === created.id)).toBeUndefined();
+  });
+
+  it("AC18: 신고가 4건이면 그대로 노출되고, 5번째에 hidden_at이 설정된다", async () => {
+    const authorId = await insertUser("kakao-reported-author", "글쓴이");
+    const created = await reviewRepository.insert({
+      officeId: OFFICE.id,
+      userId: authorId,
+      rating: 3,
+      content: CONTENT,
+      createdFromIp: null,
+    });
+    const reporterIds = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        insertUser(`kakao-reporter-${i}`, `신고자${i}`),
+      ),
+    );
+
+    for (const reporterId of reporterIds.slice(0, 4)) {
+      await reviewRepository.insertReport(created.id, reporterId);
+      await reviewRepository.hideIfThresholdReached(created.id, 5);
+    }
+    const [afterFour] = await db
+      .select({ hiddenAt: reviews.hiddenAt })
+      .from(reviews)
+      .where(eq(reviews.id, created.id));
+    expect(afterFour!.hiddenAt).toBeNull();
+
+    await reviewRepository.insertReport(created.id, reporterIds[4]!);
+    await reviewRepository.hideIfThresholdReached(created.id, 5);
+    const [afterFive] = await db
+      .select({ hiddenAt: reviews.hiddenAt })
+      .from(reviews)
+      .where(eq(reviews.id, created.id));
+    expect(afterFive!.hiddenAt).not.toBeNull();
   });
 });

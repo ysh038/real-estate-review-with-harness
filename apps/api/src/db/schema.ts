@@ -89,6 +89,8 @@ export const reviews = pgTable(
     content: text("content").notNull(),
     /** 신고 누적으로 숨겨진 시각. NULL이면 노출된다 (soft hide). */
     hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    /** rate limit(IP+사무소 조합 24시간 1건) 판정용. review-write-and-report 명세 AC7. */
+    createdFromIp: text("created_from_ip"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

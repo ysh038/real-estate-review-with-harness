@@ -53,6 +53,22 @@ export const reviewListQuerySchema = z.object({
 
 export type TReviewListQuery = z.infer<typeof reviewListQuerySchema>;
 
+/**
+ * 리뷰 작성·수정 요청 본문. 같은 모양이다 — PATCH는 부분 수정이 아니라 전체 교체
+ * (근거: docs/specs/review-write-and-report.md 설계 메모, "누락 필드는 기존값 유지?"
+ * 같은 partial-update 규칙을 새로 만들지 않기 위함).
+ */
+export const createReviewRequestSchema = z.object({
+  rating: reviewRatingSchema,
+  content: z.string().min(REVIEW_CONTENT_MIN_LENGTH),
+});
+
+export type TCreateReviewRequest = z.infer<typeof createReviewRequestSchema>;
+
+export const updateReviewRequestSchema = createReviewRequestSchema;
+
+export type TUpdateReviewRequest = TCreateReviewRequest;
+
 export const officeDetailResponseSchema = officeSummarySchema.extend({
   /** 리뷰가 없으면 null — "평점 0점"과 "평가 없음"은 다르다. */
   avgRating: z.number().nullable(),

@@ -1,13 +1,18 @@
 import { zValidator } from "@hono/zod-validator";
 import {
   bboxQuerySchema,
+  createReviewRequestSchema,
   officeDetailResponseSchema,
   officesByBboxResponseSchema,
   reviewListQuerySchema,
   reviewListResponseSchema,
+  reviewSchema,
 } from "@repo/types";
 import { Hono } from "hono";
 
+import { getClientIp } from "../lib/clientIp";
+import { type IAuthedVariables, requireAuth } from "../middleware/requireAuth";
+import type { IAuthServiceDeps } from "../services/authService";
 import {
   createOfficeDetailService,
   createOfficeService,
@@ -16,25 +21,25 @@ import {
 } from "../services/officeService";
 import {
   createReviewService,
+  DuplicateReviewError,
   InvalidCursorError,
-  type IReviewRepository,
+  ReviewRateLimitedError,
+  type IReviewWriteRepository,
 } from "../services/reviewService";
 
-export interface IOfficesRouteDeps {
+export interface IOfficesRouteDeps extends IAuthServiceDeps {
   officeRepository: IOfficeRepository & IOfficeDetailRepository;
-  reviewRepository: IReviewRepository;
+  reviewRepository: IReviewWriteRepository;
 }
 
 /** 라우트는 검증 → 서비스 호출 → 응답만 한다. SQL·비즈니스 판단은 아래 레이어. */
-export const createOfficesRoute = ({
-  officeRepository,
-  reviewRepository,
-}: IOfficesRouteDeps) => {
+export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
+  const { officeRepository, reviewRepository } = deps;
   const service = createOfficeService(officeRepository);
   const detailService = createOfficeDetailService(officeRepository);
   const reviewService = createReviewService(reviewRepository);
 
-  return new Hono()
+  return new Hono<{ Variables: IAuthedVariables }>()
     .get("/", zValidator("query", bboxQuerySchema), async (c) => {
       const { bbox } = c.req.valid("query");
       const result = await service.findByBbox(bbox);
@@ -63,6 +68,37 @@ export const createOfficesRoute = ({
           // 깨진 커서는 클라이언트 잘못이다 — 500이 아니라 400으로 돌려준다.
           if (error instanceof InvalidCursorError) {
             return c.json({ message: error.message }, 400);
+          }
+          throw error;
+        }
+      },
+    )
+    .post(
+      "/:id/reviews",
+      requireAuth(deps),
+      zValidator("json", createReviewRequestSchema),
+      async (c) => {
+        const officeId = c.req.param("id");
+        // AC2: 없는 사무소면 404 — 리뷰를 붙일 대상 자체가 없다.
+        const office = await officeRepository.findById(officeId);
+        if (!office) return c.json({ message: "사무소를 찾을 수 없습니다" }, 404);
+
+        const { rating, content } = c.req.valid("json");
+        try {
+          const review = await reviewService.create({
+            officeId,
+            authUser: c.get("authUser"),
+            rating,
+            content,
+            clientIp: getClientIp(c),
+          });
+          return c.json(reviewSchema.parse(review), 201);
+        } catch (error) {
+          if (error instanceof DuplicateReviewError) {
+            return c.json({ message: error.message }, 409);
+          }
+          if (error instanceof ReviewRateLimitedError) {
+            return c.json({ message: error.message }, 429);
           }
           throw error;
         }
