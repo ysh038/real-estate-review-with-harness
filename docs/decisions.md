@@ -5,6 +5,43 @@
 
 ## 결정
 
+### 2026-08-24 #9 — 리뷰 모델이 원본과 다르다는 걸 뒤늦게 확인, 격차를 덩이 E~J로 좁힌다
+
+- **발견**: Phase 1(리뷰 시스템) 10개 항목을 전부 완료로 표시한 뒤, 원본 저장소
+  (`/Users/sanghoon/Desktop/real-estate-agent-review`)의 **실제 코드**(`apps/api/src/db/schema.ts`
+  등, grep 0건으로 확인)를 열어보니 리뷰의 핵심 모델 자체가 다르다는 게 드러났다:
+  - 원본은 **`rating`(별점) 컬럼이 아예 없다.** 대신 `dealType`/`dealResult`(거래유형·결과),
+    `visitedYear`/`visitedMonth`(방문 시기), 태그(`REVIEW_TAGS` + 사무소별 `tagCounts`),
+    사진, "도움돼요"(helpful) 토글, 비속어 필터(`containsProfanity`, 422), 내 리뷰 목록
+    (`GET .../me/reviews`), 관리자 숨김 리뷰 목록·복구(`x-admin-api-key` 헤더 기반
+    `requireAdmin`, DB role 컬럼 없음)로 리뷰를 표현한다.
+  - 이 저장소는 처음부터 `AGENTS.md` 도메인 용어에 "review = 별점 + 본문"으로 못박고
+    시작했다 — 원본의 **실제 스키마를 확인하지 않고** 세운 가정으로 보인다(원본 자체의
+    `docs/product-spec.md`에는 `rating smallint` 재설계가 `[x]` 완료로 적혀 있지만 실제
+    코드엔 반영되지 않은 원본 쪽 문서-코드 드리프트가 있어, 그 문서만 보고 따라갔을 가능성).
+  - `docs/experiment.md`는 "범위: MVP + Phase 1 (비교는 동일 구간만)"을 전제하는데, 지금
+    이 저장소의 Phase 1은 원본의 실제 Phase 1과 기능적으로 다른 걸 구현한 셈이라 비교
+    타당성에 영향이 있다.
+- **결정**: 별점(rating)은 이미 여러 명세·API·UI에 걸쳐 구현·검증됐으므로 되돌리지 않고
+  유지한다(제거는 더 큰 재작업이고, "리뷰에 정량 지표가 있다"는 것 자체는 사용자 가치가
+  있다). 대신 **원본에 있고 이 저장소에 없는 항목을 덩이 E~J로 나눠 추가한다**:
+  - 덩이 E — dealType/dealResult/visitedYear/visitedMonth (리뷰 작성 폼 필드 확장)
+  - 덩이 F — 리뷰 태그(REVIEW_TAGS) + 사무소 태그 집계
+  - 덩이 G — 비속어 필터(생성·수정 시 422)
+  - 덩이 H — "도움돼요" 토글 + helpfulCount/isHelpful
+  - 덩이 I — 내 리뷰 목록
+  - 덩이 J — 관리자: 숨김 리뷰 목록 + 복구 (API 전용, 원본도 web UI 없음)
+  사진 첨부는 여전히 제외한다(Phase 2, `docs/product-spec.md` "하지 않기로 한 것"에 이미
+  근거 있음 — 유일하게 의도적으로 뺀 항목이었다는 게 이번에 확인됐다).
+- **대안**: 별점을 제거하고 원본처럼 태그/거래정보 기반으로 리뷰 모델을 다시 짠다.
+- **근거**: 별점 제거는 이미 통과한 명세 6개(schema, write/report, list-and-write-ui 등)를
+  전부 재작업해야 하는 비용인데, 원본 문서(`rating smallint [x]`)가 최소한 "원본도 별점을
+  의도했었다"는 근거는 되므로 완전한 창작은 아니다. 반면 부족한 기능(태그·비속어 필터 등)은
+  기존 리뷰 작성 경로에 필드/엔드포인트를 얹는 정도라 추가 비용이 더 적다.
+- **주의(통제변인)**: `docs/experiment.md`의 "소스 미복사" 원칙에 따라, 이 항목들은 원본의
+  API 스펙(엔드포인트 모양, 상태 코드, threshold 값 등 "인터페이스")만 참고하고 구현 코드나
+  비속어 단어 목록 자체는 복사하지 않는다 — `seed-sigungu` 명세의 선례와 동일한 기준.
+
 ### 2026-08-15 #6 — 원본과 겹치는 모든 로컬 자원을 분리한다 (compose 프로젝트·포트)
 
 - **결정**: `infra/docker/docker-compose.yml` 에 `name: harness-review` 를 명시하고,
