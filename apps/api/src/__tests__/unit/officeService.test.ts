@@ -1,9 +1,11 @@
-import type { TBbox, TOfficeSummary } from "@repo/types";
+import type { TBbox } from "@repo/types";
 import { describe, expect, it } from "vitest";
 
 import {
   MAX_OFFICES_PER_BBOX,
+  TOP_TAGS_PER_OFFICE,
   createOfficeService,
+  type TOfficeSummaryRow,
 } from "../../services/officeService";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 
@@ -14,7 +16,7 @@ const SEOUL_BBOX: TBbox = {
   maxLat: 37.5,
 };
 
-const buildOffice = (id: string): TOfficeSummary => ({
+const buildOffice = (id: string): TOfficeSummaryRow => ({
   id,
   name: `사무소 ${id}`,
   ownerName: "홍길동",
@@ -70,5 +72,40 @@ describe("officeService.findByBbox", () => {
       SEOUL_BBOX,
       MAX_OFFICES_PER_BBOX + 1,
     );
+  });
+
+  it("AC10(review-tags): 잘린 뒤 남은 사무소 id로만 태그 집계를 상위 N개 제한으로 요청한다", async () => {
+    const rows = [buildOffice("a"), buildOffice("b")];
+    const repository = createFakeOfficeRepository(rows);
+    const service = createOfficeService(repository);
+
+    await service.findByBbox(SEOUL_BBOX);
+
+    expect(repository.findTopTagCountsByOfficeIds).toHaveBeenCalledWith(
+      ["a", "b"],
+      TOP_TAGS_PER_OFFICE,
+    );
+  });
+
+  it("AC10: 태그 집계 결과를 각 사무소의 tagCounts로 합성한다", async () => {
+    const rows = [buildOffice("a"), buildOffice("b")];
+    const repository = createFakeOfficeRepository(rows, [], [
+      { tag: "친절함", count: 3 },
+    ]);
+    const service = createOfficeService(repository);
+
+    const result = await service.findByBbox(SEOUL_BBOX);
+
+    expect(result.offices[0]?.tagCounts).toEqual([{ tag: "친절함", count: 3 }]);
+    expect(result.offices[1]?.tagCounts).toEqual([{ tag: "친절함", count: 3 }]);
+  });
+
+  it("AC11: 태그 집계가 없는 사무소는 tagCounts가 빈 배열이다", async () => {
+    const repository = createFakeOfficeRepository([buildOffice("a")]);
+    const service = createOfficeService(repository);
+
+    const result = await service.findByBbox(SEOUL_BBOX);
+
+    expect(result.offices[0]?.tagCounts).toEqual([]);
   });
 });

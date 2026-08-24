@@ -5,6 +5,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -154,6 +155,28 @@ export const reviewReports = pgTable(
 
 export type TReviewReportRow = typeof reviewReports.$inferSelect;
 export type TReviewReportInsert = typeof reviewReports.$inferInsert;
+
+/**
+ * 리뷰-태그 다대다 관계. 태그 값 자체(화이트리스트 검증)는 계약(zod enum)이 책임지고,
+ * 여기선 자유 텍스트로 둔다 — 태그 목록이 늘어날 때 DB enum 마이그레이션이 필요 없다
+ * (근거: docs/specs/review-tags.md).
+ */
+export const reviewTags = pgTable(
+  "review_tags",
+  {
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    tagKey: text("tag_key").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.reviewId, table.tagKey] }),
+    index("review_tags_tag_key_idx").on(table.tagKey),
+  ],
+);
+
+export type TReviewTagRow = typeof reviewTags.$inferSelect;
+export type TReviewTagInsert = typeof reviewTags.$inferInsert;
 
 /**
  * 로그인 세션. 쿠키엔 이 행의 `id`(불투명 랜덤 토큰)만 담는다.

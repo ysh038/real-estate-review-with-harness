@@ -33,6 +33,7 @@ const DETAIL: TOfficeDetailResponse = {
   lng: 127.1,
   avgRating: 4.5,
   reviewCount: 2,
+  tagCounts: [],
 };
 
 const buildReview = (id: string): TReview => ({
@@ -46,6 +47,7 @@ const buildReview = (id: string): TReview => ({
   dealResult: null,
   visitedYear: null,
   visitedMonth: null,
+  tags: [],
 });
 
 const PAGE_1: TReviewListResponse = {

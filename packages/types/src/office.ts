@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { tagCountSchema } from "./reviewTag";
+
 /** 지도 화면 영역. GeoJSON/OGC 관례를 따라 minLng,minLat,maxLng,maxLat 순서. */
 export const bboxSchema = z
   .object({
@@ -63,6 +65,12 @@ export const officeSummarySchema = z.object({
   sigungu: z.string(),
   lat: z.number(),
   lng: z.number(),
+  /**
+   * bbox 목록은 상위 2개(TOP_TAGS_PER_OFFICE)로 제한, 상세는 전체 — 인터페이스는
+   * 같은 스키마를 공유하고 개수 제한은 서비스 레이어에서 건다 (review-tags AC9/AC10).
+   * 리뷰·태그가 없으면 빈 배열 — null 아님 (AC11).
+   */
+  tagCounts: z.array(tagCountSchema),
 });
 
 export type TOfficeSummary = z.infer<typeof officeSummarySchema>;

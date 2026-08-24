@@ -1,12 +1,13 @@
-import { officesByBboxResponseSchema, type TOfficeSummary } from "@repo/types";
+import { officesByBboxResponseSchema } from "@repo/types";
 import { describe, expect, it } from "vitest";
 
 import { createApp } from "../../app";
+import type { TOfficeSummaryRow } from "../../services/officeService";
 import { createFakeAuthAppDeps } from "../helpers/fakeAuthDeps";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
-const OFFICE: TOfficeSummary = {
+const OFFICE: TOfficeSummaryRow = {
   id: "41135-2020-00001",
   name: "분당공인중개사사무소",
   ownerName: "홍길동",
@@ -17,7 +18,7 @@ const OFFICE: TOfficeSummary = {
   lng: 127.1,
 };
 
-const buildApp = (rows: TOfficeSummary[] = [OFFICE]) => {
+const buildApp = (rows: TOfficeSummaryRow[] = [OFFICE]) => {
   const officeRepository = createFakeOfficeRepository(rows);
   return {
     app: createApp({
@@ -105,5 +106,23 @@ describe("GET /api/offices", () => {
     await app.request("/api/offices?bbox=nope");
 
     expect(officeRepository.findByBbox).not.toHaveBeenCalled();
+  });
+
+  it("AC10(review-tags): 각 사무소 항목에 tagCounts가 포함된다", async () => {
+    const officeRepository = createFakeOfficeRepository(
+      [OFFICE],
+      [],
+      [{ tag: "친절함", count: 5 }],
+    );
+    const app = createApp({
+      officeRepository,
+      reviewRepository: createFakeReviewRepository(),
+      ...createFakeAuthAppDeps(),
+    });
+
+    const res = await app.request(`/api/offices?bbox=${VALID_BBOX}`);
+    const body = officesByBboxResponseSchema.parse(await res.json());
+
+    expect(body.offices[0]?.tagCounts).toEqual([{ tag: "친절함", count: 5 }]);
   });
 });

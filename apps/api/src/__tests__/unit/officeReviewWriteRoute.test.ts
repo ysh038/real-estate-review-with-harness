@@ -1,7 +1,8 @@
-import { reviewSchema, type TOfficeSummary } from "@repo/types";
+import { reviewSchema } from "@repo/types";
 import { describe, expect, it } from "vitest";
 
 import { createApp } from "../../app";
+import type { TOfficeSummaryRow } from "../../services/officeService";
 import {
   createFakeAuthAppDeps,
   createFakeSessionRepository,
@@ -9,7 +10,7 @@ import {
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
-const OFFICE: TOfficeSummary = {
+const OFFICE: TOfficeSummaryRow = {
   id: "41135-2020-00001",
   name: "분당공인중개사사무소",
   ownerName: "홍길동",
@@ -32,10 +33,10 @@ const FAKE_BUN_ENV = {
 };
 
 const buildAuthedApp = ({
-  office = OFFICE as TOfficeSummary | null,
+  office = OFFICE as TOfficeSummaryRow | null,
   reviewRepositoryOverrides = {},
 }: {
-  office?: TOfficeSummary | null;
+  office?: TOfficeSummaryRow | null;
   reviewRepositoryOverrides?: Partial<
     ReturnType<typeof createFakeReviewRepository>
   >;
@@ -315,5 +316,89 @@ describe("POST /api/offices/:id/reviews — 거래정보·방문시기 필드 (r
     expect(body.dealResult).toBe("계약함");
     expect(body.visitedYear).toBe(2026);
     expect(body.visitedMonth).toBe(3);
+  });
+});
+
+describe("POST /api/offices/:id/reviews — 태그 (review-tags)", () => {
+  it("AC1: 화이트리스트 밖 태그가 섞이면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, tags: ["친절함", "존재하지않는태그"] }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC2: 7개 이상이면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        tags: [
+          "매물 많음",
+          "응답 빠름",
+          "허위매물 없음",
+          "친절함",
+          "강매 없음",
+          "설명 꼼꼼",
+          "매물 많음",
+        ],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC3: tags를 생략해도 201이고 응답의 tags는 빈 배열이다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(VALID_BODY),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.tags).toEqual([]);
+  });
+
+  it("AC4: tags를 채워 보내면 응답에 그대로 반영된다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, tags: ["친절함", "응답 빠름"] }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.tags).toEqual(["친절함", "응답 빠름"]);
+  });
+
+  it("AC7: 중복 태그가 섞여도 repository.insert에는 중복 제거돼 전달된다", async () => {
+    const { app, sessionRepository, reviewRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, tags: ["친절함", "친절함", "응답 빠름"] }),
+    });
+
+    expect(reviewRepository.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ tags: ["친절함", "응답 빠름"] }),
+    );
   });
 });

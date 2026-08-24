@@ -1,6 +1,13 @@
 "use client";
 
-import { DEAL_RESULTS, DEAL_TYPES, REVIEW_CONTENT_MIN_LENGTH, type TReview } from "@repo/types";
+import {
+  DEAL_RESULTS,
+  DEAL_TYPES,
+  REVIEW_CONTENT_MIN_LENGTH,
+  REVIEW_TAGS,
+  type TReview,
+  type TReviewTag,
+} from "@repo/types";
 import { useState } from "react";
 
 import styles from "./ReviewSection.module.css";
@@ -51,7 +58,16 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
   const [dealResult, setDealResult] = useState<string>(NOT_SELECTED);
   const [visitedYear, setVisitedYear] = useState<string>("");
   const [visitedMonth, setVisitedMonth] = useState<string>(NOT_SELECTED);
+  const [selectedTags, setSelectedTags] = useState<TReviewTag[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const toggleTag = (tag: TReviewTag) => {
+    setSelectedTags((current) =>
+      current.includes(tag)
+        ? current.filter((selected) => selected !== tag)
+        : [...current, tag],
+    );
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -82,6 +98,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       }),
       ...(visitedYear !== "" && { visitedYear: Number(visitedYear) }),
       ...(visitedMonth !== NOT_SELECTED && { visitedMonth: Number(visitedMonth) }),
+      ...(selectedTags.length > 0 && { tags: selectedTags }),
     });
     if (wasSubmitted) {
       setRating(0);
@@ -90,6 +107,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       setDealResult(NOT_SELECTED);
       setVisitedYear("");
       setVisitedMonth(NOT_SELECTED);
+      setSelectedTags([]);
     }
   };
 
@@ -103,6 +121,15 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
         ) : (
           <p className={styles.summaryText}>아직 리뷰가 없습니다</p>
         )}
+        {detail && detail.tagCounts.length > 0 ? (
+          <ul className={styles.tagList}>
+            {detail.tagCounts.map(({ tag, count }) => (
+              <li key={tag} className={styles.tagBadge}>
+                {tag} {count}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       {isLoading ? <p className={styles.status}>불러오는 중…</p> : null}
@@ -123,6 +150,15 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
             <p className={styles.content}>{review.content}</p>
             {formatDealInfo(review) ? (
               <p className={styles.dealInfo}>{formatDealInfo(review)}</p>
+            ) : null}
+            {review.tags.length > 0 ? (
+              <ul className={styles.tagList}>
+                {review.tags.map((tag) => (
+                  <li key={tag} className={styles.tagBadge}>
+                    {tag}
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </li>
         ))}
@@ -209,6 +245,23 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
                 </option>
               ))}
             </select>
+          </div>
+          <div className={styles.tagChipGroup} role="group" aria-label="태그">
+            {REVIEW_TAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className={
+                  selectedTags.includes(tag)
+                    ? `${styles.tagChip} ${styles.tagChipSelected}`
+                    : styles.tagChip
+                }
+                aria-pressed={selectedTags.includes(tag)}
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+              </button>
+            ))}
           </div>
           {formError ? (
             <p className={styles.formError} role="alert">

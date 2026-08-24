@@ -1,13 +1,21 @@
-import { and, desc, eq, gt, isNull, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
 
 import type { TDatabase } from "../db/client";
-import { reviewReports, reviews, users } from "../db/schema";
+import { reviewReports, reviews, reviewTags, users } from "../db/schema";
 import type { ICursorPosition } from "../lib/cursor";
 import type {
   IReviewListRow,
   IReviewOwnedRow,
   IReviewWriteRepository,
 } from "../services/reviewService";
+
+/**
+ * 트랜잭션 콜백이 주는 `tx` 는 `TDatabase` 와 구조가 달라(`$client` 없음) 그대로 대입이
+ * 안 된다. transaction()의 콜백 파라미터 타입을 직접 뽑아 일반 db/tx 양쪽에서 쓸 수 있게
+ * 열어둔다 — helpers(findTagsByReviewIds·replaceTags)를 insert/update의 트랜잭션 안에서도
+ * 그대로 재사용하기 위함.
+ */
+type TDbOrTx = TDatabase | Parameters<Parameters<TDatabase["transaction"]>[0]>[0];
 
 const OWNED_ROW_COLUMNS = {
   id: reviews.id,
@@ -20,6 +28,38 @@ const OWNED_ROW_COLUMNS = {
   dealResult: reviews.dealResult,
   visitedYear: reviews.visitedYear,
   visitedMonth: reviews.visitedMonth,
+};
+
+/** 여러 리뷰의 태그를 한 번에 — N+1 방지. */
+const findTagsByReviewIds = async (
+  db: TDbOrTx,
+  reviewIds: string[],
+): Promise<Map<string, string[]>> => {
+  const map = new Map<string, string[]>();
+  if (reviewIds.length === 0) return map;
+
+  const rows = await db
+    .select({ reviewId: reviewTags.reviewId, tagKey: reviewTags.tagKey })
+    .from(reviewTags)
+    .where(inArray(reviewTags.reviewId, reviewIds));
+
+  for (const row of rows) {
+    const list = map.get(row.reviewId) ?? [];
+    list.push(row.tagKey);
+    map.set(row.reviewId, list);
+  }
+  return map;
+};
+
+/** insert/update 후 review_tags 를 통째로 교체한다 — PATCH=전체교체 원칙(설계 메모)과 같은 결. */
+const replaceTags = async (
+  db: TDbOrTx,
+  reviewId: string,
+  tags: string[],
+): Promise<void> => {
+  await db.delete(reviewTags).where(eq(reviewTags.reviewId, reviewId));
+  if (tags.length === 0) return;
+  await db.insert(reviewTags).values(tags.map((tagKey) => ({ reviewId, tagKey })));
 };
 
 export const createReviewRepository = (
@@ -42,7 +82,7 @@ export const createReviewRepository = (
         )
       : undefined;
 
-    return db
+    const rows = await db
       .select({
         id: reviews.id,
         officeId: reviews.officeId,
@@ -68,16 +108,31 @@ export const createReviewRepository = (
       )
       .orderBy(desc(reviews.createdAt), desc(reviews.id))
       .limit(limit);
+
+    const tagsByReview = await findTagsByReviewIds(
+      db,
+      rows.map((row) => row.id),
+    );
+    return rows.map((row) => ({ ...row, tags: tagsByReview.get(row.id) ?? [] }));
   },
 
   insert: async (row): Promise<IReviewOwnedRow> => {
-    const [inserted] = await db
-      .insert(reviews)
-      .values(row)
-      .returning(OWNED_ROW_COLUMNS);
-    // insert가 실패하면 예외가 던져지므로 도달했다면 항상 행이 있다.
-    if (!inserted) throw new Error("리뷰 생성이 행을 반환하지 않았습니다");
-    return inserted;
+    const { tags, ...reviewFields } = row;
+
+    return db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(reviews)
+        .values(reviewFields)
+        .returning(OWNED_ROW_COLUMNS);
+      // insert가 실패하면 예외가 던져지므로 도달했다면 항상 행이 있다.
+      if (!inserted) throw new Error("리뷰 생성이 행을 반환하지 않았습니다");
+
+      if (tags.length > 0) {
+        await tx.insert(reviewTags).values(tags.map((tagKey) => ({ reviewId: inserted.id, tagKey })));
+      }
+
+      return { ...inserted, tags };
+    });
   },
 
   findById: async (id: string): Promise<IReviewOwnedRow | null> => {
@@ -86,7 +141,10 @@ export const createReviewRepository = (
       .from(reviews)
       .where(eq(reviews.id, id))
       .limit(1);
-    return row ?? null;
+    if (!row) return null;
+
+    const tagsByReview = await findTagsByReviewIds(db, [row.id]);
+    return { ...row, tags: tagsByReview.get(row.id) ?? [] };
   },
 
   update: async (
@@ -98,23 +156,23 @@ export const createReviewRepository = (
       dealResult: string | null;
       visitedYear: number | null;
       visitedMonth: number | null;
+      tags: string[];
     },
   ): Promise<IReviewOwnedRow> => {
-    const [updated] = await db
-      .update(reviews)
-      .set({
-        rating: patch.rating,
-        content: patch.content,
-        dealType: patch.dealType,
-        dealResult: patch.dealResult,
-        visitedYear: patch.visitedYear,
-        visitedMonth: patch.visitedMonth,
-        updatedAt: sql`now()`,
-      })
-      .where(eq(reviews.id, id))
-      .returning(OWNED_ROW_COLUMNS);
-    if (!updated) throw new Error("리뷰 수정이 행을 반환하지 않았습니다");
-    return updated;
+    const { tags, ...reviewPatch } = patch;
+
+    return db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(reviews)
+        .set({ ...reviewPatch, updatedAt: sql`now()` })
+        .where(eq(reviews.id, id))
+        .returning(OWNED_ROW_COLUMNS);
+      if (!updated) throw new Error("리뷰 수정이 행을 반환하지 않았습니다");
+
+      await replaceTags(tx, id, tags);
+
+      return { ...updated, tags };
+    });
   },
 
   deleteById: async (id: string): Promise<void> => {

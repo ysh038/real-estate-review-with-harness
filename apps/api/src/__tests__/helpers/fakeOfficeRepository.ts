@@ -1,9 +1,10 @@
-import type { TBbox, TOfficeSummary } from "@repo/types";
+import type { TBbox, TTagCount } from "@repo/types";
 import { vi } from "vitest";
 
 import type {
   IOfficeDetailRepository,
   IOfficeRepository,
+  TOfficeSummaryRow,
 } from "../../services/officeService";
 
 /**
@@ -12,10 +13,17 @@ import type {
  * 이 fake는 "몇 건을, 어떤 limit으로 요청받았는가"만 검증하기 위한 것이다.
  */
 export const createFakeOfficeRepository = (
-  rows: TOfficeSummary[] = [],
+  rows: TOfficeSummaryRow[] = [],
   ratings: number[] = [],
+  tagCounts: TTagCount[] = [],
 ): IOfficeRepository & IOfficeDetailRepository => ({
   findByBbox: vi.fn(async (_bbox: TBbox, limit: number) => rows.slice(0, limit)),
   findById: vi.fn(async (id: string) => rows.find((row) => row.id === id) ?? null),
   findVisibleRatingsByOfficeId: vi.fn(async () => ratings),
+  findTagCountsByOfficeId: vi.fn(async () => tagCounts),
+  findTopTagCountsByOfficeIds: vi.fn(async (officeIds: string[]) => {
+    const map = new Map<string, TTagCount[]>();
+    for (const id of officeIds) map.set(id, tagCounts);
+    return map;
+  }),
 });

@@ -24,6 +24,7 @@ const DETAIL: TOfficeDetailResponse = {
   lng: 127.1,
   avgRating: 4.5,
   reviewCount: 1,
+  tagCounts: [],
 };
 
 const REVIEW: TReview = {
@@ -37,6 +38,7 @@ const REVIEW: TReview = {
   dealResult: null,
   visitedYear: null,
   visitedMonth: null,
+  tags: [],
 };
 
 const REVIEW_WITH_DEAL_INFO: TReview = {

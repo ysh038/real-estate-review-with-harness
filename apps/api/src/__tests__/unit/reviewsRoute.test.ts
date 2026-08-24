@@ -27,6 +27,7 @@ const buildOwnedRow = (
   dealResult: null,
   visitedYear: null,
   visitedMonth: null,
+  tags: [],
   ...overrides,
 });
 
@@ -142,6 +143,7 @@ describe("PATCH /api/reviews/:id", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
   });
 
@@ -185,6 +187,7 @@ describe("PATCH /api/reviews/:id", () => {
       dealResult: "계약함",
       visitedYear: 2026,
       visitedMonth: 3,
+      tags: [],
     });
   });
 });
@@ -313,5 +316,40 @@ describe("POST /api/reviews/:id/report", () => {
     });
 
     expect(res.status).toBe(204);
+  });
+});
+
+describe("PATCH /api/reviews/:id — 태그 (review-tags)", () => {
+  it("AC6: tags를 생략하면 기존 태그가 있었어도 전부 삭제된다(전체교체)", async () => {
+    const { app, sessionRepository, reviewRepository } = buildApp({
+      findById: async () => buildOwnedRow({ tags: ["친절함", "응답 빠름"] }),
+    });
+    const headers = await withSession(sessionRepository);
+
+    await app.request(`/api/reviews/${REVIEW_ID}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(VALID_BODY),
+    });
+
+    expect(reviewRepository.update).toHaveBeenCalledWith(
+      REVIEW_ID,
+      expect.objectContaining({ tags: [] }),
+    );
+  });
+
+  it("화이트리스트 밖 태그면 400", async () => {
+    const { app, sessionRepository } = buildApp({
+      findById: async () => buildOwnedRow(),
+    });
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, tags: ["없는태그"] }),
+    });
+
+    expect(res.status).toBe(400);
   });
 });

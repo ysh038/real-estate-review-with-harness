@@ -1,11 +1,12 @@
-import type { TBbox, TOfficeSummary } from "@repo/types";
-import { and, eq, gte, isNull, lte, sql } from "drizzle-orm";
+import type { TBbox, TTagCount } from "@repo/types";
+import { and, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 
 import type { TDatabase } from "../db/client";
-import { offices, reviews, type TOfficeInsert } from "../db/schema";
+import { offices, reviews, reviewTags, type TOfficeInsert } from "../db/schema";
 import type {
   IOfficeDetailRepository,
   IOfficeRepository,
+  TOfficeSummaryRow,
 } from "../services/officeService";
 
 /**
@@ -24,7 +25,7 @@ export interface IOfficeWriteRepository
 export const createOfficeRepository = (
   db: TDatabase,
 ): IOfficeWriteRepository => ({
-  findByBbox: async (bbox: TBbox, limit: number): Promise<TOfficeSummary[]> =>
+  findByBbox: async (bbox: TBbox, limit: number): Promise<TOfficeSummaryRow[]> =>
     db
       .select({
         id: offices.id,
@@ -48,7 +49,7 @@ export const createOfficeRepository = (
       )
       .limit(limit),
 
-  findById: async (id: string): Promise<TOfficeSummary | null> => {
+  findById: async (id: string): Promise<TOfficeSummaryRow | null> => {
     const rows = await db
       .select({
         id: offices.id,
@@ -75,6 +76,54 @@ export const createOfficeRepository = (
       .where(and(eq(reviews.officeId, officeId), isNull(reviews.hiddenAt)));
 
     return rows.map((row) => row.rating);
+  },
+
+  /** 상세용 — 개수 제한 없이 전체 태그 집계, 개수 내림차순 (AC9). */
+  findTagCountsByOfficeId: async (officeId: string): Promise<TTagCount[]> => {
+    const rows = await db
+      .select({ tag: reviewTags.tagKey, count: count(reviewTags.tagKey) })
+      .from(reviewTags)
+      .innerJoin(reviews, eq(reviewTags.reviewId, reviews.id))
+      .where(and(eq(reviews.officeId, officeId), isNull(reviews.hiddenAt)))
+      .groupBy(reviewTags.tagKey)
+      .orderBy(desc(count(reviewTags.tagKey)));
+
+    return rows.map((row) => ({ tag: row.tag as TTagCount["tag"], count: row.count }));
+  },
+
+  /**
+   * bbox 목록용 — 여러 사무소를 한 번에(N+1 방지), 사무소별 상위 topN개만 (AC10).
+   * SQL로 "그룹별 상위 N"을 직접 뽑는 대신 전체를 개수 내림차순으로 받아 애플리케이션에서
+   * 사무소별로 topN개까지만 자른다 — 사무소 수가 최대 500(MAX_OFFICES_PER_BBOX)이라
+   * 윈도우 함수 없이도 비용이 작다.
+   */
+  findTopTagCountsByOfficeIds: async (
+    officeIds: string[],
+    topN: number,
+  ): Promise<Map<string, TTagCount[]>> => {
+    const result = new Map<string, TTagCount[]>();
+    if (officeIds.length === 0) return result;
+
+    const rows = await db
+      .select({
+        officeId: reviews.officeId,
+        tag: reviewTags.tagKey,
+        count: count(reviewTags.tagKey),
+      })
+      .from(reviewTags)
+      .innerJoin(reviews, eq(reviewTags.reviewId, reviews.id))
+      .where(and(inArray(reviews.officeId, officeIds), isNull(reviews.hiddenAt)))
+      .groupBy(reviews.officeId, reviewTags.tagKey)
+      .orderBy(reviews.officeId, desc(count(reviewTags.tagKey)));
+
+    for (const row of rows) {
+      const existing = result.get(row.officeId) ?? [];
+      if (existing.length >= topN) continue;
+      existing.push({ tag: row.tag as TTagCount["tag"], count: row.count });
+      result.set(row.officeId, existing);
+    }
+
+    return result;
   },
 
   /** 재시딩은 멱등이어야 한다 — 같은 등록번호는 갱신하고 행을 늘리지 않는다. */

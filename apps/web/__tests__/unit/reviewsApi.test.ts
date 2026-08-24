@@ -25,6 +25,7 @@ describe("reviewsApi", () => {
       lng: 127.1,
       avgRating: 4.3,
       reviewCount: 12,
+      tagCounts: [],
     };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -93,6 +94,7 @@ describe("reviewsApi", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

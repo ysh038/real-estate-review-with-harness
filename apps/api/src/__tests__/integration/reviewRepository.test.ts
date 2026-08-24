@@ -88,6 +88,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
 
     await expect(
@@ -101,6 +102,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         dealResult: null,
         visitedYear: null,
         visitedMonth: null,
+        tags: [],
       }),
     ).rejects.toThrow();
   });
@@ -118,6 +120,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
     const [review] = await reviewRepository.findByOfficeId(OFFICE.id, 1);
 
@@ -146,6 +149,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         dealResult: null,
         visitedYear: null,
         visitedMonth: null,
+        tags: [],
       }),
     ).rejects.toThrow();
   });
@@ -164,6 +168,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         dealResult: null,
         visitedYear: null,
         visitedMonth: null,
+        tags: [],
       }),
     ).rejects.toThrow();
   });
@@ -180,6 +185,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: "계약함",
       visitedYear: 2026,
       visitedMonth: 3,
+      tags: [],
     });
 
     const [row] = await reviewRepository.findByOfficeId(OFFICE.id, 1);
@@ -203,6 +209,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
     await reviewRepository.insert({
       officeId: OFFICE.id,
@@ -214,6 +221,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
 
     const ratings = await officeRepository.findVisibleRatingsByOfficeId(
@@ -236,6 +244,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
     // "이미 숨겨진 리뷰"는 신고 흐름을 거치지 않고 픽스처로 직접 만든다 —
     // insert()는 이제 실제 작성 API가 쓰는 메서드라 hiddenAt을 받지 않는다.
@@ -331,6 +340,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
 
     await expect(
@@ -360,6 +370,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
 
     await expect(
@@ -382,6 +393,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
     const [before] = await db
       .select({ updatedAt: reviews.updatedAt })
@@ -395,6 +407,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
     const [after] = await db
       .select({ updatedAt: reviews.updatedAt })
@@ -418,6 +431,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
 
     await reviewRepository.deleteById(created.id);
@@ -439,6 +453,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
     const reporterIds = await Promise.all(
       Array.from({ length: 5 }, (_, i) =>
@@ -463,5 +478,171 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       .from(reviews)
       .where(eq(reviews.id, created.id));
     expect(afterFive!.hiddenAt).not.toBeNull();
+  });
+
+  describe("태그 (review-tags)", () => {
+    it("insert 시 넘긴 태그가 review_tags 를 왕복한다", async () => {
+      const userId = await insertUser("kakao-tags-1", "사용자태그1");
+
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["친절함", "응답 빠름"],
+      });
+
+      expect(created.tags.sort()).toEqual(["응답 빠름", "친절함"]);
+
+      const [refetched] = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+      expect(refetched?.tags.sort()).toEqual(["응답 빠름", "친절함"]);
+
+      const byId = await reviewRepository.findById(created.id);
+      expect(byId?.tags.sort()).toEqual(["응답 빠름", "친절함"]);
+    });
+
+    it("update에서 태그를 생략하면(빈 배열) 기존 태그가 전부 삭제된다(전체교체)", async () => {
+      const userId = await insertUser("kakao-tags-2", "사용자태그2");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["친절함", "강매 없음"],
+      });
+
+      const updated = await reviewRepository.update(created.id, {
+        rating: 4,
+        content: CONTENT,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      expect(updated.tags).toEqual([]);
+      const refetched = await reviewRepository.findById(created.id);
+      expect(refetched?.tags).toEqual([]);
+    });
+
+    it("update에서 태그를 다른 조합으로 바꾸면 기존 태그는 사라지고 새 태그만 남는다", async () => {
+      const userId = await insertUser("kakao-tags-3", "사용자태그3");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["친절함"],
+      });
+
+      const updated = await reviewRepository.update(created.id, {
+        rating: 5,
+        content: CONTENT,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["설명 꼼꼼", "허위매물 없음"],
+      });
+
+      expect(updated.tags.sort()).toEqual(["설명 꼼꼼", "허위매물 없음"]);
+    });
+  });
+
+  describe("태그 집계 (review-tags, officeRepository)", () => {
+    it("숨겨진 리뷰의 태그는 findTagCountsByOfficeId 집계에서 제외된다 (AC9)", async () => {
+      const visibleAuthor = await insertUser("kakao-tagcount-visible", "보이는사용자");
+      const hiddenAuthor = await insertUser("kakao-tagcount-hidden", "숨김사용자");
+
+      await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: visibleAuthor,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["친절함"],
+      });
+      const hidden = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: hiddenAuthor,
+        rating: 1,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["친절함"],
+      });
+      await db
+        .update(reviews)
+        .set({ hiddenAt: new Date() })
+        .where(eq(reviews.id, hidden.id));
+
+      const tagCounts = await officeRepository.findTagCountsByOfficeId(OFFICE.id);
+
+      expect(tagCounts).toEqual([{ tag: "친절함", count: 1 }]);
+    });
+
+    it("findTopTagCountsByOfficeIds 는 여러 사무소를 한 번에 배치 조회한다 (AC10)", async () => {
+      const otherOffice: TOfficeInsert = { ...OFFICE, id: "review-test-office-2" };
+      await officeRepository.upsertMany([otherOffice]);
+
+      const userA = await insertUser("kakao-batch-a", "사용자A");
+      const userB = await insertUser("kakao-batch-b", "사용자B");
+
+      await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: userA,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["친절함"],
+      });
+      await reviewRepository.insert({
+        officeId: otherOffice.id,
+        userId: userB,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: ["응답 빠름"],
+      });
+
+      const result = await officeRepository.findTopTagCountsByOfficeIds(
+        [OFFICE.id, otherOffice.id],
+        2,
+      );
+
+      expect(result.get(OFFICE.id)).toEqual([{ tag: "친절함", count: 1 }]);
+      expect(result.get(otherOffice.id)).toEqual([{ tag: "응답 빠름", count: 1 }]);
+    });
   });
 });

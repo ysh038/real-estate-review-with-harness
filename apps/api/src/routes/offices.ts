@@ -83,7 +83,7 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
         const office = await officeRepository.findById(officeId);
         if (!office) return c.json({ message: "사무소를 찾을 수 없습니다" }, 404);
 
-        const { rating, content, dealType, dealResult, visitedYear, visitedMonth } =
+        const { rating, content, dealType, dealResult, visitedYear, visitedMonth, tags } =
           c.req.valid("json");
         try {
           const review = await reviewService.create({
@@ -96,6 +96,7 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
             dealResult,
             visitedYear,
             visitedMonth,
+            tags,
           });
           return c.json(reviewSchema.parse(review), 201);
         } catch (error) {

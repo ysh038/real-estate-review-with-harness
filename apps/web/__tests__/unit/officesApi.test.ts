@@ -21,6 +21,7 @@ describe("fetchOfficesByBbox", () => {
           sigungu: "성남시",
           lat: 37.45,
           lng: 127.15,
+          tagCounts: [],
         },
       ],
       isTruncated: false,

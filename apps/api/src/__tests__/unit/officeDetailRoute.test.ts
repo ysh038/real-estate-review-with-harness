@@ -2,18 +2,19 @@ import {
   officeDetailResponseSchema,
   reviewListResponseSchema,
   REVIEW_PAGE_SIZE_MAX,
-  type TOfficeSummary,
+  type TTagCount,
 } from "@repo/types";
 import { describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../../app";
 import { encodeCursor } from "../../lib/cursor";
+import type { TOfficeSummaryRow } from "../../services/officeService";
 import type { IReviewListRow } from "../../services/reviewService";
 import { createFakeAuthAppDeps } from "../helpers/fakeAuthDeps";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
-const OFFICE: TOfficeSummary = {
+const OFFICE: TOfficeSummaryRow = {
   id: "41135-2020-00001",
   name: "분당공인중개사사무소",
   ownerName: "홍길동",
@@ -36,17 +37,20 @@ const buildReviewRow = (index: number): IReviewListRow => ({
   dealResult: null,
   visitedYear: null,
   visitedMonth: null,
+  tags: [],
 });
 
 const buildApp = ({
-  office = OFFICE as TOfficeSummary | null,
+  office = OFFICE as TOfficeSummaryRow | null,
   ratings = [] as number[],
   reviewRows = [] as IReviewListRow[],
+  tagCounts = [] as TTagCount[],
 } = {}) => {
   const officeRepository = {
-    ...createFakeOfficeRepository(office ? [office] : []),
+    ...createFakeOfficeRepository(office ? [office] : [], ratings, tagCounts),
     findById: vi.fn(async () => office),
     findVisibleRatingsByOfficeId: vi.fn(async () => ratings),
+    findTagCountsByOfficeId: vi.fn(async () => tagCounts),
   };
   return createApp({
     officeRepository,
@@ -134,5 +138,44 @@ describe("GET /api/offices/:id/reviews", () => {
     );
 
     expect(res.status).toBe(200);
+  });
+
+  it("AC8(review-tags): 각 항목에 tags가 포함된다", async () => {
+    const app = buildApp({
+      reviewRows: [{ ...buildReviewRow(1), tags: ["친절함", "응답 빠름"] }],
+    });
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`);
+    const body = reviewListResponseSchema.parse(await res.json());
+
+    expect(body.reviews[0]?.tags).toEqual(["친절함", "응답 빠름"]);
+  });
+});
+
+describe("GET /api/offices/:id — 태그 집계 (review-tags)", () => {
+  it("AC9: tagCounts가 응답에 포함된다", async () => {
+    const app = buildApp({
+      tagCounts: [
+        { tag: "친절함", count: 3 },
+        { tag: "응답 빠름", count: 1 },
+      ],
+    });
+
+    const res = await app.request(`/api/offices/${OFFICE.id}`);
+    const body = officeDetailResponseSchema.parse(await res.json());
+
+    expect(body.tagCounts).toEqual([
+      { tag: "친절함", count: 3 },
+      { tag: "응답 빠름", count: 1 },
+    ]);
+  });
+
+  it("AC11: 태그가 없으면 tagCounts는 빈 배열이다", async () => {
+    const app = buildApp();
+
+    const res = await app.request(`/api/offices/${OFFICE.id}`);
+    const body = officeDetailResponseSchema.parse(await res.json());
+
+    expect(body.tagCounts).toEqual([]);
   });
 });

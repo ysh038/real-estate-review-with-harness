@@ -27,6 +27,7 @@ const buildRow = (index: number): IReviewListRow => ({
   dealResult: null,
   visitedYear: null,
   visitedMonth: null,
+  tags: [],
 });
 
 const createFakeRepository = createFakeReviewRepository;
@@ -52,6 +53,7 @@ const buildOwnedRow = (
   dealResult: null,
   visitedYear: null,
   visitedMonth: null,
+  tags: [],
   ...overrides,
 });
 
@@ -309,6 +311,7 @@ describe("reviewService.update (review-write-and-report)", () => {
       dealResult: null,
       visitedYear: null,
       visitedMonth: null,
+      tags: [],
     });
     expect(updated.author.nickname).toBe(AUTH_USER.nickname);
   });

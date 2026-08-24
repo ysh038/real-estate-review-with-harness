@@ -3,6 +3,7 @@ import type {
   TOfficeDetailResponse,
   TOfficeSummary,
   TOfficesByBboxResponse,
+  TTagCount,
 } from "@repo/types";
 
 /**
@@ -11,8 +12,22 @@ import type {
  */
 export const MAX_OFFICES_PER_BBOX = 500;
 
+/** bbox 목록의 태그 집계는 상위 N개만 — 원본 상수(TOP_TAGS_PER_OFFICE)를 그대로 채택. */
+export const TOP_TAGS_PER_OFFICE = 2;
+
+/**
+ * repository가 돌려주는 원시 사무소 행 — `tagCounts`는 뺀다. 태그 집계는 별도 배치
+ * 조회로 얻어 서비스가 합성한다 (review-tags AC9/AC10 설계 메모).
+ */
+export type TOfficeSummaryRow = Omit<TOfficeSummary, "tagCounts">;
+
 export interface IOfficeRepository {
-  findByBbox: (bbox: TBbox, limit: number) => Promise<TOfficeSummary[]>;
+  findByBbox: (bbox: TBbox, limit: number) => Promise<TOfficeSummaryRow[]>;
+  /** 여러 사무소의 태그 집계를 한 번에 — N+1 방지. 사무소별 상위 topN개, 개수 내림차순. */
+  findTopTagCountsByOfficeIds: (
+    officeIds: string[],
+    topN: number,
+  ) => Promise<Map<string, TTagCount[]>>;
 }
 
 export const createOfficeService = (repository: IOfficeRepository) => ({
@@ -21,9 +36,18 @@ export const createOfficeService = (repository: IOfficeRepository) => ({
     // 정확히 상한만 요청하면 딱 맞은 경우와 넘친 경우가 같아 보인다.
     const rows = await repository.findByBbox(bbox, MAX_OFFICES_PER_BBOX + 1);
     const isTruncated = rows.length > MAX_OFFICES_PER_BBOX;
+    const page = isTruncated ? rows.slice(0, MAX_OFFICES_PER_BBOX) : rows;
+
+    const tagCountsByOffice = await repository.findTopTagCountsByOfficeIds(
+      page.map((row) => row.id),
+      TOP_TAGS_PER_OFFICE,
+    );
 
     return {
-      offices: isTruncated ? rows.slice(0, MAX_OFFICES_PER_BBOX) : rows,
+      offices: page.map((row) => ({
+        ...row,
+        tagCounts: tagCountsByOffice.get(row.id) ?? [],
+      })),
       isTruncated,
     };
   },
@@ -32,9 +56,11 @@ export const createOfficeService = (repository: IOfficeRepository) => ({
 export type TOfficeService = ReturnType<typeof createOfficeService>;
 
 export interface IOfficeDetailRepository {
-  findById: (id: string) => Promise<TOfficeSummary | null>;
+  findById: (id: string) => Promise<TOfficeSummaryRow | null>;
   /** 숨겨지지 않은(hidden_at IS NULL) 리뷰의 평점만 — 숨김은 집계에서 빠진다 (AC5). */
   findVisibleRatingsByOfficeId: (officeId: string) => Promise<number[]>;
+  /** 상세는 개수 제한 없이 전체 태그 집계 (bbox 목록과 달리 topN 없음, AC9). */
+  findTagCountsByOfficeId: (officeId: string) => Promise<TTagCount[]>;
 }
 
 /** 평점 표시는 소수 한 자리면 충분하다. 그 이상은 정밀해 보일 뿐 의미가 없다. */
@@ -49,11 +75,15 @@ export const createOfficeDetailService = (
     const office = await repository.findById(id);
     if (!office) return null;
 
-    const ratings = await repository.findVisibleRatingsByOfficeId(id);
+    const [ratings, tagCounts] = await Promise.all([
+      repository.findVisibleRatingsByOfficeId(id),
+      repository.findTagCountsByOfficeId(id),
+    ]);
     const total = ratings.reduce((sum, rating) => sum + rating, 0);
 
     return {
       ...office,
+      tagCounts,
       reviewCount: ratings.length,
       // 리뷰가 없으면 null — 0으로 두면 "최악 평점"과 구분되지 않는다.
       avgRating:

@@ -1,12 +1,13 @@
-import type { TOfficeSummary } from "@repo/types";
+import type { TTagCount } from "@repo/types";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   createOfficeDetailService,
   type IOfficeDetailRepository,
+  type TOfficeSummaryRow,
 } from "../../services/officeService";
 
-const OFFICE: TOfficeSummary = {
+const OFFICE: TOfficeSummaryRow = {
   id: "office-1",
   name: "분당공인중개사사무소",
   ownerName: "홍길동",
@@ -18,11 +19,13 @@ const OFFICE: TOfficeSummary = {
 };
 
 const createFakeRepository = (
-  office: TOfficeSummary | null,
+  office: TOfficeSummaryRow | null,
   ratings: number[],
+  tagCounts: TTagCount[] = [],
 ): IOfficeDetailRepository => ({
   findById: vi.fn(async () => office),
   findVisibleRatingsByOfficeId: vi.fn(async () => ratings),
+  findTagCountsByOfficeId: vi.fn(async () => tagCounts),
 });
 
 describe("officeDetailService.findDetailById", () => {

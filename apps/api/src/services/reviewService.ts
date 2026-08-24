@@ -21,6 +21,7 @@ export interface IReviewListRow {
   dealResult: string | null;
   visitedYear: number | null;
   visitedMonth: number | null;
+  tags: string[];
 }
 
 export interface IReviewRepository {
@@ -50,6 +51,7 @@ export interface IReviewOwnedRow {
   dealResult: string | null;
   visitedYear: number | null;
   visitedMonth: number | null;
+  tags: string[];
 }
 
 export interface IReviewWriteRepository extends IReviewRepository {
@@ -63,6 +65,8 @@ export interface IReviewWriteRepository extends IReviewRepository {
     dealResult: string | null;
     visitedYear: number | null;
     visitedMonth: number | null;
+    /** 중복은 서비스가 이미 걸러 보낸다 (AC7) — repository는 그대로 저장만 한다. */
+    tags: string[];
   }) => Promise<IReviewOwnedRow>;
   findById: (id: string) => Promise<IReviewOwnedRow | null>;
   update: (
@@ -74,6 +78,7 @@ export interface IReviewWriteRepository extends IReviewRepository {
       dealResult: string | null;
       visitedYear: number | null;
       visitedMonth: number | null;
+      tags: string[];
     },
   ) => Promise<IReviewOwnedRow>;
   deleteById: (id: string) => Promise<void>;
@@ -144,6 +149,7 @@ const toReview = (row: IReviewListRow): TReview => ({
   dealResult: row.dealResult as TReview["dealResult"],
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
+  tags: row.tags as TReview["tags"],
 });
 
 const toReviewWithAuthor = (
@@ -160,6 +166,7 @@ const toReviewWithAuthor = (
   dealResult: row.dealResult as TReview["dealResult"],
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
+  tags: row.tags as TReview["tags"],
 });
 
 export interface IListOptions {
@@ -177,6 +184,7 @@ export interface ICreateReviewParams {
   dealResult?: string | null;
   visitedYear?: number | null;
   visitedMonth?: number | null;
+  tags?: string[];
 }
 
 export interface IUpdateReviewParams {
@@ -188,7 +196,12 @@ export interface IUpdateReviewParams {
   dealResult?: string | null;
   visitedYear?: number | null;
   visitedMonth?: number | null;
+  tags?: string[];
 }
+
+/** AC7: 중복 태그가 섞여 와도 저장은 1건으로 — repository의 PK(review_id, tag_key) 위반을
+ * 애초에 만들지 않는다. */
+const dedupeTags = (tags: string[] | undefined): string[] => [...new Set(tags ?? [])];
 
 export interface IReviewOwnerActionParams {
   reviewId: string;
@@ -217,6 +230,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
         dealResult: params.dealResult ?? null,
         visitedYear: params.visitedYear ?? null,
         visitedMonth: params.visitedMonth ?? null,
+        tags: dedupeTags(params.tags),
       });
       return toReviewWithAuthor(row, params.authUser);
     } catch (error) {
@@ -237,6 +251,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
       dealResult: params.dealResult ?? null,
       visitedYear: params.visitedYear ?? null,
       visitedMonth: params.visitedMonth ?? null,
+      tags: dedupeTags(params.tags),
     });
     return toReviewWithAuthor(updated, params.authUser);
   },

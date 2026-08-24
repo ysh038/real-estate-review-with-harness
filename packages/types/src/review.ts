@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { officeSummarySchema } from "./office";
+import { reviewTagEnum } from "./reviewTag";
+
+/** 태그 종류 자체가 6개뿐이라 이 상한은 사실상 "전부 선택"과 같은 경계값이다. */
+const REVIEW_TAGS_MAX = 6;
 
 /** 리뷰 본문 최소 길이 — 한 줄짜리 "좋아요"가 평점만 올리는 것을 막는다. */
 export const REVIEW_CONTENT_MIN_LENGTH = 10;
@@ -44,6 +48,8 @@ export const reviewSchema = z.object({
   dealResult: dealResultEnum.nullable(),
   visitedYear: visitedYearSchema.nullable(),
   visitedMonth: visitedMonthSchema.nullable(),
+  /** 태그가 없으면 빈 배열 — null 아님. */
+  tags: z.array(reviewTagEnum),
 });
 
 export type TReview = z.infer<typeof reviewSchema>;
@@ -85,6 +91,7 @@ export const createReviewRequestSchema = z
     dealResult: dealResultEnum.optional(),
     visitedYear: visitedYearSchema.optional(),
     visitedMonth: visitedMonthSchema.optional(),
+    tags: z.array(reviewTagEnum).max(REVIEW_TAGS_MAX).optional(),
   })
   // 연도만 있고 월이 없는(또는 반대) 반쪽 데이터를 막는다 — 원본과 동일한 제약
   // (docs/specs/review-deal-and-visit-fields.md 설계 메모).
