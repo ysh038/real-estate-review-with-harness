@@ -1,6 +1,6 @@
 "use client";
 
-import { REVIEW_CONTENT_MIN_LENGTH } from "@repo/types";
+import { DEAL_RESULTS, DEAL_TYPES, REVIEW_CONTENT_MIN_LENGTH, type TReview } from "@repo/types";
 import { useState } from "react";
 
 import styles from "./ReviewSection.module.css";
@@ -8,6 +8,20 @@ import { useOfficeReviews } from "../../hooks/useOfficeReviews";
 import { useSession } from "../../hooks/useSession";
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+const NOT_SELECTED = "";
+
+/** 거래유형·거래결과·방문시기 중 있는 것만 "·"로 이어 붙인다. 전부 없으면 null. */
+const formatDealInfo = (review: TReview): string | null => {
+  const parts = [
+    review.dealType,
+    review.dealResult,
+    review.visitedYear != null && review.visitedMonth != null
+      ? `${review.visitedYear}년 ${review.visitedMonth}월`
+      : null,
+  ].filter((part): part is string => part != null);
+  return parts.length > 0 ? parts.join(" · ") : null;
+};
 
 export interface IReviewSectionProps {
   officeId: string;
@@ -33,6 +47,10 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
 
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState("");
+  const [dealType, setDealType] = useState<string>(NOT_SELECTED);
+  const [dealResult, setDealResult] = useState<string>(NOT_SELECTED);
+  const [visitedYear, setVisitedYear] = useState<string>("");
+  const [visitedMonth, setVisitedMonth] = useState<string>(NOT_SELECTED);
   const [formError, setFormError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -46,12 +64,32 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       setFormError(`본문은 ${REVIEW_CONTENT_MIN_LENGTH}자 이상 입력해주세요`);
       return;
     }
+    // AC5(review-deal-and-visit-fields): 방문 연도와 월은 함께 있거나 함께 없어야 한다.
+    if ((visitedYear === "") !== (visitedMonth === NOT_SELECTED)) {
+      setFormError("방문 연도와 방문 월은 함께 입력하거나 함께 비워주세요");
+      return;
+    }
     setFormError(null);
 
-    const wasSubmitted = await submitReview({ rating, content });
+    const wasSubmitted = await submitReview({
+      rating,
+      content,
+      ...(dealType !== NOT_SELECTED && {
+        dealType: dealType as (typeof DEAL_TYPES)[number],
+      }),
+      ...(dealResult !== NOT_SELECTED && {
+        dealResult: dealResult as (typeof DEAL_RESULTS)[number],
+      }),
+      ...(visitedYear !== "" && { visitedYear: Number(visitedYear) }),
+      ...(visitedMonth !== NOT_SELECTED && { visitedMonth: Number(visitedMonth) }),
+    });
     if (wasSubmitted) {
       setRating(0);
       setContent("");
+      setDealType(NOT_SELECTED);
+      setDealResult(NOT_SELECTED);
+      setVisitedYear("");
+      setVisitedMonth(NOT_SELECTED);
     }
   };
 
@@ -83,6 +121,9 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
               </span>
             </div>
             <p className={styles.content}>{review.content}</p>
+            {formatDealInfo(review) ? (
+              <p className={styles.dealInfo}>{formatDealInfo(review)}</p>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -120,6 +161,55 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
             onChange={(event) => setContent(event.target.value)}
             placeholder="이용 경험을 10자 이상 남겨주세요"
           />
+          <div className={styles.dealFields}>
+            <select
+              className={styles.dealSelect}
+              aria-label="거래유형"
+              value={dealType}
+              onChange={(event) => setDealType(event.target.value)}
+            >
+              <option value={NOT_SELECTED}>선택 안 함</option>
+              {DEAL_TYPES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.dealSelect}
+              aria-label="거래결과"
+              value={dealResult}
+              onChange={(event) => setDealResult(event.target.value)}
+            >
+              <option value={NOT_SELECTED}>선택 안 함</option>
+              {DEAL_RESULTS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              className={styles.yearInput}
+              aria-label="방문 연도"
+              placeholder="방문 연도"
+              value={visitedYear}
+              onChange={(event) => setVisitedYear(event.target.value)}
+            />
+            <select
+              className={styles.dealSelect}
+              aria-label="방문 월"
+              value={visitedMonth}
+              onChange={(event) => setVisitedMonth(event.target.value)}
+            >
+              <option value={NOT_SELECTED}>선택 안 함</option>
+              {MONTH_OPTIONS.map((month) => (
+                <option key={month} value={month}>
+                  {month}월
+                </option>
+              ))}
+            </select>
+          </div>
           {formError ? (
             <p className={styles.formError} role="alert">
               {formError}

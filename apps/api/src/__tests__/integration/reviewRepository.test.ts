@@ -84,6 +84,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 5,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
 
     await expect(
@@ -93,6 +97,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         rating: 3,
         content: CONTENT,
         createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
       }),
     ).rejects.toThrow();
   });
@@ -106,6 +114,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 5,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
     const [review] = await reviewRepository.findByOfficeId(OFFICE.id, 1);
 
@@ -130,6 +142,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         rating: 6,
         content: CONTENT,
         createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
       }),
     ).rejects.toThrow();
   });
@@ -144,8 +160,34 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         rating: 5,
         content: "짧다",
         createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
       }),
     ).rejects.toThrow();
+  });
+
+  it("AC10(review-deal-and-visit-fields): 거래정보·방문시기가 실DB를 왕복한다", async () => {
+    const userId = await insertUser("kakao-deal-info", "거래정보테스트");
+    await reviewRepository.insert({
+      officeId: OFFICE.id,
+      userId,
+      rating: 5,
+      content: CONTENT,
+      createdFromIp: null,
+      dealType: "전세",
+      dealResult: "계약함",
+      visitedYear: 2026,
+      visitedMonth: 3,
+    });
+
+    const [row] = await reviewRepository.findByOfficeId(OFFICE.id, 1);
+
+    expect(row?.dealType).toBe("전세");
+    expect(row?.dealResult).toBe("계약함");
+    expect(row?.visitedYear).toBe(2026);
+    expect(row?.visitedMonth).toBe(3);
   });
 
   it("AC4: 리뷰가 달린 사무소를 조회하면 평점이 집계된다", async () => {
@@ -157,6 +199,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 5,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
     await reviewRepository.insert({
       officeId: OFFICE.id,
@@ -164,6 +210,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 4,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
 
     const ratings = await officeRepository.findVisibleRatingsByOfficeId(
@@ -182,6 +232,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 5,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
     // "이미 숨겨진 리뷰"는 신고 흐름을 거치지 않고 픽스처로 직접 만든다 —
     // insert()는 이제 실제 작성 API가 쓰는 메서드라 hiddenAt을 받지 않는다.
@@ -273,6 +327,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 5,
       content: CONTENT,
       createdFromIp: "203.0.113.1",
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
 
     await expect(
@@ -298,6 +356,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 5,
       content: CONTENT,
       createdFromIp: "198.51.100.1",
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
 
     await expect(
@@ -316,6 +378,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 3,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
     const [before] = await db
       .select({ updatedAt: reviews.updatedAt })
@@ -325,6 +391,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
     await reviewRepository.update(created.id, {
       rating: 5,
       content: "수정된 충분히 긴 리뷰 본문입니다",
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
     const [after] = await db
       .select({ updatedAt: reviews.updatedAt })
@@ -344,6 +414,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 3,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
 
     await reviewRepository.deleteById(created.id);
@@ -361,6 +435,10 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       rating: 3,
       content: CONTENT,
       createdFromIp: null,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
     const reporterIds = await Promise.all(
       Array.from({ length: 5 }, (_, i) =>

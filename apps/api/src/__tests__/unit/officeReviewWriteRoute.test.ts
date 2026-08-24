@@ -195,3 +195,125 @@ describe("POST /api/offices/:id/reviews", () => {
     expect(res.status).toBe(201);
   });
 });
+
+describe("POST /api/offices/:id/reviews — 거래정보·방문시기 필드 (review-deal-and-visit-fields)", () => {
+  it("AC1: dealType이 허용값이 아니면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, dealType: "옥탑방" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC2: dealResult가 허용값이 아니면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, dealResult: "보류" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC3: visitedYear가 범위 밖(1999)이면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, visitedYear: 1999, visitedMonth: 3 }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC4: visitedMonth가 범위 밖(13)이면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, visitedYear: 2026, visitedMonth: 13 }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC5: visitedYear만 있고 visitedMonth가 없으면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, visitedYear: 2026 }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC5: visitedMonth만 있고 visitedYear가 없으면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, visitedMonth: 3 }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC6: 네 필드를 전부 생략해도 201이고 응답 필드는 전부 null이다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(VALID_BODY),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.dealType).toBeNull();
+    expect(body.dealResult).toBeNull();
+    expect(body.visitedYear).toBeNull();
+    expect(body.visitedMonth).toBeNull();
+  });
+
+  it("AC7: 네 필드를 채워 보내면 응답에 그대로 반영된다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        dealType: "전세",
+        dealResult: "계약함",
+        visitedYear: 2026,
+        visitedMonth: 3,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.dealType).toBe("전세");
+    expect(body.dealResult).toBe("계약함");
+    expect(body.visitedYear).toBe(2026);
+    expect(body.visitedMonth).toBe(3);
+  });
+});

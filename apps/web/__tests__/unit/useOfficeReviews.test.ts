@@ -42,6 +42,10 @@ const buildReview = (id: string): TReview => ({
   content: "충분히 긴 리뷰 본문입니다 열 자 이상",
   author: { nickname: "홍길동", profileImageUrl: null },
   createdAt: "2026-08-21T00:00:00.000Z",
+  dealType: null,
+  dealResult: null,
+  visitedYear: null,
+  visitedMonth: null,
 });
 
 const PAGE_1: TReviewListResponse = {

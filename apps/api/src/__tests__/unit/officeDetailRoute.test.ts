@@ -32,6 +32,10 @@ const buildReviewRow = (index: number): IReviewListRow => ({
   nickname: `사용자${index}`,
   profileImageUrl: null,
   createdAt: new Date(`2026-08-${10 + index}T00:00:00.000Z`),
+  dealType: null,
+  dealResult: null,
+  visitedYear: null,
+  visitedMonth: null,
 });
 
 const buildApp = ({

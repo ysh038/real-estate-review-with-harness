@@ -23,6 +23,10 @@ const buildOwnedRow = (
   rating: 5,
   content: "원래 리뷰 본문입니다 충분히 깁니다",
   createdAt: new Date("2026-08-20T00:00:00.000Z"),
+  dealType: null,
+  dealResult: null,
+  visitedYear: null,
+  visitedMonth: null,
   ...overrides,
 });
 
@@ -134,6 +138,53 @@ describe("PATCH /api/reviews/:id", () => {
     expect(reviewRepository.update).toHaveBeenCalledWith(REVIEW_ID, {
       rating: VALID_BODY.rating,
       content: VALID_BODY.content,
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
+    });
+  });
+
+  it("AC9(review-deal-and-visit-fields): dealType이 허용값이 아니면 400", async () => {
+    const { app, sessionRepository } = buildApp({
+      findById: async () => buildOwnedRow(),
+    });
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, dealType: "옥탑방" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC9(review-deal-and-visit-fields): 거래정보를 채워 보내면 repository.update에 그대로 전달된다(전체교체)", async () => {
+    const { app, sessionRepository, reviewRepository } = buildApp({
+      findById: async () => buildOwnedRow(),
+    });
+    const headers = await withSession(sessionRepository);
+
+    await app.request(`/api/reviews/${REVIEW_ID}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        dealType: "전세",
+        dealResult: "계약함",
+        visitedYear: 2026,
+        visitedMonth: 3,
+      }),
+    });
+
+    expect(reviewRepository.update).toHaveBeenCalledWith(REVIEW_ID, {
+      rating: VALID_BODY.rating,
+      content: VALID_BODY.content,
+      dealType: "전세",
+      dealResult: "계약함",
+      visitedYear: 2026,
+      visitedMonth: 3,
     });
   });
 });

@@ -69,8 +69,10 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 > 리뷰 모델 자체가 다르다는 게 드러났다 — 원본에는 별점이 없고, 대신 거래정보·태그·
 > 비속어 필터·helpful·내 리뷰·관리자 모더레이션이 있다. 근거와 결정: `docs/decisions.md` #9.
 
-- [ ] 덩이 E — 리뷰 작성 필드 확장: `dealType`(거래유형)·`dealResult`(거래결과)·
-      `visitedYear`/`visitedMonth`(방문 시기), 전부 nullable
+- [x] 덩이 E — 리뷰 작성 필드 확장: `dealType`(거래유형)·`dealResult`(거래결과)·
+      `visitedYear`/`visitedMonth`(방문 시기), 전부 nullable (명세:
+      `specs/review-deal-and-visit-fields.md` — AC1~15 전부 확인, 실DB 통합 테스트 +
+      개발 DB 스모크 테스트 완료)
 - [ ] 덩이 F — 리뷰 태그(`REVIEW_TAGS`) + 사무소별 태그 집계(`tagCounts`)
 - [ ] 덩이 G — 비속어 필터: 작성·수정 시 검출되면 422
 - [ ] 덩이 H — "도움돼요" 토글 + `helpfulCount`/`isHelpful`

@@ -23,6 +23,10 @@ const buildRow = (index: number): IReviewListRow => ({
   nickname: `사용자${index}`,
   profileImageUrl: null,
   createdAt: new Date(`2026-08-${10 + index}T00:00:00.000Z`),
+  dealType: null,
+  dealResult: null,
+  visitedYear: null,
+  visitedMonth: null,
 });
 
 const createFakeRepository = createFakeReviewRepository;
@@ -44,6 +48,10 @@ const buildOwnedRow = (
   rating: 5,
   content: CONTENT,
   createdAt: new Date("2026-08-20T00:00:00.000Z"),
+  dealType: null,
+  dealResult: null,
+  visitedYear: null,
+  visitedMonth: null,
   ...overrides,
 });
 
@@ -198,6 +206,56 @@ describe("reviewService.create (review-write-and-report)", () => {
   });
 });
 
+describe("reviewService.create — 거래정보·방문시기 필드 (review-deal-and-visit-fields)", () => {
+  it("AC7: 거래정보·방문시기를 채워 보내면 repository.insert에 그대로 전달된다", async () => {
+    const repository = createFakeReviewRepository();
+    const service = createReviewService(repository);
+
+    await service.create({
+      officeId: "office-1",
+      authUser: AUTH_USER,
+      rating: 5,
+      content: CONTENT,
+      clientIp: null,
+      dealType: "전세",
+      dealResult: "계약함",
+      visitedYear: 2026,
+      visitedMonth: 3,
+    });
+
+    expect(repository.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dealType: "전세",
+        dealResult: "계약함",
+        visitedYear: 2026,
+        visitedMonth: 3,
+      }),
+    );
+  });
+
+  it("AC6: 생략하면 repository.insert에 전부 null로 전달된다", async () => {
+    const repository = createFakeReviewRepository();
+    const service = createReviewService(repository);
+
+    await service.create({
+      officeId: "office-1",
+      authUser: AUTH_USER,
+      rating: 5,
+      content: CONTENT,
+      clientIp: null,
+    });
+
+    expect(repository.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+      }),
+    );
+  });
+});
+
 describe("reviewService.update (review-write-and-report)", () => {
   it("AC9: 존재하지 않는 리뷰면 ReviewNotFoundError 를 던진다", async () => {
     const repository = createFakeReviewRepository();
@@ -238,13 +296,50 @@ describe("reviewService.update (review-write-and-report)", () => {
       authUser: AUTH_USER,
       rating: 3,
       content: "수정된 리뷰 내용입니다",
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
 
     expect(repository.update).toHaveBeenCalledWith("review-1", {
       rating: 3,
       content: "수정된 리뷰 내용입니다",
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
     });
     expect(updated.author.nickname).toBe(AUTH_USER.nickname);
+  });
+
+  it("AC9(review-deal-and-visit-fields): 생략하면 기존 값이 있었어도 null로 리셋된다(전체교체)", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () =>
+      buildOwnedRow({
+        dealType: "전세",
+        dealResult: "계약함",
+        visitedYear: 2025,
+        visitedMonth: 5,
+      });
+    const service = createReviewService(repository);
+
+    await service.update({
+      reviewId: "review-1",
+      authUser: AUTH_USER,
+      rating: 3,
+      content: "수정된 리뷰 내용입니다",
+    });
+
+    expect(repository.update).toHaveBeenCalledWith(
+      "review-1",
+      expect.objectContaining({
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+      }),
+    );
   });
 });
 

@@ -5,6 +5,7 @@ import {
   index,
   integer,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
@@ -91,6 +92,14 @@ export const reviews = pgTable(
     hiddenAt: timestamp("hidden_at", { withTimezone: true }),
     /** rate limit(IP+사무소 조합 24시간 1건) 판정용. review-write-and-report 명세 AC7. */
     createdFromIp: text("created_from_ip"),
+    /**
+     * 원본에는 별점이 없고 이 네 필드로 리뷰를 표현한다 — 격차 보완 덩이 E
+     * (근거: docs/decisions.md #9, docs/specs/review-deal-and-visit-fields.md).
+     */
+    dealType: text("deal_type"),
+    dealResult: text("deal_result"),
+    visitedYear: smallint("visited_year"),
+    visitedMonth: smallint("visited_month"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -29,6 +29,13 @@
       "when": 1787278303495,
       "tag": "0003_slimy_morlun",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787554875695,
+      "tag": "0004_cute_radioactive_man",
+      "breakpoints": true
     }
   ]
 }

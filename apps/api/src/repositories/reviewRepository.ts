@@ -16,6 +16,10 @@ const OWNED_ROW_COLUMNS = {
   rating: reviews.rating,
   content: reviews.content,
   createdAt: reviews.createdAt,
+  dealType: reviews.dealType,
+  dealResult: reviews.dealResult,
+  visitedYear: reviews.visitedYear,
+  visitedMonth: reviews.visitedMonth,
 };
 
 export const createReviewRepository = (
@@ -47,6 +51,10 @@ export const createReviewRepository = (
         nickname: users.nickname,
         profileImageUrl: users.profileImageUrl,
         createdAt: reviews.createdAt,
+        dealType: reviews.dealType,
+        dealResult: reviews.dealResult,
+        visitedYear: reviews.visitedYear,
+        visitedMonth: reviews.visitedMonth,
       })
       .from(reviews)
       .innerJoin(users, eq(reviews.userId, users.id))
@@ -83,11 +91,26 @@ export const createReviewRepository = (
 
   update: async (
     id: string,
-    patch: { rating: number; content: string },
+    patch: {
+      rating: number;
+      content: string;
+      dealType: string | null;
+      dealResult: string | null;
+      visitedYear: number | null;
+      visitedMonth: number | null;
+    },
   ): Promise<IReviewOwnedRow> => {
     const [updated] = await db
       .update(reviews)
-      .set({ rating: patch.rating, content: patch.content, updatedAt: sql`now()` })
+      .set({
+        rating: patch.rating,
+        content: patch.content,
+        dealType: patch.dealType,
+        dealResult: patch.dealResult,
+        visitedYear: patch.visitedYear,
+        visitedMonth: patch.visitedMonth,
+        updatedAt: sql`now()`,
+      })
       .where(eq(reviews.id, id))
       .returning(OWNED_ROW_COLUMNS);
     if (!updated) throw new Error("리뷰 수정이 행을 반환하지 않았습니다");

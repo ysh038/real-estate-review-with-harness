@@ -30,13 +30,18 @@ export const createReviewsRoute = (deps: IReviewsRouteDeps) => {
       requireAuth(deps),
       zValidator("json", updateReviewRequestSchema),
       async (c) => {
-        const { rating, content } = c.req.valid("json");
+        const { rating, content, dealType, dealResult, visitedYear, visitedMonth } =
+          c.req.valid("json");
         try {
           const review = await service.update({
             reviewId: c.req.param("id"),
             authUser: c.get("authUser"),
             rating,
             content,
+            dealType,
+            dealResult,
+            visitedYear,
+            visitedMonth,
           });
           return c.json(reviewSchema.parse(review));
         } catch (error) {

@@ -33,6 +33,20 @@ const REVIEW: TReview = {
   content: "친절하고 설명이 자세했어요",
   author: { nickname: "김철수", profileImageUrl: null },
   createdAt: "2026-08-21T00:00:00.000Z",
+  dealType: null,
+  dealResult: null,
+  visitedYear: null,
+  visitedMonth: null,
+};
+
+const REVIEW_WITH_DEAL_INFO: TReview = {
+  ...REVIEW,
+  id: "00000000-0000-4000-8000-000000000002",
+  author: { nickname: "이영희", profileImageUrl: null },
+  dealType: "전세",
+  dealResult: "계약함",
+  visitedYear: 2026,
+  visitedMonth: 3,
 };
 
 const baseHookState = {
@@ -218,5 +232,130 @@ describe("ReviewSection", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("이미 작성했습니다");
     expect(textbox).toHaveValue("충분히 긴 리뷰 본문입니다 열 자 이상");
+  });
+
+  it("AC11(review-deal-and-visit-fields): 거래유형 select에 5개 옵션 + 선택 안 함이 보인다", () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+
+    render(<ReviewSection officeId="office-1" />);
+
+    const select = screen.getByRole("combobox", { name: "거래유형" });
+    expect(select).toBeInTheDocument();
+    for (const label of ["전세", "월세", "매매", "상가", "원룸·오피스텔"]) {
+      expect(
+        screen.getByRole("option", { name: label }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("AC12(review-deal-and-visit-fields): 거래결과 select에 3개 옵션 + 선택 안 함이 보인다", () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+
+    render(<ReviewSection officeId="office-1" />);
+
+    const select = screen.getByRole("combobox", { name: "거래결과" });
+    expect(select).toBeInTheDocument();
+    for (const label of ["계약함", "안 함", "단순 상담"]) {
+      expect(
+        screen.getByRole("option", { name: label }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("AC13(review-deal-and-visit-fields): 방문 연도만 입력하고 월을 비운 채 제출하면 에러가 보이고 요청이 나가지 않는다", async () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    const submitReview = vi.fn().mockResolvedValue(true);
+    useOfficeReviews.mockReturnValue({ ...baseHookState, submitReview });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    await user.click(screen.getByRole("radio", { name: "5점" }));
+    await user.type(
+      screen.getByRole("textbox"),
+      "충분히 긴 리뷰 본문입니다 열 자 이상",
+    );
+    await user.type(
+      screen.getByRole("spinbutton", { name: "방문 연도" }),
+      "2026",
+    );
+    await user.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(submitReview).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/방문 연도.*방문 월|방문 월.*방문 연도/);
+  });
+
+  it("AC13(review-deal-and-visit-fields): 방문 월만 선택하고 연도를 비운 채 제출하면 에러가 보이고 요청이 나가지 않는다", async () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    const submitReview = vi.fn().mockResolvedValue(true);
+    useOfficeReviews.mockReturnValue({ ...baseHookState, submitReview });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    await user.click(screen.getByRole("radio", { name: "5점" }));
+    await user.type(
+      screen.getByRole("textbox"),
+      "충분히 긴 리뷰 본문입니다 열 자 이상",
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "방문 월" }),
+      "3",
+    );
+    await user.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(submitReview).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/방문 연도.*방문 월|방문 월.*방문 연도/);
+  });
+
+  it("AC7(review-deal-and-visit-fields): 거래정보·방문시기를 채워 제출하면 submitReview에 그대로 전달된다", async () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    const submitReview = vi.fn().mockResolvedValue(true);
+    useOfficeReviews.mockReturnValue({ ...baseHookState, submitReview });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    await user.click(screen.getByRole("radio", { name: "5점" }));
+    await user.type(
+      screen.getByRole("textbox"),
+      "충분히 긴 리뷰 본문입니다 열 자 이상",
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "거래유형" }),
+      "전세",
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "거래결과" }),
+      "계약함",
+    );
+    await user.type(
+      screen.getByRole("spinbutton", { name: "방문 연도" }),
+      "2026",
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "방문 월" }),
+      "3",
+    );
+    await user.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(submitReview).toHaveBeenCalledWith({
+      rating: 5,
+      content: "충분히 긴 리뷰 본문입니다 열 자 이상",
+      dealType: "전세",
+      dealResult: "계약함",
+      visitedYear: 2026,
+      visitedMonth: 3,
+    });
+  });
+
+  it("AC15(review-deal-and-visit-fields): 거래정보가 있는 리뷰 항목만 표시되고 없는 항목엔 표시되지 않는다", () => {
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      reviews: [REVIEW, REVIEW_WITH_DEAL_INFO],
+    });
+
+    render(<ReviewSection officeId="office-1" />);
+
+    expect(screen.getByText(/전세/)).toBeInTheDocument();
+    expect(screen.getByText(/계약함/)).toBeInTheDocument();
+    expect(screen.getByText(/2026년 3월/)).toBeInTheDocument();
   });
 });

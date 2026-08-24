@@ -17,6 +17,10 @@ export interface IReviewListRow {
   nickname: string;
   profileImageUrl: string | null;
   createdAt: Date;
+  dealType: string | null;
+  dealResult: string | null;
+  visitedYear: number | null;
+  visitedMonth: number | null;
 }
 
 export interface IReviewRepository {
@@ -42,6 +46,10 @@ export interface IReviewOwnedRow {
   rating: number;
   content: string;
   createdAt: Date;
+  dealType: string | null;
+  dealResult: string | null;
+  visitedYear: number | null;
+  visitedMonth: number | null;
 }
 
 export interface IReviewWriteRepository extends IReviewRepository {
@@ -51,11 +59,22 @@ export interface IReviewWriteRepository extends IReviewRepository {
     rating: number;
     content: string;
     createdFromIp: string | null;
+    dealType: string | null;
+    dealResult: string | null;
+    visitedYear: number | null;
+    visitedMonth: number | null;
   }) => Promise<IReviewOwnedRow>;
   findById: (id: string) => Promise<IReviewOwnedRow | null>;
   update: (
     id: string,
-    patch: { rating: number; content: string },
+    patch: {
+      rating: number;
+      content: string;
+      dealType: string | null;
+      dealResult: string | null;
+      visitedYear: number | null;
+      visitedMonth: number | null;
+    },
   ) => Promise<IReviewOwnedRow>;
   deleteById: (id: string) => Promise<void>;
   /** AC7: 같은 (사무소, IP) 조합으로 24시간 안에 이미 작성된 리뷰가 있는지. */
@@ -121,6 +140,10 @@ const toReview = (row: IReviewListRow): TReview => ({
   content: row.content,
   author: { nickname: row.nickname, profileImageUrl: row.profileImageUrl },
   createdAt: row.createdAt.toISOString(),
+  dealType: row.dealType as TReview["dealType"],
+  dealResult: row.dealResult as TReview["dealResult"],
+  visitedYear: row.visitedYear,
+  visitedMonth: row.visitedMonth,
 });
 
 const toReviewWithAuthor = (
@@ -133,6 +156,10 @@ const toReviewWithAuthor = (
   content: row.content,
   author: { nickname: author.nickname, profileImageUrl: author.profileImageUrl },
   createdAt: row.createdAt.toISOString(),
+  dealType: row.dealType as TReview["dealType"],
+  dealResult: row.dealResult as TReview["dealResult"],
+  visitedYear: row.visitedYear,
+  visitedMonth: row.visitedMonth,
 });
 
 export interface IListOptions {
@@ -146,6 +173,10 @@ export interface ICreateReviewParams {
   rating: number;
   content: string;
   clientIp: string | null;
+  dealType?: string | null;
+  dealResult?: string | null;
+  visitedYear?: number | null;
+  visitedMonth?: number | null;
 }
 
 export interface IUpdateReviewParams {
@@ -153,6 +184,10 @@ export interface IUpdateReviewParams {
   authUser: IAuthUser;
   rating: number;
   content: string;
+  dealType?: string | null;
+  dealResult?: string | null;
+  visitedYear?: number | null;
+  visitedMonth?: number | null;
 }
 
 export interface IReviewOwnerActionParams {
@@ -178,6 +213,10 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
         rating: params.rating,
         content: params.content,
         createdFromIp: params.clientIp,
+        dealType: params.dealType ?? null,
+        dealResult: params.dealResult ?? null,
+        visitedYear: params.visitedYear ?? null,
+        visitedMonth: params.visitedMonth ?? null,
       });
       return toReviewWithAuthor(row, params.authUser);
     } catch (error) {
@@ -194,6 +233,10 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
     const updated = await repository.update(params.reviewId, {
       rating: params.rating,
       content: params.content,
+      dealType: params.dealType ?? null,
+      dealResult: params.dealResult ?? null,
+      visitedYear: params.visitedYear ?? null,
+      visitedMonth: params.visitedMonth ?? null,
     });
     return toReviewWithAuthor(updated, params.authUser);
   },
