@@ -22,6 +22,7 @@ const buildApp = () => {
     sessionRepository,
     webBaseUrl: WEB_BASE_URL,
     isProduction: false,
+    adminApiKey: undefined,
   });
   return { app, sessionRepository, userRepository };
 };

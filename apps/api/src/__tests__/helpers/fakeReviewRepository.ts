@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 
 import type {
+  IAdminHiddenReviewRow,
   IMyReviewRow,
   IReviewListRow,
   IReviewOwnedRow,
@@ -16,6 +17,7 @@ import type {
 export const createFakeReviewRepository = (
   rows: IReviewListRow[] = [],
   myReviewRows: IMyReviewRow[] = [],
+  hiddenRows: IAdminHiddenReviewRow[] = [],
 ): IReviewWriteRepository => ({
   findByOfficeId: vi.fn(async (_officeId, limit) => rows.slice(0, limit)),
   insert: vi.fn(
@@ -26,6 +28,7 @@ export const createFakeReviewRepository = (
       rating: row.rating,
       content: row.content,
       createdAt: new Date(),
+      hiddenAt: null,
       dealType: row.dealType,
       dealResult: row.dealResult,
       visitedYear: row.visitedYear,
@@ -44,6 +47,7 @@ export const createFakeReviewRepository = (
       rating: patch.rating,
       content: patch.content,
       createdAt: new Date(),
+      hiddenAt: null,
       dealType: patch.dealType,
       dealResult: patch.dealResult,
       visitedYear: patch.visitedYear,
@@ -59,4 +63,6 @@ export const createFakeReviewRepository = (
   hideIfThresholdReached: vi.fn(async () => {}),
   toggleHelpful: vi.fn(async () => ({ helpfulCount: 1, isHelpful: true })),
   findByUserId: vi.fn(async (_userId, limit) => myReviewRows.slice(0, limit)),
+  findHidden: vi.fn(async (limit) => hiddenRows.slice(0, limit)),
+  restore: vi.fn(async () => null),
 });

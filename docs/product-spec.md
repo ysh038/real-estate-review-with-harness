@@ -30,10 +30,11 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
       — "백드롭 클릭"은 *지도 클릭*으로 확정. 지도를 덮는 백드롭은 "동일 마커 재클릭"과
       충돌해서 비모달로 갔다 (근거: 해당 명세 설계 메모)
 
-**MVP 완료.** Phase 1(리뷰 시스템) 원래 계획한 10개 항목도 전부 완료했지만, 이후 원본과
-실제 코드를 대조해보니 리뷰 모델 자체가 달랐다(원본엔 별점이 없다) — 격차를 덩이 E~J로
-보완 중이다(`docs/decisions.md` #9). 덩이 D의 실 카카오 로그인 브라우저 검증(AC20~22)도
-스킵된 채 남아있다.
+**MVP + Phase 1 + 격차 보완(덩이 E~J) 전부 완료.** Phase 1 원래 계획 10개 항목에 더해,
+원본과 실제 코드를 대조해 발견한 리뷰 모델 격차(원본엔 별점이 없고 거래정보·태그·비속어
+필터·helpful·내 리뷰·관리자 모더레이션이 있었다, `docs/decisions.md` #9)까지 덩이 E~J로
+전부 좁혔다. 남은 건 실 카카오 로그인이 필요한 브라우저 시각 검증(덩이 D AC20~22,
+`MyReviewsPanel`)뿐 — `docs/decisions.md` 후속 조치 참고.
 
 ## TODO
 
@@ -85,8 +86,14 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
       `specs/my-reviews-list.md` — AC1~15 전부 확인, 실DB 통합 테스트 + 개발 DB 스모크
       테스트 완료. 단, `MyReviewsPanel` 실 브라우저 시각 검증은 실 카카오 로그인이
       필요해 스킵 — `docs/decisions.md` 후속 조치 참고)
-- [ ] 덩이 J — 관리자: 숨김 리뷰 목록 + 복구 (API 전용, `x-admin-api-key` 헤더 인증 —
-      원본도 admin web UI 없음)
+- [x] 덩이 J — 관리자: 숨김 리뷰 목록 + 복구 (API 전용, `x-admin-api-key` 헤더 인증 —
+      원본도 admin web UI 없음) (명세: `specs/admin-hidden-reviews.md` — AC1~13 전부
+      확인, 실DB 통합 테스트 + 개발 DB 스모크 테스트 완료)
+
+**덩이 E~J 전부 완료 — 원본과의 리뷰 모델 격차(`docs/decisions.md` #9)가 전부 좁혀졌다.**
+남은 미완료는 실 카카오 로그인이 필요한 브라우저 시각 검증(review-list-and-write-ui
+AC20~22, my-reviews-list `MyReviewsPanel`)뿐이며 `docs/decisions.md`에 후속 조치로
+기록돼 있다.
 
 ## 하지 않기로 한 것
 

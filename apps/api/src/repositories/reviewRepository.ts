@@ -1,4 +1,15 @@
-import { and, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { TDatabase } from "../db/client";
 import {
@@ -11,6 +22,7 @@ import {
 } from "../db/schema";
 import type { ICursorPosition } from "../lib/cursor";
 import type {
+  IAdminHiddenReviewRow,
   IMyReviewRow,
   IReviewListRow,
   IReviewOwnedRow,
@@ -32,6 +44,7 @@ const OWNED_ROW_COLUMNS = {
   rating: reviews.rating,
   content: reviews.content,
   createdAt: reviews.createdAt,
+  hiddenAt: reviews.hiddenAt,
   dealType: reviews.dealType,
   dealResult: reviews.dealResult,
   visitedYear: reviews.visitedYear,
@@ -382,5 +395,105 @@ export const createReviewRepository = (
       helpfulCount: helpfulCounts.get(row.id) ?? 0,
       isHelpful: userHelpfulIds.has(row.id),
     }));
+  },
+
+  // 관리자 전용 — 노출 중인 목록(findByOfficeId)과 반대로 숨겨진 것만 본다.
+  findHidden: async (
+    limit: number,
+    after?: ICursorPosition,
+  ): Promise<IAdminHiddenReviewRow[]> => {
+    const afterCondition = after
+      ? or(
+          lt(reviews.createdAt, after.createdAt),
+          and(
+            eq(reviews.createdAt, after.createdAt),
+            lt(reviews.id, after.id),
+          ),
+        )
+      : undefined;
+
+    const rows = await db
+      .select({
+        id: reviews.id,
+        officeId: reviews.officeId,
+        officeName: offices.name,
+        rating: reviews.rating,
+        content: reviews.content,
+        nickname: users.nickname,
+        profileImageUrl: users.profileImageUrl,
+        createdAt: reviews.createdAt,
+        hiddenAt: reviews.hiddenAt,
+        dealType: reviews.dealType,
+        dealResult: reviews.dealResult,
+        visitedYear: reviews.visitedYear,
+        visitedMonth: reviews.visitedMonth,
+        reportCount: sql<number>`(
+          select count(*)::int from ${reviewReports}
+          where ${reviewReports.reviewId} = ${reviews.id}
+        )`,
+      })
+      .from(reviews)
+      .innerJoin(offices, eq(reviews.officeId, offices.id))
+      .innerJoin(users, eq(reviews.userId, users.id))
+      .where(and(isNotNull(reviews.hiddenAt), afterCondition))
+      .orderBy(desc(reviews.createdAt), desc(reviews.id))
+      .limit(limit);
+
+    const reviewIds = rows.map((row) => row.id);
+    const [tagsByReview, helpfulCounts] = await Promise.all([
+      findTagsByReviewIds(db, reviewIds),
+      findHelpfulCountsByReviewIds(db, reviewIds),
+    ]);
+
+    return rows.map((row) => ({
+      ...row,
+      // where 절이 이미 hiddenAt not null 을 보장한다.
+      hiddenAt: row.hiddenAt as Date,
+      tags: tagsByReview.get(row.id) ?? [],
+      helpfulCount: helpfulCounts.get(row.id) ?? 0,
+      // 관리자 액션엔 "뷰어" 개념이 없다 — 로그인 세션이 아니라 API 키 인증이다.
+      isHelpful: null,
+    }));
+  },
+
+  restore: async (reviewId: string): Promise<IReviewListRow | null> => {
+    const [updated] = await db
+      .update(reviews)
+      .set({ hiddenAt: null })
+      .where(eq(reviews.id, reviewId))
+      .returning({ id: reviews.id });
+    if (!updated) return null;
+
+    const [row] = await db
+      .select({
+        id: reviews.id,
+        officeId: reviews.officeId,
+        rating: reviews.rating,
+        content: reviews.content,
+        nickname: users.nickname,
+        profileImageUrl: users.profileImageUrl,
+        createdAt: reviews.createdAt,
+        dealType: reviews.dealType,
+        dealResult: reviews.dealResult,
+        visitedYear: reviews.visitedYear,
+        visitedMonth: reviews.visitedMonth,
+      })
+      .from(reviews)
+      .innerJoin(users, eq(reviews.userId, users.id))
+      .where(eq(reviews.id, updated.id))
+      .limit(1);
+    if (!row) return null;
+
+    const [tagsByReview, helpfulCounts] = await Promise.all([
+      findTagsByReviewIds(db, [row.id]),
+      findHelpfulCountsByReviewIds(db, [row.id]),
+    ]);
+
+    return {
+      ...row,
+      tags: tagsByReview.get(row.id) ?? [],
+      helpfulCount: helpfulCounts.get(row.id) ?? 0,
+      isHelpful: null,
+    };
   },
 });

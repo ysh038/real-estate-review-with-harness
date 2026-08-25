@@ -60,4 +60,6 @@ export const createFakeAuthAppDeps = () => ({
   sessionRepository: createFakeSessionRepository(),
   webBaseUrl: "http://localhost:3000",
   isProduction: false,
+  /** 기본은 "관리자 기능 꺼짐" — admin 라우트를 테스트하는 곳에서만 override한다. */
+  adminApiKey: undefined as string | undefined,
 });

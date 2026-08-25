@@ -97,6 +97,28 @@ export const myReviewListResponseSchema = z.object({
 export type TMyReviewListResponse = z.infer<typeof myReviewListResponseSchema>;
 
 /**
+ * 관리자 숨김 리뷰 목록(`GET /api/admin/reviews/hidden`) 전용 응답 — officeName·
+ * reportCount(누적 신고 수)·hiddenAt(숨겨진 시각)을 더한다
+ * (근거: docs/specs/admin-hidden-reviews.md).
+ */
+export const adminHiddenReviewSchema = reviewSchema.extend({
+  officeName: z.string(),
+  reportCount: z.number().int().nonnegative(),
+  hiddenAt: z.string().datetime(),
+});
+
+export type TAdminHiddenReview = z.infer<typeof adminHiddenReviewSchema>;
+
+export const adminHiddenReviewListResponseSchema = z.object({
+  reviews: z.array(adminHiddenReviewSchema),
+  nextCursor: z.string().nullable(),
+});
+
+export type TAdminHiddenReviewListResponse = z.infer<
+  typeof adminHiddenReviewListResponseSchema
+>;
+
+/**
  * 리뷰 목록 쿼리. 라우트가 직접 파싱하지 않도록 계약 쪽에 둔다.
  * limit 상한을 계약에 박아두면 한 번에 전부 긁어가는 요청이 400으로 막힌다.
  */

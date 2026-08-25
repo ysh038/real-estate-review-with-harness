@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { encodeCursor } from "../../lib/cursor";
 import type { IAuthUser } from "../../services/authService";
@@ -8,9 +8,11 @@ import {
   DuplicateReviewError,
   ForbiddenReviewActionError,
   ProfanityError,
+  ReviewAlreadyVisibleError,
   ReviewNotFoundError,
   ReviewRateLimitedError,
   SelfReportError,
+  type IAdminHiddenReviewRow,
   type IReviewListRow,
   type IReviewOwnedRow,
 } from "../../services/reviewService";
@@ -52,6 +54,7 @@ const buildOwnedRow = (
   rating: 5,
   content: CONTENT,
   createdAt: new Date("2026-08-20T00:00:00.000Z"),
+  hiddenAt: null,
   dealType: null,
   dealResult: null,
   visitedYear: null,
@@ -535,5 +538,105 @@ describe("reviewService.toggleHelpful (review-helpful-toggle)", () => {
       service.toggleHelpful({ reviewId: "review-1", userId: "u-1" }),
     ).resolves.toEqual({ helpfulCount: 1, isHelpful: true });
     expect(repository.toggleHelpful).toHaveBeenCalledWith("review-1", "u-1");
+  });
+});
+
+const buildHiddenRow = (index: number): IAdminHiddenReviewRow => ({
+  id: `0000000${index}-1111-4222-8333-444455556666`,
+  officeId: "office-1",
+  officeName: `사무소${index}`,
+  rating: 1,
+  content: "열 자를 넘기는 충분한 길이의 리뷰 본문입니다",
+  nickname: `사용자${index}`,
+  profileImageUrl: null,
+  createdAt: new Date(`2026-08-${10 + index}T00:00:00.000Z`),
+  hiddenAt: new Date(`2026-08-${15 + index}T00:00:00.000Z`),
+  reportCount: 5,
+  dealType: null,
+  dealResult: null,
+  visitedYear: null,
+  visitedMonth: null,
+  tags: [],
+  helpfulCount: 0,
+  isHelpful: null,
+});
+
+describe("reviewService.listHidden (admin-hidden-reviews)", () => {
+  it("AC8: 상한보다 1건 더 요청해 다음 페이지 유무를 판별한다", async () => {
+    const rows = [buildHiddenRow(1), buildHiddenRow(2), buildHiddenRow(3)];
+    const repository = createFakeReviewRepository([], [], rows);
+    const service = createReviewService(repository);
+
+    const result = await service.listHidden({ limit: 2 });
+
+    expect(result.reviews).toHaveLength(2);
+    expect(result.nextCursor).not.toBeNull();
+    expect(repository.findHidden).toHaveBeenCalledWith(3, undefined);
+  });
+
+  it("AC6: officeName·reportCount·hiddenAt이 응답에 반영된다", async () => {
+    const repository = createFakeReviewRepository([], [], [buildHiddenRow(1)]);
+    const service = createReviewService(repository);
+
+    const result = await service.listHidden({ limit: 20 });
+
+    expect(result.reviews[0]).toMatchObject({
+      officeName: "사무소1",
+      reportCount: 5,
+    });
+    expect(result.reviews[0]?.hiddenAt).toBe(
+      buildHiddenRow(1).hiddenAt.toISOString(),
+    );
+  });
+});
+
+describe("reviewService.restore (admin-hidden-reviews)", () => {
+  it("AC9: 존재하지 않는 리뷰면 ReviewNotFoundError 를 던진다", async () => {
+    const repository = createFakeReviewRepository();
+    const service = createReviewService(repository);
+
+    await expect(service.restore("no-such-review")).rejects.toThrow(
+      ReviewNotFoundError,
+    );
+    expect(repository.restore).not.toHaveBeenCalled();
+  });
+
+  it("AC10: 이미 노출 중이면 ReviewAlreadyVisibleError 를 던지고 restore를 호출하지 않는다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () => buildOwnedRow({ hiddenAt: null });
+    const service = createReviewService(repository);
+
+    await expect(service.restore("review-1")).rejects.toThrow(
+      ReviewAlreadyVisibleError,
+    );
+    expect(repository.restore).not.toHaveBeenCalled();
+  });
+
+  it("AC11: 숨겨진 리뷰면 복구하고 갱신된 리뷰를 반환한다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () =>
+      buildOwnedRow({ hiddenAt: new Date("2026-08-20T00:00:00.000Z") });
+    repository.restore = vi.fn(async () => ({
+      id: "review-1",
+      officeId: "office-1",
+      rating: 5,
+      content: CONTENT,
+      nickname: "복구대상",
+      profileImageUrl: null,
+      createdAt: new Date("2026-08-20T00:00:00.000Z"),
+      dealType: null,
+      dealResult: null,
+      visitedYear: null,
+      visitedMonth: null,
+      tags: [],
+      helpfulCount: 0,
+      isHelpful: null,
+    }));
+    const service = createReviewService(repository);
+
+    const result = await service.restore("review-1");
+
+    expect(repository.restore).toHaveBeenCalledWith("review-1");
+    expect(result.author.nickname).toBe("복구대상");
   });
 });

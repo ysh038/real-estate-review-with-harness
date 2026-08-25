@@ -23,6 +23,7 @@ const buildOwnedRow = (
   rating: 5,
   content: "원래 리뷰 본문입니다 충분히 깁니다",
   createdAt: new Date("2026-08-20T00:00:00.000Z"),
+  hiddenAt: null,
   dealType: null,
   dealResult: null,
   visitedYear: null,

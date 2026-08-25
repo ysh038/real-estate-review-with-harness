@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -882,6 +882,131 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
 
       expect(page1[0]?.officeId).toBe(otherOffice.id);
       expect(page2[0]?.officeId).toBe(OFFICE.id);
+    });
+  });
+
+  describe("관리자 — 숨김 리뷰 목록 + 복구 (admin-hidden-reviews)", () => {
+    it("AC5·AC6: 숨겨진 리뷰만, officeName·reportCount·hiddenAt과 함께 반환한다", async () => {
+      const author = await insertUser("kakao-admin-hidden-author", "숨김대상글쓴이");
+      const visibleAuthor = await insertUser("kakao-admin-visible-author", "노출중글쓴이");
+      const reporters = await Promise.all(
+        Array.from({ length: 5 }, (_, i) =>
+          insertUser(`kakao-admin-reporter-${i}`, `신고자${i}`),
+        ),
+      );
+      const hidden = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 1,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      for (const reporterId of reporters) {
+        await reviewRepository.insertReport(hidden.id, reporterId);
+      }
+      await reviewRepository.hideIfThresholdReached(hidden.id, 5);
+      await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: visibleAuthor,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      const hiddenRows = await reviewRepository.findHidden(10);
+
+      expect(hiddenRows).toHaveLength(1);
+      expect(hiddenRows[0]?.id).toBe(hidden.id);
+      expect(hiddenRows[0]?.officeName).toBe(OFFICE.name);
+      expect(hiddenRows[0]?.reportCount).toBe(5);
+      expect(hiddenRows[0]?.hiddenAt).not.toBeNull();
+    });
+
+    it("AC7: 숨겨진 리뷰가 없으면 빈 배열이다", async () => {
+      const author = await insertUser("kakao-admin-none", "아무도안숨김");
+      await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      const hiddenRows = await reviewRepository.findHidden(10);
+
+      expect(hiddenRows).toEqual([]);
+    });
+
+    it("AC11·AC12: 복구하면 hidden_at이 null이 되고 공개 목록에 다시 나타난다", async () => {
+      const author = await insertUser("kakao-admin-restore", "복구대상글쓴이");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 2,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      await db
+        .update(reviews)
+        .set({ hiddenAt: new Date() })
+        .where(eq(reviews.id, created.id));
+
+      const restored = await reviewRepository.restore(created.id);
+
+      expect(restored?.id).toBe(created.id);
+      expect(restored?.nickname).toBe("복구대상글쓴이");
+      const publicList = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+      expect(publicList.some((row) => row.id === created.id)).toBe(true);
+    });
+
+    it("AC13: 복구해도 review_reports는 지워지지 않는다", async () => {
+      const author = await insertUser("kakao-admin-keep-reports", "신고유지대상");
+      const reporter = await insertUser("kakao-admin-keep-reporter", "신고유지자");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 1,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      await reviewRepository.insertReport(created.id, reporter);
+      await db
+        .update(reviews)
+        .set({ hiddenAt: new Date() })
+        .where(eq(reviews.id, created.id));
+
+      await reviewRepository.restore(created.id);
+
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(reviewReports)
+        .where(eq(reviewReports.reviewId, created.id));
+      expect(count).toBe(1);
     });
   });
 });

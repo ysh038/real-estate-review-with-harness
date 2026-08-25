@@ -25,6 +25,9 @@ const serverEnvSchema = z.object({
     .default("http://localhost:8788/auth/kakao/callback"),
   /** 로그인 성공 후 302 리다이렉트할 web origin */
   WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
+  /** 관리자 API(`x-admin-api-key` 헤더) 인증 키. 선택값 — 미설정이면 admin 라우트가
+   * 항상 503을 반환할 뿐 서버 부팅 자체는 막지 않는다 (docs/specs/admin-hidden-reviews.md). */
+  ADMIN_API_KEY: z.string().min(1).optional(),
 });
 
 /** 시딩 스크립트 전용. 런타임 서버는 이 값들을 읽지 않는다. */

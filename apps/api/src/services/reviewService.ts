@@ -1,4 +1,6 @@
 import type {
+  TAdminHiddenReview,
+  TAdminHiddenReviewListResponse,
   THelpfulResponse,
   TMyReview,
   TMyReviewListResponse,
@@ -79,6 +81,8 @@ export interface IReviewOwnedRow {
   rating: number;
   content: string;
   createdAt: Date;
+  /** null이면 숨김 아님. admin-hidden-reviews AC10: 복구 전 "이미 노출 중" 판별에 쓴다. */
+  hiddenAt: Date | null;
   dealType: string | null;
   dealResult: string | null;
   visitedYear: number | null;
@@ -86,6 +90,13 @@ export interface IReviewOwnedRow {
   tags: string[];
   helpfulCount: number;
   isHelpful: boolean;
+}
+
+/** 공개 목록 행(IReviewListRow)에 관리자 전용 필드만 더한다. */
+export interface IAdminHiddenReviewRow extends IReviewListRow {
+  officeName: string;
+  reportCount: number;
+  hiddenAt: Date;
 }
 
 export interface IReviewWriteRepository extends IReviewRepository {
@@ -132,6 +143,13 @@ export interface IReviewWriteRepository extends IReviewRepository {
     limit: number,
     after?: ICursorPosition,
   ) => Promise<IMyReviewRow[]>;
+  /** 숨겨진 리뷰만, 관리자 전용 필드(officeName·reportCount)와 함께. */
+  findHidden: (
+    limit: number,
+    after?: ICursorPosition,
+  ) => Promise<IAdminHiddenReviewRow[]>;
+  /** hidden_at 을 null로 되돌린다. 존재하지 않으면 null. */
+  restore: (reviewId: string) => Promise<IReviewListRow | null>;
 }
 
 export class ReviewNotFoundError extends Error {
@@ -185,6 +203,14 @@ export class ProfanityError extends Error {
   constructor() {
     super("부적절한 표현이 포함되어 있습니다");
     this.name = "ProfanityError";
+  }
+}
+
+/** admin-hidden-reviews AC10: 이미 노출 중인 리뷰를 복구하려 하면 던진다. */
+export class ReviewAlreadyVisibleError extends Error {
+  constructor() {
+    super("이미 노출 중인 리뷰입니다");
+    this.name = "ReviewAlreadyVisibleError";
   }
 }
 
@@ -245,6 +271,13 @@ const toMyReview = (
   tags: row.tags as TReview["tags"],
   helpfulCount: row.helpfulCount,
   isHelpful: row.isHelpful,
+});
+
+const toAdminHiddenReview = (row: IAdminHiddenReviewRow): TAdminHiddenReview => ({
+  ...toReview(row),
+  officeName: row.officeName,
+  reportCount: row.reportCount,
+  hiddenAt: row.hiddenAt.toISOString(),
 });
 
 export interface IListOptions {
@@ -427,6 +460,41 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
           ? encodeCursor({ createdAt: last.createdAt, id: last.id })
           : null,
     };
+  },
+
+  listHidden: async ({
+    limit,
+    cursor,
+  }: IListOptions): Promise<TAdminHiddenReviewListResponse> => {
+    let after: ICursorPosition | undefined;
+    if (cursor !== undefined) {
+      const decoded = decodeCursor(cursor);
+      if (!decoded) throw new InvalidCursorError();
+      after = decoded;
+    }
+
+    const rows = await repository.findHidden(limit + 1, after);
+    const hasNext = rows.length > limit;
+    const page = hasNext ? rows.slice(0, limit) : rows;
+    const last = page.at(-1);
+
+    return {
+      reviews: page.map(toAdminHiddenReview),
+      nextCursor:
+        hasNext && last
+          ? encodeCursor({ createdAt: last.createdAt, id: last.id })
+          : null,
+    };
+  },
+
+  restore: async (reviewId: string): Promise<TReview> => {
+    const existing = await repository.findById(reviewId);
+    if (!existing) throw new ReviewNotFoundError();
+    if (existing.hiddenAt == null) throw new ReviewAlreadyVisibleError();
+
+    const restored = await repository.restore(reviewId);
+    if (!restored) throw new ReviewNotFoundError();
+    return toReview(restored);
   },
 });
 

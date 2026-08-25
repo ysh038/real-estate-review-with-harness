@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
+import { createAdminRoute } from "./routes/admin";
 import {
   createAuthActionsRoute,
   createKakaoOAuthRoute,
@@ -19,6 +20,8 @@ import type { IReviewWriteRepository } from "./services/reviewService";
 export interface IAppDeps extends IAuthRouteDeps {
   officeRepository: IOfficeRepository & IOfficeDetailRepository;
   reviewRepository: IReviewWriteRepository;
+  /** 관리자 API(x-admin-api-key) 인증 키. 미설정이면 admin 라우트가 항상 503. */
+  adminApiKey: string | undefined;
 }
 
 /**
@@ -39,4 +42,5 @@ export const createApp = (deps: IAppDeps) =>
     .route("/api/offices", createOfficesRoute(deps))
     .route("/api/reviews", createReviewsRoute(deps))
     .route("/api/me", createMeRoute(deps))
-    .route("/api/auth", createAuthActionsRoute(deps));
+    .route("/api/auth", createAuthActionsRoute(deps))
+    .route("/api/admin", createAdminRoute(deps));

@@ -22,6 +22,7 @@ const app = createApp({
   sessionRepository: createSessionRepository(db),
   webBaseUrl: env.WEB_BASE_URL,
   isProduction: env.NODE_ENV === "production",
+  adminApiKey: env.ADMIN_API_KEY,
 });
 
 console.log(`[api] listening on :${env.API_PORT}`);
