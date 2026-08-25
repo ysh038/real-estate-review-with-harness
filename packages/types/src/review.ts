@@ -77,6 +77,26 @@ export const reviewListResponseSchema = z.object({
 export type TReviewListResponse = z.infer<typeof reviewListResponseSchema>;
 
 /**
+ * 내 리뷰 목록(`GET /api/me/reviews`) 전용 응답 — 공개 목록(reviewSchema)에는 없는
+ * officeName·isHidden을 더한다. 별도 스키마로 두는 이유: 이 두 필드를 공개 응답에
+ * 얹으면 "이 리뷰가 숨겨졌는지"를 다른 사용자에게 노출하게 된다
+ * (근거: docs/specs/my-reviews-list.md 설계 메모).
+ */
+export const myReviewSchema = reviewSchema.extend({
+  officeName: z.string(),
+  isHidden: z.boolean(),
+});
+
+export type TMyReview = z.infer<typeof myReviewSchema>;
+
+export const myReviewListResponseSchema = z.object({
+  reviews: z.array(myReviewSchema),
+  nextCursor: z.string().nullable(),
+});
+
+export type TMyReviewListResponse = z.infer<typeof myReviewListResponseSchema>;
+
+/**
  * 리뷰 목록 쿼리. 라우트가 직접 파싱하지 않도록 계약 쪽에 둔다.
  * limit 상한을 계약에 박아두면 한 번에 전부 긁어가는 요청이 400으로 막힌다.
  */

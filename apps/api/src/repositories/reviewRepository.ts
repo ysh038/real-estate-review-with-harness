@@ -2,6 +2,7 @@ import { and, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
 
 import type { TDatabase } from "../db/client";
 import {
+  offices,
   reviewHelpfulVotes,
   reviewReports,
   reviews,
@@ -10,6 +11,7 @@ import {
 } from "../db/schema";
 import type { ICursorPosition } from "../lib/cursor";
 import type {
+  IMyReviewRow,
   IReviewListRow,
   IReviewOwnedRow,
   IReviewWriteRepository,
@@ -328,5 +330,57 @@ export const createReviewRepository = (
       .where(eq(reviewHelpfulVotes.reviewId, reviewId));
 
     return { helpfulCount: count ?? 0, isHelpful: !existing };
+  },
+
+  // 공개 목록(findByOfficeId)과 달리 hiddenAt 으로 거르지 않는다 — 본인에게는
+  // 숨겨진 자기 리뷰도 보여준다(AC5, docs/specs/my-reviews-list.md).
+  findByUserId: async (
+    userId: string,
+    limit: number,
+    after?: ICursorPosition,
+  ): Promise<IMyReviewRow[]> => {
+    const afterCondition = after
+      ? or(
+          lt(reviews.createdAt, after.createdAt),
+          and(
+            eq(reviews.createdAt, after.createdAt),
+            lt(reviews.id, after.id),
+          ),
+        )
+      : undefined;
+
+    const rows = await db
+      .select({
+        id: reviews.id,
+        officeId: reviews.officeId,
+        officeName: offices.name,
+        rating: reviews.rating,
+        content: reviews.content,
+        createdAt: reviews.createdAt,
+        hiddenAt: reviews.hiddenAt,
+        dealType: reviews.dealType,
+        dealResult: reviews.dealResult,
+        visitedYear: reviews.visitedYear,
+        visitedMonth: reviews.visitedMonth,
+      })
+      .from(reviews)
+      .innerJoin(offices, eq(reviews.officeId, offices.id))
+      .where(and(eq(reviews.userId, userId), afterCondition))
+      .orderBy(desc(reviews.createdAt), desc(reviews.id))
+      .limit(limit);
+
+    const reviewIds = rows.map((row) => row.id);
+    const [tagsByReview, helpfulCounts, userHelpfulIds] = await Promise.all([
+      findTagsByReviewIds(db, reviewIds),
+      findHelpfulCountsByReviewIds(db, reviewIds),
+      findUserHelpfulReviewIds(db, reviewIds, userId),
+    ]);
+
+    return rows.map((row) => ({
+      ...row,
+      tags: tagsByReview.get(row.id) ?? [],
+      helpfulCount: helpfulCounts.get(row.id) ?? 0,
+      isHelpful: userHelpfulIds.has(row.id),
+    }));
   },
 });

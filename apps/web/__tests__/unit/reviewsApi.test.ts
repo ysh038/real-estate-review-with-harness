@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createReview,
+  fetchMyReviews,
   fetchOfficeDetail,
   fetchReviews,
   toggleReviewHelpful,
@@ -170,5 +171,50 @@ describe("reviewsApi", () => {
     await expect(
       toggleReviewHelpful("00000000-0000-4000-8000-000000000001", BASE_URL),
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("fetchMyReviews: GET /api/me/reviews 를 credentials 포함해 호출한다", async () => {
+    const body = { reviews: [], nextCursor: null };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchMyReviews({}, BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/me/reviews`,
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("fetchMyReviews: 커서가 있으면 쿼리스트링에 실어 보낸다", async () => {
+    const body = { reviews: [], nextCursor: null };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchMyReviews({ cursor: "abc" }, BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/me/reviews?cursor=abc`,
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("fetchMyReviews: 실패 응답이면 status를 포함한 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({ message: "인증이 필요합니다" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchMyReviews({}, BASE_URL)).rejects.toMatchObject({
+      status: 401,
+    });
   });
 });

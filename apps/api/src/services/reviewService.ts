@@ -1,4 +1,10 @@
-import type { THelpfulResponse, TReview, TReviewListResponse } from "@repo/types";
+import type {
+  THelpfulResponse,
+  TMyReview,
+  TMyReviewListResponse,
+  TReview,
+  TReviewListResponse,
+} from "@repo/types";
 
 import type { IAuthUser } from "./authService";
 import {
@@ -36,6 +42,26 @@ export interface IReviewRepository {
     /** 로그인한 뷰어의 id — isHelpful 계산에 쓰인다. 없으면(비로그인) isHelpful은 전부 null. */
     requestingUserId?: string | null,
   ) => Promise<IReviewListRow[]>;
+}
+
+/** repository 가 돌려주는 "내 리뷰" 행 — 작성자는 항상 조회자 본인이라 nickname 등은
+ * 필요 없다(호출부가 이미 아는 authUser로 author를 채운다). */
+export interface IMyReviewRow {
+  id: string;
+  officeId: string;
+  officeName: string;
+  rating: number;
+  content: string;
+  createdAt: Date;
+  /** null이면 숨김 아님. AC5: 본인에게는 상태를 그대로 보여준다. */
+  hiddenAt: Date | null;
+  dealType: string | null;
+  dealResult: string | null;
+  visitedYear: number | null;
+  visitedMonth: number | null;
+  tags: string[];
+  helpfulCount: number;
+  isHelpful: boolean;
 }
 
 export class InvalidCursorError extends Error {
@@ -100,6 +126,12 @@ export interface IReviewWriteRepository extends IReviewRepository {
     reviewId: string,
     userId: string,
   ) => Promise<{ helpfulCount: number; isHelpful: boolean }>;
+  /** 숨겨진 리뷰도 포함한다(AC5) — 공개 목록(findByOfficeId)과 다른 지점. */
+  findByUserId: (
+    userId: string,
+    limit: number,
+    after?: ICursorPosition,
+  ) => Promise<IMyReviewRow[]>;
 }
 
 export class ReviewNotFoundError extends Error {
@@ -185,6 +217,27 @@ const toReviewWithAuthor = (
   content: row.content,
   author: { nickname: author.nickname, profileImageUrl: author.profileImageUrl },
   createdAt: row.createdAt.toISOString(),
+  dealType: row.dealType as TReview["dealType"],
+  dealResult: row.dealResult as TReview["dealResult"],
+  visitedYear: row.visitedYear,
+  visitedMonth: row.visitedMonth,
+  tags: row.tags as TReview["tags"],
+  helpfulCount: row.helpfulCount,
+  isHelpful: row.isHelpful,
+});
+
+const toMyReview = (
+  row: IMyReviewRow,
+  author: Pick<IAuthUser, "nickname" | "profileImageUrl">,
+): TMyReview => ({
+  id: row.id,
+  officeId: row.officeId,
+  officeName: row.officeName,
+  rating: row.rating,
+  content: row.content,
+  author: { nickname: author.nickname, profileImageUrl: author.profileImageUrl },
+  createdAt: row.createdAt.toISOString(),
+  isHidden: row.hiddenAt != null,
   dealType: row.dealType as TReview["dealType"],
   dealResult: row.dealResult as TReview["dealResult"],
   visitedYear: row.visitedYear,
@@ -349,6 +402,31 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
     if (!existing) throw new ReviewNotFoundError();
 
     return repository.toggleHelpful(params.reviewId, params.userId);
+  },
+
+  listByUserId: async (
+    authUser: IAuthUser,
+    { limit, cursor }: IListOptions,
+  ): Promise<TMyReviewListResponse> => {
+    let after: ICursorPosition | undefined;
+    if (cursor !== undefined) {
+      const decoded = decodeCursor(cursor);
+      if (!decoded) throw new InvalidCursorError();
+      after = decoded;
+    }
+
+    const rows = await repository.findByUserId(authUser.id, limit + 1, after);
+    const hasNext = rows.length > limit;
+    const page = hasNext ? rows.slice(0, limit) : rows;
+    const last = page.at(-1);
+
+    return {
+      reviews: page.map((row) => toMyReview(row, authUser)),
+      nextCursor:
+        hasNext && last
+          ? encodeCursor({ createdAt: last.createdAt, id: last.id })
+          : null,
+    };
   },
 });
 

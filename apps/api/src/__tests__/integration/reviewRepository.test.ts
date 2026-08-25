@@ -780,4 +780,108 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       expect(updated.helpfulCount).toBe(1);
     });
   });
+
+  describe("내 리뷰 목록 (my-reviews-list)", () => {
+    it("AC3·AC4: 본인 리뷰만, 사무소 이름과 함께 반환한다", async () => {
+      const otherOffice: TOfficeInsert = { ...OFFICE, id: "review-test-office-my" };
+      await officeRepository.upsertMany([otherOffice]);
+      const me = await insertUser("kakao-myreviews-me", "나");
+      const other = await insertUser("kakao-myreviews-other", "다른사람");
+      await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: me,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      await reviewRepository.insert({
+        officeId: otherOffice.id,
+        userId: other,
+        rating: 3,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      const myReviews = await reviewRepository.findByUserId(me, 10);
+
+      expect(myReviews).toHaveLength(1);
+      expect(myReviews[0]?.officeName).toBe(OFFICE.name);
+    });
+
+    it("AC5: 신고 누적으로 숨겨진 내 리뷰도 목록에 포함된다(hiddenAt이 채워져 반환된다)", async () => {
+      const me = await insertUser("kakao-myreviews-hidden", "숨김테스트");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: me,
+        rating: 1,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      await db
+        .update(reviews)
+        .set({ hiddenAt: new Date() })
+        .where(eq(reviews.id, created.id));
+
+      const myReviews = await reviewRepository.findByUserId(me, 10);
+
+      expect(myReviews).toHaveLength(1);
+      expect(myReviews[0]?.hiddenAt).not.toBeNull();
+    });
+
+    it("AC6: 리뷰가 없으면 빈 배열이다", async () => {
+      const me = await insertUser("kakao-myreviews-empty", "빈사람");
+
+      const myReviews = await reviewRepository.findByUserId(me, 10);
+
+      expect(myReviews).toEqual([]);
+    });
+
+    it("AC7·AC8: 커서 페이지네이션 + 최신순 정렬", async () => {
+      const me = await insertUser("kakao-myreviews-paged", "페이지테스트");
+      await db.insert(reviews).values([
+        {
+          officeId: OFFICE.id,
+          userId: me,
+          rating: 5,
+          content: CONTENT,
+          createdAt: new Date("2026-08-01T00:00:00.000Z"),
+        },
+      ]);
+      const otherOffice: TOfficeInsert = { ...OFFICE, id: "review-test-office-my2" };
+      await officeRepository.upsertMany([otherOffice]);
+      await db.insert(reviews).values([
+        {
+          officeId: otherOffice.id,
+          userId: me,
+          rating: 4,
+          content: CONTENT,
+          createdAt: new Date("2026-08-15T00:00:00.000Z"),
+        },
+      ]);
+
+      const page1 = await reviewRepository.findByUserId(me, 1);
+      const page2 = await reviewRepository.findByUserId(me, 1, {
+        createdAt: page1[0]!.createdAt,
+        id: page1[0]!.id,
+      });
+
+      expect(page1[0]?.officeId).toBe(otherOffice.id);
+      expect(page2[0]?.officeId).toBe(OFFICE.id);
+    });
+  });
 });

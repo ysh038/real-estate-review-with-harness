@@ -22,6 +22,14 @@
   color: var(--color-text);
 }
 
+.myReviewsButton {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
 .logoutButton {
   background: none;
   border: none;

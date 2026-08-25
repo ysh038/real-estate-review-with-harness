@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { myReviewListResponseSchema, reviewListQuerySchema } from "@repo/types";
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { randomUUID } from "node:crypto";
@@ -8,6 +9,11 @@ import type { IKakaoOAuthClient } from "../lib/kakaoOAuthClient";
 import { SESSION_COOKIE_NAME } from "../lib/sessionCookie";
 import { requireAuth, type IAuthedVariables } from "../middleware/requireAuth";
 import { createAuthService, type IAuthServiceDeps } from "../services/authService";
+import {
+  createReviewService,
+  InvalidCursorError,
+  type IReviewWriteRepository,
+} from "../services/reviewService";
 
 const STATE_COOKIE = "kakao_oauth_state";
 // 로그인 시작~콜백 사이에만 필요 — 카카오 로그인 화면 왕복 시간이면 충분하다.
@@ -81,11 +87,40 @@ export const createKakaoOAuthRoute = (deps: IAuthRouteDeps) => {
     });
 };
 
-/** GET /api/me — 세션으로 현재 사용자 확인 (AC5·AC6) */
-export const createMeRoute = (deps: IAuthServiceDeps) =>
-  new Hono<{ Variables: IAuthedVariables }>().get("/", requireAuth(deps), (c) =>
-    c.json(c.get("authUser")),
-  );
+export interface IMeRouteDeps extends IAuthServiceDeps {
+  reviewRepository: IReviewWriteRepository;
+}
+
+/**
+ * GET /api/me — 세션으로 현재 사용자 확인 (AC5·AC6)
+ * GET /api/me/reviews — 내 리뷰 목록 (my-reviews-list 명세)
+ */
+export const createMeRoute = (deps: IMeRouteDeps) => {
+  const reviewService = createReviewService(deps.reviewRepository);
+
+  return new Hono<{ Variables: IAuthedVariables }>()
+    .get("/", requireAuth(deps), (c) => c.json(c.get("authUser")))
+    .get(
+      "/reviews",
+      requireAuth(deps),
+      zValidator("query", reviewListQuerySchema),
+      async (c) => {
+        const { cursor, limit } = c.req.valid("query");
+        try {
+          const result = await reviewService.listByUserId(c.get("authUser"), {
+            limit,
+            cursor,
+          });
+          return c.json(myReviewListResponseSchema.parse(result));
+        } catch (error) {
+          if (error instanceof InvalidCursorError) {
+            return c.json({ message: error.message }, 400);
+          }
+          throw error;
+        }
+      },
+    );
+};
 
 /** POST /api/auth/logout — 세션 무효화 (AC7) */
 export const createAuthActionsRoute = (deps: IAuthServiceDeps) => {

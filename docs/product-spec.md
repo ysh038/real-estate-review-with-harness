@@ -81,7 +81,10 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 - [x] 덩이 H — "도움돼요" 토글 + `helpfulCount`/`isHelpful` (명세:
       `specs/review-helpful-toggle.md` — AC1~15 전부 확인, 실DB 통합 테스트 +
       개발 DB 스모크 테스트 완료)
-- [ ] 덩이 I — 내 리뷰 목록 (로그인한 사용자가 자신이 쓴 리뷰를 모아 보기)
+- [x] 덩이 I — 내 리뷰 목록 (로그인한 사용자가 자신이 쓴 리뷰를 모아 보기) (명세:
+      `specs/my-reviews-list.md` — AC1~15 전부 확인, 실DB 통합 테스트 + 개발 DB 스모크
+      테스트 완료. 단, `MyReviewsPanel` 실 브라우저 시각 검증은 실 카카오 로그인이
+      필요해 스킵 — `docs/decisions.md` 후속 조치 참고)
 - [ ] 덩이 J — 관리자: 숨김 리뷰 목록 + 복구 (API 전용, `x-admin-api-key` 헤더 인증 —
       원본도 admin web UI 없음)
 

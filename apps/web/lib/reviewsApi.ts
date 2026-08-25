@@ -1,11 +1,13 @@
 import {
   createReviewRequestSchema,
   helpfulResponseSchema,
+  myReviewListResponseSchema,
   officeDetailResponseSchema,
   reviewListResponseSchema,
   reviewSchema,
   type TCreateReviewRequest,
   type THelpfulResponse,
+  type TMyReviewListResponse,
   type TOfficeDetailResponse,
   type TReview,
   type TReviewListResponse,
@@ -102,4 +104,27 @@ export const toggleReviewHelpful = async (
     throw new ReviewApiError(response.status, message);
   }
   return helpfulResponseSchema.parse(await response.json());
+};
+
+export interface IFetchMyReviewsOptions {
+  cursor?: string;
+}
+
+export const fetchMyReviews = async (
+  { cursor }: IFetchMyReviewsOptions = {},
+  baseUrl: string = DEFAULT_BASE_URL,
+): Promise<TMyReviewListResponse> => {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  const response = await fetch(`${baseUrl}/api/me/reviews${query}`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === "object" && "message" in payload
+        ? String((payload as { message: unknown }).message)
+        : `내 리뷰 조회 실패 (status ${response.status})`;
+    throw new ReviewApiError(response.status, message);
+  }
+  return myReviewListResponseSchema.parse(await response.json());
 };
