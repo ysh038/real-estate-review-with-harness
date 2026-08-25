@@ -2,6 +2,8 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-25 c9a4afe "도움돼요" 토글 (격차 보완 덩이 H, docs/decisions.md #9, 명세:
+  docs/specs/review-helpful-toggle.md — getOptionalAuthUser 첫 도입)
 - 2026-08-25 28d9218 비속어 필터 (격차 보완 덩이 G, docs/decisions.md #9, 명세:
   docs/specs/review-profanity-filter.md)
 - 2026-08-24 3ad9eff 리뷰 태그(REVIEW_TAGS) + 사무소별 태그 집계 추가 (격차 보완 덩이 F,
