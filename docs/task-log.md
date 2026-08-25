@@ -2,6 +2,8 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-25 a6a137a 관리자 숨김 리뷰 목록 + 복구 (격차 보완 덩이 J·마지막, docs/decisions.md
+  #9, 명세: docs/specs/admin-hidden-reviews.md — 덩이 E~J 전부 완료)
 - 2026-08-25 7ede190 내 리뷰 목록 (격차 보완 덩이 I, docs/decisions.md #9, 명세:
   docs/specs/my-reviews-list.md — 헤더 MyReviewsPanel 진짜 모달로 첫 도입)
 - 2026-08-25 c9a4afe "도움돼요" 토글 (격차 보완 덩이 H, docs/decisions.md #9, 명세:
