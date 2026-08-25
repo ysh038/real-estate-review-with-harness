@@ -8,10 +8,10 @@
 브라우저
   │  카카오 지도 JS SDK (지도 렌더링, 런타임)
   ▼
-apps/web  (Next.js 15, :3000)
+apps/web  (Next.js 15, :3001 — 지도 검증만 :3000, 근거 docs/decisions.md #7)
   │  fetch — 계약은 packages/types 의 zod 스키마
   ▼
-apps/api  (Bun + Hono, :8787)
+apps/api  (Bun + Hono, :8788)
   │  routes → services → repositories
   ▼
 PostgreSQL (Drizzle)

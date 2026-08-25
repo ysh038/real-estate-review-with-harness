@@ -41,6 +41,12 @@
 - **주의(통제변인)**: `docs/experiment.md`의 "소스 미복사" 원칙에 따라, 이 항목들은 원본의
   API 스펙(엔드포인트 모양, 상태 코드, threshold 값 등 "인터페이스")만 참고하고 구현 코드나
   비속어 단어 목록 자체는 복사하지 않는다 — `seed-sigungu` 명세의 선례와 동일한 기준.
+- **완료 (2026-08-25)**: 덩이 E~J 전부 구현·검증 완료. 각 명세의 "실행 결과" 섹션 참고
+  (`specs/review-deal-and-visit-fields.md`·`review-tags.md`·`review-profanity-filter.md`·
+  `review-helpful-toggle.md`·`my-reviews-list.md`·`admin-hidden-reviews.md`). 실DB 통합
+  테스트 + 개발 DB 스모크 테스트로 전부 확인했고, 실 카카오 로그인이 필요한 UI 두 곳
+  (덩이 D AC20~22, `MyReviewsPanel`)만 브라우저 시각 검증이 남아있다 — 아래 "논의 중"
+  참고.
 
 ### 2026-08-15 #6 — 원본과 겹치는 모든 로컬 자원을 분리한다 (compose 프로젝트·포트)
 
