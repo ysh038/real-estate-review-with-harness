@@ -76,7 +76,8 @@ Phase 1~13까지 구현돼 있다. 이 저장소는 **MVP + Phase 1** 까지만 
 - [x] 덩이 F — 리뷰 태그(`REVIEW_TAGS`) + 사무소별 태그 집계(`tagCounts`) (명세:
       `specs/review-tags.md` — AC1~15 전부 확인, 실DB 통합 테스트 + 시딩 데이터 무결성
       확인 완료)
-- [ ] 덩이 G — 비속어 필터: 작성·수정 시 검출되면 422
+- [x] 덩이 G — 비속어 필터: 작성·수정 시 검출되면 422 (명세:
+      `specs/review-profanity-filter.md` — AC1~8 전부 확인, 개발 DB 스모크 테스트 완료)
 - [ ] 덩이 H — "도움돼요" 토글 + `helpfulCount`/`isHelpful`
 - [ ] 덩이 I — 내 리뷰 목록 (로그인한 사용자가 자신이 쓴 리뷰를 모아 보기)
 - [ ] 덩이 J — 관리자: 숨김 리뷰 목록 + 복구 (API 전용, `x-admin-api-key` 헤더 인증 —

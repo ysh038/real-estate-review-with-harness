@@ -352,4 +352,23 @@ describe("PATCH /api/reviews/:id — 태그 (review-tags)", () => {
 
     expect(res.status).toBe(400);
   });
+
+  it("AC7(review-profanity-filter): 본문에 비속어가 있으면 422이고 repository.update를 호출하지 않는다", async () => {
+    const { app, sessionRepository, reviewRepository } = buildApp({
+      findById: async () => buildOwnedRow(),
+    });
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        content: "수정된 리뷰인데 씨발 이렇게 바꿉니다",
+      }),
+    });
+
+    expect(res.status).toBe(422);
+    expect(reviewRepository.update).not.toHaveBeenCalled();
+  });
 });

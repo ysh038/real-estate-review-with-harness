@@ -8,6 +8,7 @@ import {
   createReviewService,
   DuplicateReportError,
   ForbiddenReviewActionError,
+  ProfanityError,
   ReviewNotFoundError,
   SelfReportError,
   type IReviewWriteRepository,
@@ -51,6 +52,9 @@ export const createReviewsRoute = (deps: IReviewsRouteDeps) => {
           }
           if (error instanceof ForbiddenReviewActionError) {
             return c.json({ message: error.message }, 403);
+          }
+          if (error instanceof ProfanityError) {
+            return c.json({ message: error.message }, 422);
           }
           throw error;
         }

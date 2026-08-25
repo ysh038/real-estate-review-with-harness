@@ -7,6 +7,7 @@ import {
   DuplicateReportError,
   DuplicateReviewError,
   ForbiddenReviewActionError,
+  ProfanityError,
   ReviewNotFoundError,
   ReviewRateLimitedError,
   SelfReportError,
@@ -205,6 +206,70 @@ describe("reviewService.create (review-write-and-report)", () => {
 
     expect(repository.hasRecentReviewFromIp).not.toHaveBeenCalled();
     expect(repository.insert).toHaveBeenCalled();
+  });
+});
+
+describe("reviewService — 비속어 필터 (review-profanity-filter)", () => {
+  it("AC5: 작성 시 본문에 비속어가 있으면 ProfanityError 를 던지고 insert를 호출하지 않는다", async () => {
+    const repository = createFakeReviewRepository();
+    const service = createReviewService(repository);
+
+    await expect(
+      service.create({
+        officeId: "office-1",
+        authUser: AUTH_USER,
+        rating: 5,
+        content: "이 사무소 진짜 씨발 별로였어요 열자넘음",
+        clientIp: "1.2.3.4",
+      }),
+    ).rejects.toThrow(ProfanityError);
+    expect(repository.insert).not.toHaveBeenCalled();
+  });
+
+  it("AC6: 작성 시 본문이 정상이면 기존처럼 작성된다", async () => {
+    const repository = createFakeReviewRepository();
+    const service = createReviewService(repository);
+
+    await service.create({
+      officeId: "office-1",
+      authUser: AUTH_USER,
+      rating: 5,
+      content: CONTENT,
+      clientIp: "1.2.3.4",
+    });
+
+    expect(repository.insert).toHaveBeenCalled();
+  });
+
+  it("AC7: 수정 시 본문에 비속어가 있으면 ProfanityError 를 던지고 update를 호출하지 않는다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () => buildOwnedRow();
+    const service = createReviewService(repository);
+
+    await expect(
+      service.update({
+        reviewId: "review-1",
+        authUser: AUTH_USER,
+        rating: 5,
+        content: "수정된 리뷰인데 씨발 이렇게 바꿉니다",
+      }),
+    ).rejects.toThrow(ProfanityError);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it("AC8: 수정 시 본문이 정상이면 기존처럼 수정된다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () => buildOwnedRow();
+    const service = createReviewService(repository);
+
+    await service.update({
+      reviewId: "review-1",
+      authUser: AUTH_USER,
+      rating: 5,
+      content: "수정된 정상적인 리뷰 내용입니다",
+    });
+
+    expect(repository.update).toHaveBeenCalled();
   });
 });
 

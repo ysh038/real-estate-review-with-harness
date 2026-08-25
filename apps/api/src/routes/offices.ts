@@ -23,6 +23,7 @@ import {
   createReviewService,
   DuplicateReviewError,
   InvalidCursorError,
+  ProfanityError,
   ReviewRateLimitedError,
   type IReviewWriteRepository,
 } from "../services/reviewService";
@@ -105,6 +106,9 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
           }
           if (error instanceof ReviewRateLimitedError) {
             return c.json({ message: error.message }, 429);
+          }
+          if (error instanceof ProfanityError) {
+            return c.json({ message: error.message }, 422);
           }
           throw error;
         }

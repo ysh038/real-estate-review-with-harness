@@ -7,6 +7,7 @@ import {
   type ICursorPosition,
 } from "../lib/cursor";
 import { isUniqueViolation } from "../lib/pgErrors";
+import { containsProfanity } from "../lib/profanity";
 
 /** repository 가 돌려주는 원시 행 — 작성자가 join 으로 붙어 있고 날짜는 아직 Date 다. */
 export interface IReviewListRow {
@@ -135,6 +136,14 @@ export class DuplicateReportError extends Error {
   }
 }
 
+/** review-profanity-filter AC5·AC7: 본문에 비속어가 검출되면 작성·수정을 막는다. */
+export class ProfanityError extends Error {
+  constructor() {
+    super("부적절한 표현이 포함되어 있습니다");
+    this.name = "ProfanityError";
+  }
+}
+
 /** 신고가 이 개수에 도달하면 자동으로 숨겨진다 (AC18). */
 export const REPORT_HIDE_THRESHOLD = 5;
 
@@ -210,6 +219,8 @@ export interface IReviewOwnerActionParams {
 
 export const createReviewService = (repository: IReviewWriteRepository) => ({
   create: async (params: ICreateReviewParams): Promise<TReview> => {
+    if (containsProfanity(params.content)) throw new ProfanityError();
+
     if (params.clientIp) {
       // AC7: 작성자가 달라도 같은 (IP, 사무소)면 24시간 안에는 막는다.
       const hasRecent = await repository.hasRecentReviewFromIp(
@@ -240,6 +251,8 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
   },
 
   update: async (params: IUpdateReviewParams): Promise<TReview> => {
+    if (containsProfanity(params.content)) throw new ProfanityError();
+
     const existing = await repository.findById(params.reviewId);
     if (!existing) throw new ReviewNotFoundError();
     if (existing.userId !== params.authUser.id) throw new ForbiddenReviewActionError();

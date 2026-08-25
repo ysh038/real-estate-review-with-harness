@@ -402,3 +402,21 @@ describe("POST /api/offices/:id/reviews — 태그 (review-tags)", () => {
     );
   });
 });
+
+describe("POST /api/offices/:id/reviews — 비속어 필터 (review-profanity-filter)", () => {
+  it("AC5: 본문에 비속어가 있으면 422", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        content: "이 사무소 진짜 씨발 별로였어요",
+      }),
+    });
+
+    expect(res.status).toBe(422);
+  });
+});
