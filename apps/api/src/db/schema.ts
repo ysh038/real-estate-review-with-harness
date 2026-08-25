@@ -179,6 +179,27 @@ export type TReviewTagRow = typeof reviewTags.$inferSelect;
 export type TReviewTagInsert = typeof reviewTags.$inferInsert;
 
 /**
+ * 리뷰별 "도움돼요" 토글. 한 사람이 같은 리뷰에 중복으로 누를 수 없다 — 행의 존재
+ * 자체가 "지금 눌러져 있음"을 뜻한다(토글은 행 삽입/삭제로 구현, 근거:
+ * docs/specs/review-helpful-toggle.md).
+ */
+export const reviewHelpfulVotes = pgTable(
+  "review_helpful_votes",
+  {
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.reviewId, table.userId] })],
+);
+
+export type TReviewHelpfulVoteRow = typeof reviewHelpfulVotes.$inferSelect;
+export type TReviewHelpfulVoteInsert = typeof reviewHelpfulVotes.$inferInsert;
+
+/**
  * 로그인 세션. 쿠키엔 이 행의 `id`(불투명 랜덤 토큰)만 담는다.
  *
  * 서명된 stateless 값 대신 DB 세션 테이블을 쓴 이유: 로그아웃이 즉시 무효화돼야 하고,

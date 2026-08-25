@@ -1,7 +1,13 @@
 import { and, desc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
 
 import type { TDatabase } from "../db/client";
-import { reviewReports, reviews, reviewTags, users } from "../db/schema";
+import {
+  reviewHelpfulVotes,
+  reviewReports,
+  reviews,
+  reviewTags,
+  users,
+} from "../db/schema";
 import type { ICursorPosition } from "../lib/cursor";
 import type {
   IReviewListRow,
@@ -62,6 +68,47 @@ const replaceTags = async (
   await db.insert(reviewTags).values(tags.map((tagKey) => ({ reviewId, tagKey })));
 };
 
+/** 여러 리뷰의 "도움돼요" 개수를 한 번에 — N+1 방지 (findTagsByReviewIds와 같은 패턴). */
+const findHelpfulCountsByReviewIds = async (
+  db: TDbOrTx,
+  reviewIds: string[],
+): Promise<Map<string, number>> => {
+  const map = new Map<string, number>();
+  if (reviewIds.length === 0) return map;
+
+  const rows = await db
+    .select({
+      reviewId: reviewHelpfulVotes.reviewId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(reviewHelpfulVotes)
+    .where(inArray(reviewHelpfulVotes.reviewId, reviewIds))
+    .groupBy(reviewHelpfulVotes.reviewId);
+
+  for (const row of rows) map.set(row.reviewId, row.count);
+  return map;
+};
+
+/** 주어진 사용자가 이미 도움돼요를 누른 리뷰 id 집합 — requestingUserId가 있을 때만 조회한다. */
+const findUserHelpfulReviewIds = async (
+  db: TDbOrTx,
+  reviewIds: string[],
+  userId: string,
+): Promise<Set<string>> => {
+  if (reviewIds.length === 0) return new Set();
+
+  const rows = await db
+    .select({ reviewId: reviewHelpfulVotes.reviewId })
+    .from(reviewHelpfulVotes)
+    .where(
+      and(
+        inArray(reviewHelpfulVotes.reviewId, reviewIds),
+        eq(reviewHelpfulVotes.userId, userId),
+      ),
+    );
+  return new Set(rows.map((row) => row.reviewId));
+};
+
 export const createReviewRepository = (
   db: TDatabase,
 ): IReviewWriteRepository => ({
@@ -69,6 +116,7 @@ export const createReviewRepository = (
     officeId: string,
     limit: number,
     after?: ICursorPosition,
+    requestingUserId?: string | null,
   ): Promise<IReviewListRow[]> => {
     // 커서 조건은 정렬 키와 같은 (created_at, id) 조합이어야 한다.
     // created_at 만 비교하면 동시각 리뷰가 통째로 건너뛰어지거나 겹친다.
@@ -109,11 +157,21 @@ export const createReviewRepository = (
       .orderBy(desc(reviews.createdAt), desc(reviews.id))
       .limit(limit);
 
-    const tagsByReview = await findTagsByReviewIds(
-      db,
-      rows.map((row) => row.id),
-    );
-    return rows.map((row) => ({ ...row, tags: tagsByReview.get(row.id) ?? [] }));
+    const reviewIds = rows.map((row) => row.id);
+    const [tagsByReview, helpfulCounts, userHelpfulIds] = await Promise.all([
+      findTagsByReviewIds(db, reviewIds),
+      findHelpfulCountsByReviewIds(db, reviewIds),
+      requestingUserId
+        ? findUserHelpfulReviewIds(db, reviewIds, requestingUserId)
+        : Promise.resolve(null),
+    ]);
+
+    return rows.map((row) => ({
+      ...row,
+      tags: tagsByReview.get(row.id) ?? [],
+      helpfulCount: helpfulCounts.get(row.id) ?? 0,
+      isHelpful: userHelpfulIds ? userHelpfulIds.has(row.id) : null,
+    }));
   },
 
   insert: async (row): Promise<IReviewOwnedRow> => {
@@ -131,7 +189,8 @@ export const createReviewRepository = (
         await tx.insert(reviewTags).values(tags.map((tagKey) => ({ reviewId: inserted.id, tagKey })));
       }
 
-      return { ...inserted, tags };
+      // 방금 만든 리뷰라 도움돼요 투표가 있을 수 없다 — 조회 없이 확정값(설계 메모 참고).
+      return { ...inserted, tags, helpfulCount: 0, isHelpful: false };
     });
   },
 
@@ -144,7 +203,9 @@ export const createReviewRepository = (
     if (!row) return null;
 
     const tagsByReview = await findTagsByReviewIds(db, [row.id]);
-    return { ...row, tags: tagsByReview.get(row.id) ?? [] };
+    // findById는 소유권·존재 확인용이라 helpfulCount/isHelpful을 표시에 쓰지 않는다 —
+    // 조회 비용을 아끼려고 확정값을 둔다.
+    return { ...row, tags: tagsByReview.get(row.id) ?? [], helpfulCount: 0, isHelpful: false };
   },
 
   update: async (
@@ -171,7 +232,19 @@ export const createReviewRepository = (
 
       await replaceTags(tx, id, tags);
 
-      return { ...updated, tags };
+      // 수정해도 기존에 쌓인 도움돼요 투표는 그대로다 — 0으로 하드코딩하지 않고 실제
+      // 값을 반영한다(설계 메모: "update() 응답의 helpfulCount는 실제 값을 반영한다").
+      const [helpfulCounts, userHelpfulIds] = await Promise.all([
+        findHelpfulCountsByReviewIds(tx, [id]),
+        findUserHelpfulReviewIds(tx, [id], updated.userId),
+      ]);
+
+      return {
+        ...updated,
+        tags,
+        helpfulCount: helpfulCounts.get(id) ?? 0,
+        isHelpful: userHelpfulIds.has(id),
+      };
     });
   },
 
@@ -217,5 +290,43 @@ export const createReviewRepository = (
       where id = ${reviewId}
         and (select count(*) from ${reviewReports} where review_id = ${reviewId}) >= ${threshold}
     `);
+  },
+
+  // check-then-act — 결과가 누적돼 다른 부작용(자동 숨김 등)을 일으키는 게 아니라 단순
+  // on/off 토글이라 원자적 SQL로 감쌀 만큼의 경합 위험이 아니다(설계 메모 참고).
+  toggleHelpful: async (
+    reviewId: string,
+    userId: string,
+  ): Promise<{ helpfulCount: number; isHelpful: boolean }> => {
+    const [existing] = await db
+      .select()
+      .from(reviewHelpfulVotes)
+      .where(
+        and(
+          eq(reviewHelpfulVotes.reviewId, reviewId),
+          eq(reviewHelpfulVotes.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      await db
+        .delete(reviewHelpfulVotes)
+        .where(
+          and(
+            eq(reviewHelpfulVotes.reviewId, reviewId),
+            eq(reviewHelpfulVotes.userId, userId),
+          ),
+        );
+    } else {
+      await db.insert(reviewHelpfulVotes).values({ reviewId, userId });
+    }
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(reviewHelpfulVotes)
+      .where(eq(reviewHelpfulVotes.reviewId, reviewId));
+
+    return { helpfulCount: count ?? 0, isHelpful: !existing };
   },
 });

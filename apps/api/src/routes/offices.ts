@@ -11,7 +11,11 @@ import {
 import { Hono } from "hono";
 
 import { getClientIp } from "../lib/clientIp";
-import { type IAuthedVariables, requireAuth } from "../middleware/requireAuth";
+import {
+  type IAuthedVariables,
+  getOptionalAuthUser,
+  requireAuth,
+} from "../middleware/requireAuth";
 import type { IAuthServiceDeps } from "../services/authService";
 import {
   createOfficeDetailService,
@@ -59,9 +63,11 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
       async (c) => {
         const { cursor, limit } = c.req.valid("query");
         try {
+          const requestingUser = await getOptionalAuthUser(c, deps);
           const result = await reviewService.listByOfficeId(
             c.req.param("id"),
             { limit, cursor },
+            requestingUser?.id ?? null,
           );
 
           return c.json(reviewListResponseSchema.parse(result));

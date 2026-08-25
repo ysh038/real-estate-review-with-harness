@@ -29,6 +29,8 @@ const buildRow = (index: number): IReviewListRow => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  helpfulCount: 0,
+  isHelpful: null,
 });
 
 const createFakeRepository = createFakeReviewRepository;
@@ -55,6 +57,8 @@ const buildOwnedRow = (
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  helpfulCount: 0,
+  isHelpful: false,
   ...overrides,
 });
 
@@ -105,6 +109,7 @@ describe("reviewService.listByOfficeId", () => {
       "office-1",
       21,
       position,
+      undefined,
     );
   });
 
@@ -117,6 +122,7 @@ describe("reviewService.listByOfficeId", () => {
     expect(repository.findByOfficeId).toHaveBeenCalledWith(
       "office-1",
       21,
+      undefined,
       undefined,
     );
   });
@@ -135,6 +141,20 @@ describe("reviewService.listByOfficeId", () => {
     await expect(
       service.listByOfficeId("office-1", { limit: 20, cursor: "broken" }),
     ).rejects.toThrow();
+  });
+
+  it("AC10·AC11(review-helpful-toggle): requestingUserId를 repository에 그대로 전달한다", async () => {
+    const repository = createFakeRepository([]);
+    const service = createReviewService(repository);
+
+    await service.listByOfficeId("office-1", { limit: 20 }, "viewer-1");
+
+    expect(repository.findByOfficeId).toHaveBeenCalledWith(
+      "office-1",
+      21,
+      undefined,
+      "viewer-1",
+    );
   });
 });
 
@@ -492,5 +512,28 @@ describe("reviewService.report (review-write-and-report)", () => {
       "review-1",
       5,
     );
+  });
+});
+
+describe("reviewService.toggleHelpful (review-helpful-toggle)", () => {
+  it("AC5: 존재하지 않는 리뷰면 ReviewNotFoundError 를 던지고 toggleHelpful을 호출하지 않는다", async () => {
+    const repository = createFakeReviewRepository();
+    const service = createReviewService(repository);
+
+    await expect(
+      service.toggleHelpful({ reviewId: "no-such-review", userId: "u-1" }),
+    ).rejects.toThrow(ReviewNotFoundError);
+    expect(repository.toggleHelpful).not.toHaveBeenCalled();
+  });
+
+  it("AC8: 본인 리뷰여도 제한 없이 토글한다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () => buildOwnedRow({ userId: "u-1" });
+    const service = createReviewService(repository);
+
+    await expect(
+      service.toggleHelpful({ reviewId: "review-1", userId: "u-1" }),
+    ).resolves.toEqual({ helpfulCount: 1, isHelpful: true });
+    expect(repository.toggleHelpful).toHaveBeenCalledWith("review-1", "u-1");
   });
 });

@@ -50,9 +50,23 @@ export const reviewSchema = z.object({
   visitedMonth: visitedMonthSchema.nullable(),
   /** 태그가 없으면 빈 배열 — null 아님. */
   tags: z.array(reviewTagEnum),
+  helpfulCount: z.number().int().nonnegative(),
+  /** 비로그인 요청은 null("모름") — 로그인했지만 안 눌렀으면 false ("안 눌렀음"). */
+  isHelpful: z.boolean().nullable(),
 });
 
 export type TReview = z.infer<typeof reviewSchema>;
+
+/**
+ * POST /api/reviews/:id/helpful 응답. 토글은 항상 로그인 상태에서만 일어나므로
+ * isHelpful에 null 케이스가 없다 (review-helpful-toggle 설계 메모).
+ */
+export const helpfulResponseSchema = z.object({
+  helpfulCount: z.number().int().nonnegative(),
+  isHelpful: z.boolean(),
+});
+
+export type THelpfulResponse = z.infer<typeof helpfulResponseSchema>;
 
 export const reviewListResponseSchema = z.object({
   reviews: z.array(reviewSchema),

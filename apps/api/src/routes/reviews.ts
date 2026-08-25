@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { reviewSchema, updateReviewRequestSchema } from "@repo/types";
+import { helpfulResponseSchema, reviewSchema, updateReviewRequestSchema } from "@repo/types";
 import { Hono } from "hono";
 
 import { type IAuthedVariables, requireAuth } from "../middleware/requireAuth";
@@ -93,6 +93,20 @@ export const createReviewsRoute = (deps: IReviewsRouteDeps) => {
         }
         if (error instanceof DuplicateReportError) {
           return c.json({ message: error.message }, 409);
+        }
+        throw error;
+      }
+    })
+    .post("/:id/helpful", requireAuth(deps), async (c) => {
+      try {
+        const result = await service.toggleHelpful({
+          reviewId: c.req.param("id"),
+          userId: c.get("authUser").id,
+        });
+        return c.json(helpfulResponseSchema.parse(result));
+      } catch (error) {
+        if (error instanceof ReviewNotFoundError) {
+          return c.json({ message: error.message }, 404);
         }
         throw error;
       }

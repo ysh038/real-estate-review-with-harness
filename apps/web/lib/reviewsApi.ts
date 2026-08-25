@@ -1,9 +1,11 @@
 import {
   createReviewRequestSchema,
+  helpfulResponseSchema,
   officeDetailResponseSchema,
   reviewListResponseSchema,
   reviewSchema,
   type TCreateReviewRequest,
+  type THelpfulResponse,
   type TOfficeDetailResponse,
   type TReview,
   type TReviewListResponse,
@@ -81,4 +83,23 @@ export const createReview = async (
     throw new ReviewApiError(response.status, message);
   }
   return reviewSchema.parse(await response.json());
+};
+
+export const toggleReviewHelpful = async (
+  reviewId: string,
+  baseUrl: string = DEFAULT_BASE_URL,
+): Promise<THelpfulResponse> => {
+  const response = await fetch(`${baseUrl}/api/reviews/${reviewId}/helpful`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === "object" && "message" in payload
+        ? String((payload as { message: unknown }).message)
+        : `도움돼요 처리 실패 (status ${response.status})`;
+    throw new ReviewApiError(response.status, message);
+  }
+  return helpfulResponseSchema.parse(await response.json());
 };

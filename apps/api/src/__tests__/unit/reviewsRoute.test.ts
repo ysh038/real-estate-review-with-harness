@@ -28,6 +28,8 @@ const buildOwnedRow = (
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  helpfulCount: 0,
+  isHelpful: false,
   ...overrides,
 });
 
@@ -370,5 +372,78 @@ describe("PATCH /api/reviews/:id — 태그 (review-tags)", () => {
 
     expect(res.status).toBe(422);
     expect(reviewRepository.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/reviews/:id/helpful (review-helpful-toggle)", () => {
+  it("AC4: 세션 쿠키 없이 요청하면 401", async () => {
+    const { app } = buildApp();
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}/helpful`, {
+      method: "POST",
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("AC5: 존재하지 않는 리뷰면 404", async () => {
+    const { app, sessionRepository } = buildApp({
+      findById: async () => null,
+    });
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}/helpful`, {
+      method: "POST",
+      headers,
+    });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("AC6: 처음 누르면 isHelpful: true와 늘어난 helpfulCount를 반환한다", async () => {
+    const { app, sessionRepository } = buildApp({
+      findById: async () => buildOwnedRow(),
+      toggleHelpful: async () => ({ helpfulCount: 1, isHelpful: true }),
+    });
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}/helpful`, {
+      method: "POST",
+      headers,
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ helpfulCount: 1, isHelpful: true });
+  });
+
+  it("AC7: 다시 누르면(토글 취소) isHelpful: false와 줄어든 helpfulCount를 반환한다", async () => {
+    const { app, sessionRepository } = buildApp({
+      findById: async () => buildOwnedRow(),
+      toggleHelpful: async () => ({ helpfulCount: 0, isHelpful: false }),
+    });
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}/helpful`, {
+      method: "POST",
+      headers,
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ helpfulCount: 0, isHelpful: false });
+  });
+
+  it("AC8: 본인이 쓴 리뷰에도 도움돼요를 누를 수 있다(403이 아니다)", async () => {
+    const { app, sessionRepository } = buildApp({
+      findById: async () => buildOwnedRow({ userId: OWNER_ID }),
+      toggleHelpful: async () => ({ helpfulCount: 1, isHelpful: true }),
+    });
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/reviews/${REVIEW_ID}/helpful`, {
+      method: "POST",
+      headers,
+    });
+
+    expect(res.status).toBe(200);
   });
 });

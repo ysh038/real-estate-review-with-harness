@@ -50,6 +50,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
     submitError,
     loadMore,
     submitReview,
+    toggleHelpful,
   } = useOfficeReviews(officeId);
 
   const [rating, setRating] = useState(0);
@@ -160,6 +161,15 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
                 ))}
               </ul>
             ) : null}
+            <button
+              type="button"
+              className={styles.helpfulButton}
+              aria-pressed={review.isHelpful === true}
+              disabled={status !== "authenticated"}
+              onClick={() => void toggleHelpful(review.id)}
+            >
+              도움돼요 {review.helpfulCount}
+            </button>
           </li>
         ))}
       </ul>

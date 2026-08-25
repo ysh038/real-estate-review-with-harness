@@ -39,6 +39,8 @@ const REVIEW: TReview = {
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  helpfulCount: 0,
+  isHelpful: null,
 };
 
 const REVIEW_WITH_DEAL_INFO: TReview = {
@@ -61,6 +63,7 @@ const baseHookState = {
   submitError: null as Error | null,
   loadMore: vi.fn(),
   submitReview: vi.fn().mockResolvedValue(true),
+  toggleHelpful: vi.fn().mockResolvedValue(undefined),
 };
 
 const UNAUTHENTICATED_SESSION = {
@@ -346,6 +349,68 @@ describe("ReviewSection", () => {
       visitedYear: 2026,
       visitedMonth: 3,
     });
+  });
+
+  it("AC12(review-helpful-toggle): 리뷰 항목에 도움돼요 버튼과 개수가 보인다", () => {
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      reviews: [{ ...REVIEW, helpfulCount: 3, isHelpful: null }],
+    });
+
+    render(<ReviewSection officeId="office-1" />);
+
+    expect(
+      screen.getByRole("button", { name: /도움돼요/ }),
+    ).toHaveTextContent("3");
+  });
+
+  it("AC13(review-helpful-toggle): 로그인 상태에서 누르면 toggleHelpful이 그 리뷰 id로 호출된다", async () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    const toggleHelpful = vi.fn().mockResolvedValue(undefined);
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      reviews: [{ ...REVIEW, isHelpful: false }],
+      toggleHelpful,
+    });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    await user.click(screen.getByRole("button", { name: /도움돼요/ }));
+
+    expect(toggleHelpful).toHaveBeenCalledWith(REVIEW.id);
+  });
+
+  it("AC14(review-helpful-toggle): 비로그인 상태면 도움돼요 버튼이 비활성화돼 있고 클릭해도 요청이 나가지 않는다", async () => {
+    const toggleHelpful = vi.fn().mockResolvedValue(undefined);
+    useOfficeReviews.mockReturnValue({ ...baseHookState, toggleHelpful });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    const button = screen.getByRole("button", { name: /도움돼요/ });
+    expect(button).toBeDisabled();
+
+    await user.click(button);
+
+    expect(toggleHelpful).not.toHaveBeenCalled();
+  });
+
+  it("AC15(review-helpful-toggle): 이미 누른 리뷰는 눌린 상태로 보이고, 다시 눌러도 toggleHelpful이 호출된다(취소)", async () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    const toggleHelpful = vi.fn().mockResolvedValue(undefined);
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      reviews: [{ ...REVIEW, helpfulCount: 1, isHelpful: true }],
+      toggleHelpful,
+    });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    const button = screen.getByRole("button", { name: /도움돼요/ });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(button);
+
+    expect(toggleHelpful).toHaveBeenCalledWith(REVIEW.id);
   });
 
   it("AC15(review-deal-and-visit-fields): 거래정보가 있는 리뷰 항목만 표시되고 없는 항목엔 표시되지 않는다", () => {

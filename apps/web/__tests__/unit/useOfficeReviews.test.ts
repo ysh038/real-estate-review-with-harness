@@ -4,15 +4,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useOfficeReviews } from "../../hooks/useOfficeReviews";
 
-const { fetchOfficeDetail, fetchReviews, createReview } = vi.hoisted(() => ({
-  fetchOfficeDetail: vi.fn(),
-  fetchReviews: vi.fn(),
-  createReview: vi.fn(),
-}));
+const { fetchOfficeDetail, fetchReviews, createReview, toggleReviewHelpful } =
+  vi.hoisted(() => ({
+    fetchOfficeDetail: vi.fn(),
+    fetchReviews: vi.fn(),
+    createReview: vi.fn(),
+    toggleReviewHelpful: vi.fn(),
+  }));
 vi.mock("../../lib/reviewsApi", () => ({
   fetchOfficeDetail,
   fetchReviews,
   createReview,
+  toggleReviewHelpful,
   ReviewApiError: class ReviewApiError extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -48,6 +51,8 @@ const buildReview = (id: string): TReview => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  helpfulCount: 0,
+  isHelpful: false,
 });
 
 const PAGE_1: TReviewListResponse = {
@@ -60,6 +65,7 @@ describe("useOfficeReviews", () => {
     fetchOfficeDetail.mockReset();
     fetchReviews.mockReset();
     createReview.mockReset();
+    toggleReviewHelpful.mockReset();
   });
 
   it("AC1/AC2: officeId가 주어지면 집계와 첫 페이지를 함께 불러오고 로딩 상태가 끝난다", async () => {
@@ -173,5 +179,30 @@ describe("useOfficeReviews", () => {
 
     expect(result.current.submitError).not.toBeNull();
     expect(result.current.reviews).toEqual(PAGE_1.reviews);
+  });
+
+  it("AC13(review-helpful-toggle): toggleHelpful은 서버 응답으로 그 리뷰 하나만 갱신하고 목록을 다시 불러오지 않는다", async () => {
+    const page = {
+      reviews: [buildReview("review-1"), buildReview("review-2")],
+      nextCursor: null,
+    };
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(page);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    toggleReviewHelpful.mockResolvedValue({ helpfulCount: 1, isHelpful: true });
+    const fetchReviewsCallsBefore = fetchReviews.mock.calls.length;
+
+    await act(async () => {
+      await result.current.toggleHelpful("review-1");
+    });
+
+    expect(toggleReviewHelpful).toHaveBeenCalledWith("review-1");
+    expect(fetchReviews.mock.calls.length).toBe(fetchReviewsCallsBefore);
+    const updated = result.current.reviews.find((r) => r.id === "review-1");
+    const untouched = result.current.reviews.find((r) => r.id === "review-2");
+    expect(updated).toMatchObject({ helpfulCount: 1, isHelpful: true });
+    expect(untouched).toMatchObject({ helpfulCount: 0, isHelpful: false });
   });
 });

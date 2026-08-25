@@ -10,7 +10,10 @@ import { createApp } from "../../app";
 import { encodeCursor } from "../../lib/cursor";
 import type { TOfficeSummaryRow } from "../../services/officeService";
 import type { IReviewListRow } from "../../services/reviewService";
-import { createFakeAuthAppDeps } from "../helpers/fakeAuthDeps";
+import {
+  createFakeAuthAppDeps,
+  createFakeSessionRepository,
+} from "../helpers/fakeAuthDeps";
 import { createFakeOfficeRepository } from "../helpers/fakeOfficeRepository";
 import { createFakeReviewRepository } from "../helpers/fakeReviewRepository";
 
@@ -38,6 +41,8 @@ const buildReviewRow = (index: number): IReviewListRow => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  helpfulCount: 0,
+  isHelpful: null,
 });
 
 const buildApp = ({
@@ -52,16 +57,34 @@ const buildApp = ({
     findVisibleRatingsByOfficeId: vi.fn(async () => ratings),
     findTagCountsByOfficeId: vi.fn(async () => tagCounts),
   };
-  return createApp({
+  const reviewRepository = createFakeReviewRepository(reviewRows);
+  const sessionRepository = createFakeSessionRepository();
+  const app = createApp({
     officeRepository,
-    reviewRepository: createFakeReviewRepository(reviewRows),
+    reviewRepository,
     ...createFakeAuthAppDeps(),
+    sessionRepository,
   });
+  return { app, reviewRepository, sessionRepository };
+};
+
+// createFakeUserRepository의 기본 사용자 id("u-1")와 맞춘다 — 그래야 세션이 실제
+// 로그인 상태로 해석된다.
+const withSession = async (
+  sessionRepository: ReturnType<typeof createFakeSessionRepository>,
+  userId = "u-1",
+) => {
+  await sessionRepository.create({
+    id: "sess-1",
+    userId,
+    expiresAt: new Date(Date.now() + 60_000),
+  });
+  return { Cookie: "session_id=sess-1" };
 };
 
 describe("GET /api/offices/:id", () => {
   it("AC13: 200 과 계약 스키마에 맞는 본문을 반환한다", async () => {
-    const app = buildApp({ ratings: [5, 4, 4] });
+    const { app } = buildApp({ ratings: [5, 4, 4] });
 
     const res = await app.request(`/api/offices/${OFFICE.id}`);
 
@@ -73,7 +96,7 @@ describe("GET /api/offices/:id", () => {
   });
 
   it("AC14: 없는 사무소 id 면 404 를 반환한다", async () => {
-    const app = buildApp({ office: null });
+    const { app } = buildApp({ office: null });
 
     const res = await app.request("/api/offices/does-not-exist");
 
@@ -83,7 +106,7 @@ describe("GET /api/offices/:id", () => {
 
 describe("GET /api/offices/:id/reviews", () => {
   it("AC15: 200 과 계약 스키마에 맞는 본문을 반환한다", async () => {
-    const app = buildApp({ reviewRows: [buildReviewRow(1)] });
+    const { app } = buildApp({ reviewRows: [buildReviewRow(1)] });
 
     const res = await app.request(`/api/offices/${OFFICE.id}/reviews`);
 
@@ -93,7 +116,7 @@ describe("GET /api/offices/:id/reviews", () => {
   });
 
   it("AC16: 각 항목에 작성자 닉네임이 포함된다", async () => {
-    const app = buildApp({ reviewRows: [buildReviewRow(1)] });
+    const { app } = buildApp({ reviewRows: [buildReviewRow(1)] });
 
     const res = await app.request(`/api/offices/${OFFICE.id}/reviews`);
     const body = reviewListResponseSchema.parse(await res.json());
@@ -102,7 +125,7 @@ describe("GET /api/offices/:id/reviews", () => {
   });
 
   it("AC19: limit 이 상한을 넘으면 400 을 반환한다", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request(
       `/api/offices/${OFFICE.id}/reviews?limit=${REVIEW_PAGE_SIZE_MAX + 1}`,
@@ -112,7 +135,7 @@ describe("GET /api/offices/:id/reviews", () => {
   });
 
   it("AC19: limit 이 숫자가 아니면 400 을 반환한다", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request(`/api/offices/${OFFICE.id}/reviews?limit=abc`);
 
@@ -120,7 +143,7 @@ describe("GET /api/offices/:id/reviews", () => {
   });
 
   it("AC12: 잘못된 커서면 400 을 반환한다", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request(
       `/api/offices/${OFFICE.id}/reviews?cursor=broken-cursor`,
@@ -130,7 +153,7 @@ describe("GET /api/offices/:id/reviews", () => {
   });
 
   it("AC12: 올바른 커서면 200 을 반환한다", async () => {
-    const app = buildApp({ reviewRows: [buildReviewRow(1)] });
+    const { app } = buildApp({ reviewRows: [buildReviewRow(1)] });
     const cursor = encodeCursor({ createdAt: new Date(), id: OFFICE.id });
 
     const res = await app.request(
@@ -141,7 +164,7 @@ describe("GET /api/offices/:id/reviews", () => {
   });
 
   it("AC8(review-tags): 각 항목에 tags가 포함된다", async () => {
-    const app = buildApp({
+    const { app } = buildApp({
       reviewRows: [{ ...buildReviewRow(1), tags: ["친절함", "응답 빠름"] }],
     });
 
@@ -152,9 +175,55 @@ describe("GET /api/offices/:id/reviews", () => {
   });
 });
 
+describe("GET /api/offices/:id/reviews — 도움돼요 (review-helpful-toggle)", () => {
+  it("AC9: 각 항목에 helpfulCount가 그대로 반영된다", async () => {
+    const { app } = buildApp({
+      reviewRows: [{ ...buildReviewRow(1), helpfulCount: 3 }],
+    });
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`);
+    const body = reviewListResponseSchema.parse(await res.json());
+
+    expect(body.reviews[0]?.helpfulCount).toBe(3);
+  });
+
+  it("AC10: 로그인한 뷰어면 그 사용자 id를 repository에 requestingUserId로 전달한다", async () => {
+    const { app, reviewRepository, sessionRepository } = buildApp({
+      reviewRows: [buildReviewRow(1)],
+    });
+    const headers = await withSession(sessionRepository);
+
+    await app.request(`/api/offices/${OFFICE.id}/reviews`, { headers });
+
+    expect(reviewRepository.findByOfficeId).toHaveBeenCalledWith(
+      OFFICE.id,
+      expect.any(Number),
+      undefined,
+      "u-1",
+    );
+  });
+
+  it("AC11: 비로그인이면 requestingUserId 없이 repository를 호출하고 isHelpful은 null이다", async () => {
+    const { app, reviewRepository } = buildApp({
+      reviewRows: [buildReviewRow(1)],
+    });
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`);
+    const body = reviewListResponseSchema.parse(await res.json());
+
+    expect(reviewRepository.findByOfficeId).toHaveBeenCalledWith(
+      OFFICE.id,
+      expect.any(Number),
+      undefined,
+      null,
+    );
+    expect(body.reviews[0]?.isHelpful).toBeNull();
+  });
+});
+
 describe("GET /api/offices/:id — 태그 집계 (review-tags)", () => {
   it("AC9: tagCounts가 응답에 포함된다", async () => {
-    const app = buildApp({
+    const { app } = buildApp({
       tagCounts: [
         { tag: "친절함", count: 3 },
         { tag: "응답 빠름", count: 1 },
@@ -171,7 +240,7 @@ describe("GET /api/offices/:id — 태그 집계 (review-tags)", () => {
   });
 
   it("AC11: 태그가 없으면 tagCounts는 빈 배열이다", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request(`/api/offices/${OFFICE.id}`);
     const body = officeDetailResponseSchema.parse(await res.json());

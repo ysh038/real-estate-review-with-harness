@@ -1,4 +1,4 @@
-import type { TReview, TReviewListResponse } from "@repo/types";
+import type { THelpfulResponse, TReview, TReviewListResponse } from "@repo/types";
 
 import type { IAuthUser } from "./authService";
 import {
@@ -23,6 +23,9 @@ export interface IReviewListRow {
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
+  helpfulCount: number;
+  /** requestingUserId를 안 넘겼으면(비로그인) null. */
+  isHelpful: boolean | null;
 }
 
 export interface IReviewRepository {
@@ -30,6 +33,8 @@ export interface IReviewRepository {
     officeId: string,
     limit: number,
     after?: ICursorPosition,
+    /** 로그인한 뷰어의 id — isHelpful 계산에 쓰인다. 없으면(비로그인) isHelpful은 전부 null. */
+    requestingUserId?: string | null,
   ) => Promise<IReviewListRow[]>;
 }
 
@@ -53,6 +58,8 @@ export interface IReviewOwnedRow {
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
+  helpfulCount: number;
+  isHelpful: boolean;
 }
 
 export interface IReviewWriteRepository extends IReviewRepository {
@@ -88,6 +95,11 @@ export interface IReviewWriteRepository extends IReviewRepository {
   insertReport: (reviewId: string, reporterUserId: string) => Promise<void>;
   /** 신고 개수가 threshold 이상이면 hidden_at 을 원자적으로 설정한다 (경합 안전, 설계 메모 참고). */
   hideIfThresholdReached: (reviewId: string, threshold: number) => Promise<void>;
+  /** 이미 눌렀으면 취소, 안 눌렀으면 등록 — 토글 후의 최종 상태를 반환한다. */
+  toggleHelpful: (
+    reviewId: string,
+    userId: string,
+  ) => Promise<{ helpfulCount: number; isHelpful: boolean }>;
 }
 
 export class ReviewNotFoundError extends Error {
@@ -159,6 +171,8 @@ const toReview = (row: IReviewListRow): TReview => ({
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
+  helpfulCount: row.helpfulCount,
+  isHelpful: row.isHelpful,
 });
 
 const toReviewWithAuthor = (
@@ -176,6 +190,8 @@ const toReviewWithAuthor = (
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
+  helpfulCount: row.helpfulCount,
+  isHelpful: row.isHelpful,
 });
 
 export interface IListOptions {
@@ -295,6 +311,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
   listByOfficeId: async (
     officeId: string,
     { limit, cursor }: IListOptions,
+    requestingUserId?: string | null,
   ): Promise<TReviewListResponse> => {
     let after: ICursorPosition | undefined;
     if (cursor !== undefined) {
@@ -305,7 +322,12 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
     }
 
     // 상한보다 1건 더 받아야 "다음 페이지가 있다"를 알 수 있다 (officeService 와 같은 수법).
-    const rows = await repository.findByOfficeId(officeId, limit + 1, after);
+    const rows = await repository.findByOfficeId(
+      officeId,
+      limit + 1,
+      after,
+      requestingUserId,
+    );
     const hasNext = rows.length > limit;
     const page = hasNext ? rows.slice(0, limit) : rows;
     const last = page.at(-1);
@@ -317,6 +339,16 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
           ? encodeCursor({ createdAt: last.createdAt, id: last.id })
           : null,
     };
+  },
+
+  toggleHelpful: async (params: {
+    reviewId: string;
+    userId: string;
+  }): Promise<THelpfulResponse> => {
+    const existing = await repository.findById(params.reviewId);
+    if (!existing) throw new ReviewNotFoundError();
+
+    return repository.toggleHelpful(params.reviewId, params.userId);
   },
 });
 

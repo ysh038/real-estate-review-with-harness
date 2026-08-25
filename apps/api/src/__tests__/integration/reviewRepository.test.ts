@@ -645,4 +645,139 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       expect(result.get(otherOffice.id)).toEqual([{ tag: "응답 빠름", count: 1 }]);
     });
   });
+
+  describe("도움돼요 (review-helpful-toggle)", () => {
+    it("AC6·AC7: 처음 누르면 isHelpful true·count 1, 다시 누르면 false·count 0", async () => {
+      const author = await insertUser("kakao-helpful-author", "글쓴이");
+      const voter = await insertUser("kakao-helpful-voter", "투표자");
+      const review = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      const first = await reviewRepository.toggleHelpful(review.id, voter);
+      expect(first).toEqual({ helpfulCount: 1, isHelpful: true });
+
+      const second = await reviewRepository.toggleHelpful(review.id, voter);
+      expect(second).toEqual({ helpfulCount: 0, isHelpful: false });
+    });
+
+    it("AC8: 본인 리뷰에도 도움돼요를 누를 수 있다", async () => {
+      const author = await insertUser("kakao-helpful-self", "본인투표");
+      const review = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      const result = await reviewRepository.toggleHelpful(review.id, author);
+
+      expect(result).toEqual({ helpfulCount: 1, isHelpful: true });
+    });
+
+    it("여러 사용자가 누르면 helpfulCount가 누적된다", async () => {
+      const author = await insertUser("kakao-helpful-multi-author", "글쓴이2");
+      const voterA = await insertUser("kakao-helpful-multi-a", "투표자A");
+      const voterB = await insertUser("kakao-helpful-multi-b", "투표자B");
+      const review = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      await reviewRepository.toggleHelpful(review.id, voterA);
+      const afterBoth = await reviewRepository.toggleHelpful(review.id, voterB);
+
+      expect(afterBoth).toEqual({ helpfulCount: 2, isHelpful: true });
+    });
+
+    it("AC9·AC10·AC11: findByOfficeId가 requestingUserId 기준으로 helpfulCount·isHelpful을 계산한다", async () => {
+      const author = await insertUser("kakao-helpful-list-author", "글쓴이3");
+      const voter = await insertUser("kakao-helpful-list-voter", "투표자3");
+      const bystander = await insertUser("kakao-helpful-list-bystander", "구경꾼");
+      const review = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      await reviewRepository.toggleHelpful(review.id, voter);
+
+      const asVoter = await reviewRepository.findByOfficeId(
+        OFFICE.id,
+        10,
+        undefined,
+        voter,
+      );
+      const asBystander = await reviewRepository.findByOfficeId(
+        OFFICE.id,
+        10,
+        undefined,
+        bystander,
+      );
+      const anonymous = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+
+      expect(asVoter[0]).toMatchObject({ helpfulCount: 1, isHelpful: true });
+      expect(asBystander[0]).toMatchObject({ helpfulCount: 1, isHelpful: false });
+      expect(anonymous[0]).toMatchObject({ helpfulCount: 1, isHelpful: null });
+    });
+
+    it("수정해도 기존에 쌓인 도움돼요 투표는 유지된다(update가 helpfulCount를 0으로 리셋하지 않는다)", async () => {
+      const author = await insertUser("kakao-helpful-update-author", "글쓴이4");
+      const voter = await insertUser("kakao-helpful-update-voter", "투표자4");
+      const review = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      await reviewRepository.toggleHelpful(review.id, voter);
+
+      const updated = await reviewRepository.update(review.id, {
+        rating: 3,
+        content: "수정된 충분히 긴 리뷰 본문입니다",
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      expect(updated.helpfulCount).toBe(1);
+    });
+  });
 });

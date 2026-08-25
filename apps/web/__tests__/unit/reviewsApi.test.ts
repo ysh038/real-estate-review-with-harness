@@ -4,6 +4,7 @@ import {
   createReview,
   fetchOfficeDetail,
   fetchReviews,
+  toggleReviewHelpful,
 } from "../../lib/reviewsApi";
 
 const BASE_URL = "http://localhost:8788";
@@ -95,6 +96,8 @@ describe("reviewsApi", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      helpfulCount: 0,
+      isHelpful: false,
     };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -134,5 +137,38 @@ describe("reviewsApi", () => {
     await expect(
       createReview("office-1", { rating: 5, content: "x".repeat(10) }, BASE_URL),
     ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("toggleReviewHelpful: POST /api/reviews/:id/helpful 를 credentials 포함해 호출한다", async () => {
+    const body = { helpfulCount: 1, isHelpful: true };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await toggleReviewHelpful(
+      "00000000-0000-4000-8000-000000000001",
+      BASE_URL,
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/reviews/00000000-0000-4000-8000-000000000001/helpful`,
+      expect.objectContaining({ method: "POST", credentials: "include" }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("toggleReviewHelpful: 실패 응답이면 status를 포함한 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({ message: "인증이 필요합니다" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      toggleReviewHelpful("00000000-0000-4000-8000-000000000001", BASE_URL),
+    ).rejects.toMatchObject({ status: 401 });
   });
 });

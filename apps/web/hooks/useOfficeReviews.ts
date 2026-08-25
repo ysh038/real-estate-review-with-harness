@@ -11,6 +11,7 @@ import {
   createReview,
   fetchOfficeDetail,
   fetchReviews,
+  toggleReviewHelpful,
 } from "../lib/reviewsApi";
 
 export interface IUseOfficeReviewsResult {
@@ -24,6 +25,9 @@ export interface IUseOfficeReviewsResult {
   loadMore: () => Promise<void>;
   /** 성공하면 true, 실패하면(submitError에 이유가 채워진 채) false. */
   submitReview: (input: TCreateReviewRequest) => Promise<boolean>;
+  /** 서버 응답으로 그 리뷰 하나만 갱신한다 — 목록 전체를 다시 불러오지 않는다
+   * (근거: docs/specs/review-helpful-toggle.md AC13). */
+  toggleHelpful: (reviewId: string) => Promise<void>;
 }
 
 /**
@@ -108,6 +112,17 @@ export const useOfficeReviews = (
     [officeId],
   );
 
+  const toggleHelpful = useCallback(async (reviewId: string) => {
+    const result = await toggleReviewHelpful(reviewId);
+    setReviews((current) =>
+      current.map((review) =>
+        review.id === reviewId
+          ? { ...review, helpfulCount: result.helpfulCount, isHelpful: result.isHelpful }
+          : review,
+      ),
+    );
+  }, []);
+
   return {
     detail,
     reviews,
@@ -118,5 +133,6 @@ export const useOfficeReviews = (
     submitError,
     loadMore,
     submitReview,
+    toggleHelpful,
   };
 };
