@@ -2,6 +2,8 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-25 28d9218 비속어 필터 (격차 보완 덩이 G, docs/decisions.md #9, 명세:
+  docs/specs/review-profanity-filter.md)
 - 2026-08-24 3ad9eff 리뷰 태그(REVIEW_TAGS) + 사무소별 태그 집계 추가 (격차 보완 덩이 F,
   docs/decisions.md #9, 명세: docs/specs/review-tags.md)
 - 2026-08-24 9cc7698 리뷰 작성 필드 확장 — 거래유형·거래결과·방문 시기 (원본과 리뷰 모델이
