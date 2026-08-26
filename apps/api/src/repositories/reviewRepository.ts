@@ -1,5 +1,7 @@
+import type { TReviewSort } from "@repo/types";
 import {
   and,
+  asc,
   desc,
   eq,
   gt,
@@ -132,18 +134,24 @@ export const createReviewRepository = (
     limit: number,
     after?: ICursorPosition,
     requestingUserId?: string | null,
+    sort: TReviewSort = "latest",
   ): Promise<IReviewListRow[]> => {
+    // 정렬 방향에 따라 커서 비교 부등호가 뒤집힌다 — "다음 페이지"가 최신순에선
+    // "더 이전", 오래된순에선 "더 이후"를 뜻하기 때문이다(review-permalink-report-and-sort).
+    const isLatest = sort === "latest";
+    const cursorCompare = isLatest ? lt : gt;
     // 커서 조건은 정렬 키와 같은 (created_at, id) 조합이어야 한다.
     // created_at 만 비교하면 동시각 리뷰가 통째로 건너뛰어지거나 겹친다.
     const afterCondition = after
       ? or(
-          lt(reviews.createdAt, after.createdAt),
+          cursorCompare(reviews.createdAt, after.createdAt),
           and(
             eq(reviews.createdAt, after.createdAt),
-            lt(reviews.id, after.id),
+            cursorCompare(reviews.id, after.id),
           ),
         )
       : undefined;
+    const orderDirection = isLatest ? desc : asc;
 
     const rows = await db
       .select({
@@ -169,7 +177,7 @@ export const createReviewRepository = (
           afterCondition,
         ),
       )
-      .orderBy(desc(reviews.createdAt), desc(reviews.id))
+      .orderBy(orderDirection(reviews.createdAt), orderDirection(reviews.id))
       .limit(limit);
 
     const reviewIds = rows.map((row) => row.id);

@@ -6,6 +6,7 @@ import type {
   TMyReviewListResponse,
   TReview,
   TReviewListResponse,
+  TReviewSort,
 } from "@repo/types";
 
 import type { IAuthUser } from "./authService";
@@ -43,6 +44,8 @@ export interface IReviewRepository {
     after?: ICursorPosition,
     /** 로그인한 뷰어의 id — isHelpful 계산에 쓰인다. 없으면(비로그인) isHelpful은 전부 null. */
     requestingUserId?: string | null,
+    /** 기본 최신순. review-permalink-report-and-sort 명세. */
+    sort?: TReviewSort,
   ) => Promise<IReviewListRow[]>;
 }
 
@@ -285,6 +288,11 @@ export interface IListOptions {
   cursor?: string;
 }
 
+/** `listByOfficeId` 전용 — 정렬은 사무소 공개 목록에만 있다 (다른 IListOptions 사용처엔 없음). */
+export interface IOfficeReviewListOptions extends IListOptions {
+  sort?: TReviewSort;
+}
+
 export interface ICreateReviewParams {
   officeId: string;
   authUser: IAuthUser;
@@ -396,7 +404,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
 
   listByOfficeId: async (
     officeId: string,
-    { limit, cursor }: IListOptions,
+    { limit, cursor, sort = "latest" }: IOfficeReviewListOptions,
     requestingUserId?: string | null,
   ): Promise<TReviewListResponse> => {
     let after: ICursorPosition | undefined;
@@ -413,6 +421,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
       limit + 1,
       after,
       requestingUserId,
+      sort,
     );
     const hasNext = rows.length > limit;
     const page = hasNext ? rows.slice(0, limit) : rows;

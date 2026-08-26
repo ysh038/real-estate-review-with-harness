@@ -64,6 +64,11 @@ const baseHookState = {
   loadMore: vi.fn(),
   submitReview: vi.fn().mockResolvedValue(true),
   toggleHelpful: vi.fn().mockResolvedValue(undefined),
+  sort: "latest" as const,
+  setSort: vi.fn(),
+  reportedReviewIds: new Set<string>(),
+  reportError: null as Error | null,
+  reportReview: vi.fn().mockResolvedValue(undefined),
 };
 
 const UNAUTHENTICATED_SESSION = {
@@ -424,5 +429,92 @@ describe("ReviewSection", () => {
     expect(screen.getByText(/전세/)).toBeInTheDocument();
     expect(screen.getByText(/계약함/)).toBeInTheDocument();
     expect(screen.getByText(/2026년 3월/)).toBeInTheDocument();
+  });
+
+  it("정렬(review-permalink-report-and-sort): 최신순·오래된순 버튼이 있고 누르면 setSort가 호출된다", async () => {
+    const setSort = vi.fn();
+    useOfficeReviews.mockReturnValue({ ...baseHookState, setSort });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    expect(screen.getByRole("button", { name: "최신순" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(screen.getByRole("button", { name: "오래된순" }));
+
+    expect(setSort).toHaveBeenCalledWith("oldest");
+  });
+
+  it("AC9(review-permalink-report-and-sort): 리뷰 항목에 id=review-<id>가 있다", () => {
+    render(<ReviewSection officeId="office-1" />);
+
+    expect(document.getElementById(`review-${REVIEW.id}`)).not.toBeNull();
+  });
+
+  it("AC10·AC11(review-permalink-report-and-sort): 링크 복사 버튼을 누르면 클립보드에 복사되고 문구가 잠깐 바뀐다", async () => {
+    // userEvent.setup()이 navigator.clipboard에 자체 스텁을 설치하므로, 그 뒤에
+    // writeText만 스파이한다 — 직접 vi.stubGlobal로 통째로 갈아치우면 userEvent의
+    // 스텁이 나중에 다시 덮어써 버린다.
+    const user = userEvent.setup();
+    const writeText = vi
+      .spyOn(navigator.clipboard, "writeText")
+      .mockResolvedValue(undefined);
+
+    render(<ReviewSection officeId="office-1" />);
+    await user.click(screen.getByRole("button", { name: "링크 복사" }));
+
+    expect(writeText).toHaveBeenCalledWith(
+      `${window.location.origin}/offices/office-1#review-${REVIEW.id}`,
+    );
+    expect(
+      await screen.findByRole("button", { name: "복사됨" }),
+    ).toBeInTheDocument();
+  });
+
+  it("AC5(review-permalink-report-and-sort): 비로그인이면 신고 버튼이 보이지 않는다", () => {
+    render(<ReviewSection officeId="office-1" />);
+
+    expect(
+      screen.queryByRole("button", { name: "신고" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("AC6(review-permalink-report-and-sort): 로그인 상태에서 신고 버튼을 누르면 reportReview가 호출된다", async () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    const reportReview = vi.fn().mockResolvedValue(undefined);
+    useOfficeReviews.mockReturnValue({ ...baseHookState, reportReview });
+    const user = userEvent.setup();
+
+    render(<ReviewSection officeId="office-1" />);
+    await user.click(screen.getByRole("button", { name: "신고" }));
+
+    expect(reportReview).toHaveBeenCalledWith(REVIEW.id);
+  });
+
+  it("AC6·AC7(review-permalink-report-and-sort): 이미 신고된 리뷰는 '신고됨'으로 비활성화되어 보인다", () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      reportedReviewIds: new Set([REVIEW.id]),
+    });
+
+    render(<ReviewSection officeId="office-1" />);
+
+    expect(screen.getByRole("button", { name: "신고됨" })).toBeDisabled();
+  });
+
+  it("AC8(review-permalink-report-and-sort): reportError가 있으면 에러 문구가 보인다", () => {
+    useSession.mockReturnValue(AUTHENTICATED_SESSION);
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      reportError: new Error("본인 리뷰는 신고할 수 없습니다"),
+    });
+
+    render(<ReviewSection officeId="office-1" />);
+
+    expect(
+      screen.getByText("본인 리뷰는 신고할 수 없습니다"),
+    ).toBeInTheDocument();
   });
 });

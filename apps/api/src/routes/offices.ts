@@ -3,8 +3,8 @@ import {
   bboxQuerySchema,
   createReviewRequestSchema,
   officeDetailResponseSchema,
+  officeReviewListQuerySchema,
   officesByBboxResponseSchema,
-  reviewListQuerySchema,
   reviewListResponseSchema,
   reviewSchema,
 } from "@repo/types";
@@ -59,14 +59,14 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
     })
     .get(
       "/:id/reviews",
-      zValidator("query", reviewListQuerySchema),
+      zValidator("query", officeReviewListQuerySchema),
       async (c) => {
-        const { cursor, limit } = c.req.valid("query");
+        const { cursor, limit, sort } = c.req.valid("query");
         try {
           const requestingUser = await getOptionalAuthUser(c, deps);
           const result = await reviewService.listByOfficeId(
             c.req.param("id"),
-            { limit, cursor },
+            { limit, cursor, sort },
             requestingUser?.id ?? null,
           );
 

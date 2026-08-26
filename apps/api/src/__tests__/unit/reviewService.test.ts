@@ -114,6 +114,7 @@ describe("reviewService.listByOfficeId", () => {
       21,
       position,
       undefined,
+      "latest",
     );
   });
 
@@ -128,6 +129,7 @@ describe("reviewService.listByOfficeId", () => {
       21,
       undefined,
       undefined,
+      "latest",
     );
   });
 
@@ -158,6 +160,22 @@ describe("reviewService.listByOfficeId", () => {
       21,
       undefined,
       "viewer-1",
+      "latest",
+    );
+  });
+
+  it("정렬(review-permalink-report-and-sort): sort=oldest를 넘기면 repository에 그대로 전달된다", async () => {
+    const repository = createFakeRepository([]);
+    const service = createReviewService(repository);
+
+    await service.listByOfficeId("office-1", { limit: 20, sort: "oldest" });
+
+    expect(repository.findByOfficeId).toHaveBeenCalledWith(
+      "office-1",
+      21,
+      undefined,
+      undefined,
+      "oldest",
     );
   });
 });

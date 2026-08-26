@@ -4,6 +4,7 @@ import type {
   TCreateReviewRequest,
   TOfficeDetailResponse,
   TReview,
+  TReviewSort,
 } from "@repo/types";
 import { useCallback, useEffect, useState } from "react";
 
@@ -11,6 +12,8 @@ import {
   createReview,
   fetchOfficeDetail,
   fetchReviews,
+  reportReview as reportReviewRequest,
+  ReviewApiError,
   toggleReviewHelpful,
 } from "../lib/reviewsApi";
 
@@ -28,6 +31,14 @@ export interface IUseOfficeReviewsResult {
   /** 서버 응답으로 그 리뷰 하나만 갱신한다 — 목록 전체를 다시 불러오지 않는다
    * (근거: docs/specs/review-helpful-toggle.md AC13). */
   toggleHelpful: (reviewId: string) => Promise<void>;
+  sort: TReviewSort;
+  /** 정렬이 바뀌면 처음부터 다시 불러온다 — 커서가 정렬 방향에 종속적이다. */
+  setSort: (sort: TReviewSort) => void;
+  /** 신고 성공(204) 또는 중복 신고(409) 둘 다 여기 담긴다 — 사용자 입장에선 "이미
+   * 신고됨"이라는 같은 결과다 (review-permalink-report-and-sort AC6·AC7). */
+  reportedReviewIds: Set<string>;
+  reportError: Error | null;
+  reportReview: (reviewId: string) => Promise<void>;
 }
 
 /**
@@ -45,18 +56,24 @@ export const useOfficeReviews = (
   const [error, setError] = useState<Error | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<Error | null>(null);
+  const [sort, setSort] = useState<TReviewSort>("latest");
+  const [reportedReviewIds, setReportedReviewIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [reportError, setReportError] = useState<Error | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
     setIsLoading(true);
     setError(null);
     // AC5: 사무소가 바뀌면 이전 것을 들고 있지 않는다 — 화면이 이전 리뷰를 잠깐 보여주면
-    // "다른 사무소인데 리뷰가 그대로다"로 오해하기 쉽다.
+    // "다른 사무소인데 리뷰가 그대로다"로 오해하기 쉽다. 정렬이 바뀔 때도 마찬가지다 —
+    // 커서가 이전 정렬 방향 기준이라 그대로 이어붙이면 순서가 뒤섞인다.
     setDetail(null);
     setReviews([]);
     setNextCursor(null);
 
-    Promise.all([fetchOfficeDetail(officeId), fetchReviews(officeId, {})])
+    Promise.all([fetchOfficeDetail(officeId), fetchReviews(officeId, { sort })])
       .then(([detailResult, reviewsResult]) => {
         if (isCancelled) return;
         setDetail(detailResult);
@@ -75,14 +92,14 @@ export const useOfficeReviews = (
     return () => {
       isCancelled = true;
     };
-  }, [officeId]);
+  }, [officeId, sort]);
 
   const loadMore = useCallback(async () => {
     if (!nextCursor) return;
-    const page = await fetchReviews(officeId, { cursor: nextCursor });
+    const page = await fetchReviews(officeId, { cursor: nextCursor, sort });
     setReviews((current) => [...current, ...page.reviews]);
     setNextCursor(page.nextCursor);
-  }, [officeId, nextCursor]);
+  }, [officeId, nextCursor, sort]);
 
   const submitReview = useCallback(
     async (input: TCreateReviewRequest): Promise<boolean> => {
@@ -93,7 +110,7 @@ export const useOfficeReviews = (
         // AC6: 낙관적으로 끼워 넣지 않고 서버 기준으로 다시 불러온다.
         const [detailResult, reviewsResult] = await Promise.all([
           fetchOfficeDetail(officeId),
-          fetchReviews(officeId, {}),
+          fetchReviews(officeId, { sort }),
         ]);
         setDetail(detailResult);
         setReviews(reviewsResult.reviews);
@@ -109,7 +126,7 @@ export const useOfficeReviews = (
         setIsSubmitting(false);
       }
     },
-    [officeId],
+    [officeId, sort],
   );
 
   const toggleHelpful = useCallback(async (reviewId: string) => {
@@ -123,6 +140,23 @@ export const useOfficeReviews = (
     );
   }, []);
 
+  const reportReview = useCallback(async (reviewId: string) => {
+    setReportError(null);
+    try {
+      await reportReviewRequest(reviewId);
+      setReportedReviewIds((current) => new Set(current).add(reviewId));
+    } catch (caught) {
+      // AC7: 409(중복 신고)는 사용자 입장에서 이미 원하는 결과(신고됨)라 실패로 다루지 않는다.
+      if (caught instanceof ReviewApiError && caught.status === 409) {
+        setReportedReviewIds((current) => new Set(current).add(reviewId));
+        return;
+      }
+      setReportError(
+        caught instanceof Error ? caught : new Error(String(caught)),
+      );
+    }
+  }, []);
+
   return {
     detail,
     reviews,
@@ -134,5 +168,10 @@ export const useOfficeReviews = (
     loadMore,
     submitReview,
     toggleHelpful,
+    sort,
+    setSort,
+    reportedReviewIds,
+    reportError,
+    reportReview,
   };
 };

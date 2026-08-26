@@ -11,6 +11,7 @@ import {
   type TOfficeDetailResponse,
   type TReview,
   type TReviewListResponse,
+  type TReviewSort,
 } from "@repo/types";
 
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
@@ -42,14 +43,18 @@ export const fetchOfficeDetail = async (
 
 export interface IFetchReviewsOptions {
   cursor?: string;
+  sort?: TReviewSort;
 }
 
 export const fetchReviews = async (
   officeId: string,
-  { cursor }: IFetchReviewsOptions = {},
+  { cursor, sort }: IFetchReviewsOptions = {},
   baseUrl: string = DEFAULT_BASE_URL,
 ): Promise<TReviewListResponse> => {
-  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  const params = new URLSearchParams();
+  if (cursor) params.set("cursor", cursor);
+  if (sort) params.set("sort", sort);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
   const response = await fetch(
     `${baseUrl}/api/offices/${officeId}/reviews${query}`,
   );
@@ -85,6 +90,28 @@ export const createReview = async (
     throw new ReviewApiError(response.status, message);
   }
   return reviewSchema.parse(await response.json());
+};
+
+/**
+ * 성공(204)엔 응답 본문이 없다 — 실패(400·404·409)일 때만 message가 있는 JSON을 준다
+ * (review-permalink-report-and-sort 명세, apps/api/src/routes/reviews.ts).
+ */
+export const reportReview = async (
+  reviewId: string,
+  baseUrl: string = DEFAULT_BASE_URL,
+): Promise<void> => {
+  const response = await fetch(`${baseUrl}/api/reviews/${reviewId}/report`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === "object" && "message" in payload
+        ? String((payload as { message: unknown }).message)
+        : `신고 실패 (status ${response.status})`;
+    throw new ReviewApiError(response.status, message);
+  }
 };
 
 export const toggleReviewHelpful = async (

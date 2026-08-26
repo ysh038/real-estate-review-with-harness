@@ -6,9 +6,10 @@ import {
   REVIEW_CONTENT_MIN_LENGTH,
   REVIEW_TAGS,
   type TReview,
+  type TReviewSort,
   type TReviewTag,
 } from "@repo/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import styles from "./ReviewSection.module.css";
 import { useOfficeReviews } from "../../hooks/useOfficeReviews";
@@ -17,6 +18,13 @@ import { useSession } from "../../hooks/useSession";
 const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 const NOT_SELECTED = "";
+const SORT_OPTIONS: { value: TReviewSort; label: string }[] = [
+  { value: "latest", label: "최신순" },
+  { value: "oldest", label: "오래된순" },
+];
+const REVIEW_ANCHOR_PREFIX = "review-";
+const COPY_CONFIRMATION_MS = 2000;
+const HIGHLIGHT_MS = 2000;
 
 /** 거래유형·거래결과·방문시기 중 있는 것만 "·"로 이어 붙인다. 전부 없으면 null. */
 const formatDealInfo = (review: TReview): string | null => {
@@ -51,6 +59,11 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
     loadMore,
     submitReview,
     toggleHelpful,
+    sort,
+    setSort,
+    reportedReviewIds,
+    reportError,
+    reportReview,
   } = useOfficeReviews(officeId);
 
   const [rating, setRating] = useState(0);
@@ -61,6 +74,37 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
   const [visitedMonth, setVisitedMonth] = useState<string>(NOT_SELECTED);
   const [selectedTags, setSelectedTags] = useState<TReviewTag[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+  const [copiedReviewId, setCopiedReviewId] = useState<string | null>(null);
+  const [highlightedReviewId, setHighlightedReviewId] = useState<
+    string | null
+  >(null);
+
+  // 개별 리뷰 퍼머링크(review-permalink-report-and-sort AC12): 이미 로드된 목록
+  // 안에 해시가 가리키는 리뷰가 있으면 스크롤 + 잠깐 강조한다.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith(`#${REVIEW_ANCHOR_PREFIX}`)) return undefined;
+    const targetId = hash.slice(`#${REVIEW_ANCHOR_PREFIX}`.length);
+    if (!reviews.some((review) => review.id === targetId)) return undefined;
+
+    document
+      .getElementById(`${REVIEW_ANCHOR_PREFIX}${targetId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedReviewId(targetId);
+    const timer = setTimeout(() => setHighlightedReviewId(null), HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [reviews]);
+
+  const handleCopyLink = async (reviewId: string) => {
+    const url = `${window.location.origin}/offices/${officeId}#${REVIEW_ANCHOR_PREFIX}${reviewId}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedReviewId(reviewId);
+    setTimeout(
+      () =>
+        setCopiedReviewId((current) => (current === reviewId ? null : current)),
+      COPY_CONFIRMATION_MS,
+    );
+  };
 
   const toggleTag = (tag: TReviewTag) => {
     setSelectedTags((current) =>
@@ -137,10 +181,43 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       {error ? (
         <p className={styles.statusError}>리뷰를 불러오지 못했습니다</p>
       ) : null}
+      {reportError ? (
+        <p className={styles.statusError} role="alert">
+          {reportError.message}
+        </p>
+      ) : null}
+
+      {reviews.length > 0 ? (
+        <div className={styles.sortToggle} role="group" aria-label="정렬">
+          {SORT_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={sort === option.value}
+              className={
+                sort === option.value
+                  ? `${styles.sortButton} ${styles.sortButtonActive}`
+                  : styles.sortButton
+              }
+              onClick={() => setSort(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <ul className={styles.list}>
         {reviews.map((review) => (
-          <li key={review.id} className={styles.item}>
+          <li
+            key={review.id}
+            id={`${REVIEW_ANCHOR_PREFIX}${review.id}`}
+            className={
+              review.id === highlightedReviewId
+                ? `${styles.item} ${styles.itemHighlighted}`
+                : styles.item
+            }
+          >
             <div className={styles.itemHeader}>
               <span className={styles.nickname}>{review.author.nickname}</span>
               <span className={styles.rating} aria-label={`${review.rating}점`}>
@@ -161,15 +238,34 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
                 ))}
               </ul>
             ) : null}
-            <button
-              type="button"
-              className={styles.helpfulButton}
-              aria-pressed={review.isHelpful === true}
-              disabled={status !== "authenticated"}
-              onClick={() => void toggleHelpful(review.id)}
-            >
-              도움돼요 {review.helpfulCount}
-            </button>
+            <div className={styles.itemActions}>
+              <button
+                type="button"
+                className={styles.helpfulButton}
+                aria-pressed={review.isHelpful === true}
+                disabled={status !== "authenticated"}
+                onClick={() => void toggleHelpful(review.id)}
+              >
+                도움돼요 {review.helpfulCount}
+              </button>
+              <button
+                type="button"
+                className={styles.copyLinkButton}
+                onClick={() => void handleCopyLink(review.id)}
+              >
+                {copiedReviewId === review.id ? "복사됨" : "링크 복사"}
+              </button>
+              {status === "authenticated" ? (
+                <button
+                  type="button"
+                  className={styles.reportButton}
+                  disabled={reportedReviewIds.has(review.id)}
+                  onClick={() => void reportReview(review.id)}
+                >
+                  {reportedReviewIds.has(review.id) ? "신고됨" : "신고"}
+                </button>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>

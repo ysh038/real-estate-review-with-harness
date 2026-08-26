@@ -132,6 +132,20 @@ export const reviewListQuerySchema = z.object({
     .default(REVIEW_PAGE_SIZE_DEFAULT),
 });
 
+export const reviewSortEnum = z.enum(["latest", "oldest"]);
+export type TReviewSort = z.infer<typeof reviewSortEnum>;
+
+/**
+ * `GET /api/offices/:id/reviews` 전용 — 사무소 공개 목록에만 정렬을 둔다
+ * (review-permalink-report-and-sort 명세). `/api/me/reviews`·관리자 숨김 목록은
+ * `reviewListQuerySchema`를 그대로 쓴다.
+ */
+export const officeReviewListQuerySchema = reviewListQuerySchema.extend({
+  sort: reviewSortEnum.default("latest"),
+});
+
+export type TOfficeReviewListQuery = z.infer<typeof officeReviewListQuerySchema>;
+
 export type TReviewListQuery = z.infer<typeof reviewListQuerySchema>;
 
 /**

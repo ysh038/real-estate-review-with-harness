@@ -5,6 +5,7 @@ import {
   fetchMyReviews,
   fetchOfficeDetail,
   fetchReviews,
+  reportReview,
   toggleReviewHelpful,
 } from "../../lib/reviewsApi";
 
@@ -71,6 +72,62 @@ describe("reviewsApi", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       `${BASE_URL}/api/offices/office-1/reviews?cursor=abc`,
     );
+  });
+
+  it("fetchReviews: sort를 넘기면 쿼리스트링에 실어 보낸다", async () => {
+    const body = { reviews: [], nextCursor: null };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchReviews("office-1", { sort: "oldest" }, BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/offices/office-1/reviews?sort=oldest`,
+    );
+  });
+
+  it("fetchReviews: cursor·sort를 함께 넘기면 둘 다 쿼리스트링에 실린다", async () => {
+    const body = { reviews: [], nextCursor: null };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchReviews("office-1", { cursor: "abc", sort: "oldest" }, BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/offices/office-1/reviews?cursor=abc&sort=oldest`,
+    );
+  });
+
+  it("reportReview: POST /api/reviews/:id/report 를 credentials 포함해 호출한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await reportReview("review-1", BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/reviews/review-1/report`,
+      expect.objectContaining({ method: "POST", credentials: "include" }),
+    );
+  });
+
+  it("reportReview: 실패 응답이면 status를 포함한 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ message: "이미 신고했습니다" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(reportReview("review-1", BASE_URL)).rejects.toMatchObject({
+      status: 409,
+      message: "이미 신고했습니다",
+    });
   });
 
   it("fetchOfficeDetail: 실패 응답이면 예외를 던진다", async () => {

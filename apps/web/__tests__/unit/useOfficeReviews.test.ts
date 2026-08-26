@@ -4,25 +4,37 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useOfficeReviews } from "../../hooks/useOfficeReviews";
 
-const { fetchOfficeDetail, fetchReviews, createReview, toggleReviewHelpful } =
-  vi.hoisted(() => ({
-    fetchOfficeDetail: vi.fn(),
-    fetchReviews: vi.fn(),
-    createReview: vi.fn(),
-    toggleReviewHelpful: vi.fn(),
-  }));
-vi.mock("../../lib/reviewsApi", () => ({
+const {
   fetchOfficeDetail,
   fetchReviews,
   createReview,
   toggleReviewHelpful,
-  ReviewApiError: class ReviewApiError extends Error {
+  reportReview: reportReviewApi,
+  FakeReviewApiError,
+} = vi.hoisted(() => {
+  class FakeReviewApiError extends Error {
     status: number;
     constructor(status: number, message: string) {
       super(message);
       this.status = status;
     }
-  },
+  }
+  return {
+    fetchOfficeDetail: vi.fn(),
+    fetchReviews: vi.fn(),
+    createReview: vi.fn(),
+    toggleReviewHelpful: vi.fn(),
+    reportReview: vi.fn(),
+    FakeReviewApiError,
+  };
+});
+vi.mock("../../lib/reviewsApi", () => ({
+  fetchOfficeDetail,
+  fetchReviews,
+  createReview,
+  toggleReviewHelpful,
+  reportReview: reportReviewApi,
+  ReviewApiError: FakeReviewApiError,
 }));
 
 const DETAIL: TOfficeDetailResponse = {
@@ -81,7 +93,7 @@ describe("useOfficeReviews", () => {
     expect(result.current.detail).toEqual(DETAIL);
     expect(result.current.reviews).toEqual(PAGE_1.reviews);
     expect(result.current.nextCursor).toBe("cursor-1");
-    expect(fetchReviews).toHaveBeenCalledWith("office-1", {});
+    expect(fetchReviews).toHaveBeenCalledWith("office-1", { sort: "latest" });
   });
 
   it("AC3: 조회가 실패하면 error가 채워지고 예외를 던지지 않는다", async () => {
@@ -111,6 +123,7 @@ describe("useOfficeReviews", () => {
 
     expect(fetchReviews).toHaveBeenLastCalledWith("office-1", {
       cursor: "cursor-1",
+      sort: "latest",
     });
     expect(result.current.reviews.map((r) => r.id)).toEqual([
       "review-1",
@@ -204,5 +217,76 @@ describe("useOfficeReviews", () => {
     const untouched = result.current.reviews.find((r) => r.id === "review-2");
     expect(updated).toMatchObject({ helpfulCount: 1, isHelpful: true });
     expect(untouched).toMatchObject({ helpfulCount: 0, isHelpful: false });
+  });
+
+  it("정렬(review-permalink-report-and-sort): setSort를 부르면 그 정렬로 처음부터 다시 불러온다", async () => {
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.sort).toBe("latest");
+
+    fetchReviews.mockResolvedValue({
+      reviews: [buildReview("review-old")],
+      nextCursor: null,
+    });
+    act(() => {
+      result.current.setSort("oldest");
+    });
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(fetchReviews).toHaveBeenLastCalledWith("office-1", { sort: "oldest" });
+    expect(result.current.reviews.map((r) => r.id)).toEqual(["review-old"]);
+  });
+
+  it("AC6(review-permalink-report-and-sort): reportReview가 성공하면 reportedReviewIds에 추가된다", async () => {
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    reportReviewApi.mockResolvedValue(undefined);
+    await act(async () => {
+      await result.current.reportReview("review-1");
+    });
+
+    expect(reportReviewApi).toHaveBeenCalledWith("review-1");
+    expect(result.current.reportedReviewIds.has("review-1")).toBe(true);
+    expect(result.current.reportError).toBeNull();
+  });
+
+  it("AC7(review-permalink-report-and-sort): 409(중복 신고)도 성공과 동일하게 처리한다", async () => {
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    reportReviewApi.mockRejectedValue(
+      new FakeReviewApiError(409, "이미 신고했습니다"),
+    );
+    await act(async () => {
+      await result.current.reportReview("review-1");
+    });
+
+    expect(result.current.reportedReviewIds.has("review-1")).toBe(true);
+    expect(result.current.reportError).toBeNull();
+  });
+
+  it("AC8(review-permalink-report-and-sort): 400(본인 리뷰)는 reportError가 채워지고 reportedReviewIds엔 추가되지 않는다", async () => {
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    reportReviewApi.mockRejectedValue(
+      new FakeReviewApiError(400, "본인 리뷰는 신고할 수 없습니다"),
+    );
+    await act(async () => {
+      await result.current.reportReview("review-1");
+    });
+
+    expect(result.current.reportedReviewIds.has("review-1")).toBe(false);
+    expect(result.current.reportError).not.toBeNull();
   });
 });

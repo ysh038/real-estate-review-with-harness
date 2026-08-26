@@ -750,6 +750,66 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       expect(anonymous[0]).toMatchObject({ helpfulCount: 1, isHelpful: null });
     });
 
+    it("AC2·AC3·AC4(review-permalink-report-and-sort): sort=oldest면 가장 오래된 리뷰부터, 커서로 정확히 이어진다", async () => {
+      const oldest = await insertUser("kakao-sort-oldest", "가장오래됨");
+      const middle = await insertUser("kakao-sort-middle", "중간");
+      const newest = await insertUser("kakao-sort-newest", "가장최신");
+      await db.insert(reviews).values([
+        {
+          officeId: OFFICE.id,
+          userId: oldest,
+          rating: 5,
+          content: CONTENT,
+          createdAt: new Date("2026-08-01T00:00:00.000Z"),
+        },
+        {
+          officeId: OFFICE.id,
+          userId: middle,
+          rating: 4,
+          content: CONTENT,
+          createdAt: new Date("2026-08-10T00:00:00.000Z"),
+        },
+        {
+          officeId: OFFICE.id,
+          userId: newest,
+          rating: 3,
+          content: CONTENT,
+          createdAt: new Date("2026-08-20T00:00:00.000Z"),
+        },
+      ]);
+
+      // AC2: sort 생략(기본 latest)이면 기존과 동일하게 최신순 — 회귀 확인.
+      const latestFirst = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+      expect(latestFirst.map((r) => r.rating)).toEqual([3, 4, 5]);
+
+      // AC3·AC4: sort=oldest면 가장 오래된 것부터, 커서로 하나씩 정확히 이어진다.
+      const page1 = await reviewRepository.findByOfficeId(
+        OFFICE.id,
+        1,
+        undefined,
+        null,
+        "oldest",
+      );
+      const page2 = await reviewRepository.findByOfficeId(
+        OFFICE.id,
+        1,
+        { createdAt: page1[0]!.createdAt, id: page1[0]!.id },
+        null,
+        "oldest",
+      );
+      const page3 = await reviewRepository.findByOfficeId(
+        OFFICE.id,
+        1,
+        { createdAt: page2[0]!.createdAt, id: page2[0]!.id },
+        null,
+        "oldest",
+      );
+
+      expect(page1[0]?.rating).toBe(5);
+      expect(page2[0]?.rating).toBe(4);
+      expect(page3[0]?.rating).toBe(3);
+    });
+
     it("수정해도 기존에 쌓인 도움돼요 투표는 유지된다(update가 helpfulCount를 0으로 리셋하지 않는다)", async () => {
       const author = await insertUser("kakao-helpful-update-author", "글쓴이4");
       const voter = await insertUser("kakao-helpful-update-voter", "투표자4");

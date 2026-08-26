@@ -163,6 +163,29 @@ describe("GET /api/offices/:id/reviews", () => {
     expect(res.status).toBe(200);
   });
 
+  it("AC1(review-permalink-report-and-sort): sort=oldest를 넘기면 repository에 그대로 전달된다", async () => {
+    const { app, reviewRepository } = buildApp({ reviewRows: [buildReviewRow(1)] });
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews?sort=oldest`);
+
+    expect(res.status).toBe(200);
+    expect(reviewRepository.findByOfficeId).toHaveBeenCalledWith(
+      OFFICE.id,
+      expect.any(Number),
+      undefined,
+      null,
+      "oldest",
+    );
+  });
+
+  it("AC1(review-permalink-report-and-sort): sort에 허용되지 않는 값이면 400", async () => {
+    const { app } = buildApp();
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews?sort=bogus`);
+
+    expect(res.status).toBe(400);
+  });
+
   it("AC8(review-tags): 각 항목에 tags가 포함된다", async () => {
     const { app } = buildApp({
       reviewRows: [{ ...buildReviewRow(1), tags: ["친절함", "응답 빠름"] }],
@@ -200,6 +223,7 @@ describe("GET /api/offices/:id/reviews — 도움돼요 (review-helpful-toggle)"
       expect.any(Number),
       undefined,
       "u-1",
+      "latest",
     );
   });
 
@@ -216,6 +240,7 @@ describe("GET /api/offices/:id/reviews — 도움돼요 (review-helpful-toggle)"
       expect.any(Number),
       undefined,
       null,
+      "latest",
     );
     expect(body.reviews[0]?.isHelpful).toBeNull();
   });
