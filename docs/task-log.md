@@ -2,6 +2,10 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-26 132f98d 리뷰 퍼머링크·신고 UI·정렬 (Phase 11 일부, 명세:
+  docs/specs/review-permalink-report-and-sort.md — AC1~12 전부 확인. 신고 사유
+  선택은 이 저장소 API가 사유를 안 받아 제외, "사진 있는 리뷰만" 필터는 사진
+  기능 자체가 없어 제외. 로딩 스켈레톤 일관화·작성 중 임시저장은 별도 명세로 남음)
 - 2026-08-26 e2127f0 마이페이지 뼈대 + 프로필 편집 (Phase 9 절반, 명세:
   docs/specs/mypage-shell-and-profile.md — AC1~22 전부 확인. MyReviewsPanel 모달을
   /mypage 서브라우트로 전환, LoginButton 루트 레이아웃 승격, 로그아웃 시 홈 이동.
