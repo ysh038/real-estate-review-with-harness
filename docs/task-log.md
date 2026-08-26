@@ -2,6 +2,10 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-26 c9e1044 사무소 검색바 (Phase 13, 명세: docs/specs/office-search-bar.md
+  — AC1~21 전부 확인. 브라우저 검증에서 실버그 2건 발견·수정(ORDER BY 별칭 오류,
+  panTo/setLevel 경합 → setCenter로 교체). 카카오 Places 지역명 검색은 별도 명세로
+  분리)
 - 2026-08-26 132f98d 리뷰 퍼머링크·신고 UI·정렬 (Phase 11 일부, 명세:
   docs/specs/review-permalink-report-and-sort.md — AC1~12 전부 확인. 신고 사유
   선택은 이 저장소 API가 사유를 안 받아 제외, "사진 있는 리뷰만" 필터는 사진
