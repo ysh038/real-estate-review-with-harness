@@ -414,4 +414,40 @@ describe("useOfficeMarkers", () => {
 
     expect(result.current.selectedOffice).toEqual(OFFICE_A);
   });
+
+  it("AC18(office-detail-route-and-deeplink): initialSelectedOffice를 넘기면 최초 selectedOffice가 그 값으로 시작한다", () => {
+    fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map, OFFICE_A));
+
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
+  });
+
+  it("AC19(office-detail-route-and-deeplink): 최초 bbox 응답 전에는 initialSelectedOffice가 정리되지 않고, 응답에 없으면 그제서야 정리된다", async () => {
+    let resolveFetch!: (value: {
+      offices: TOfficeSummary[];
+      isTruncated: boolean;
+    }) => void;
+    fetchOfficesByBbox.mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      }),
+    );
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map, OFFICE_A));
+
+    // 최초 응답이 아직 안 왔다 — offices는 []지만 딥링크 선택은 유지돼야 한다.
+    expect(result.current.offices).toEqual([]);
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
+
+    const OFFICE_B: TOfficeSummary = { ...OFFICE_A, id: "office-b" };
+    await act(async () => {
+      resolveFetch({ offices: [OFFICE_B], isTruncated: false });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.selectedOffice).toBeNull();
+  });
 });

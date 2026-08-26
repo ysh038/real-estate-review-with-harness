@@ -46,26 +46,8 @@
   background-color: var(--color-surface);
 }
 
-.fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin: 0;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.label {
+.detailLink {
+  align-self: flex-start;
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.value {
-  margin: 0;
-  font-size: var(--font-size-base);
-  color: var(--color-text);
+  color: var(--color-primary);
 }

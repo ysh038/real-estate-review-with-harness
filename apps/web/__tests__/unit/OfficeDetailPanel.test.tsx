@@ -72,6 +72,14 @@ describe("OfficeDetailPanel", () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
+  it("AC14(office-detail-route-and-deeplink): '상세 페이지 보기' 링크가 /offices/:id 로 연결된다", () => {
+    render(<OfficeDetailPanel office={OFFICE} onClose={vi.fn()} />);
+
+    expect(
+      screen.getByRole("link", { name: "상세 페이지 보기" }),
+    ).toHaveAttribute("href", "/offices/office-1");
+  });
+
   it("AC12: 언마운트된 뒤에는 ESC 를 눌러도 onClose 가 호출되지 않는다", async () => {
     const handleClose = vi.fn();
     const user = userEvent.setup();

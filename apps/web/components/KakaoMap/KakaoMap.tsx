@@ -1,5 +1,6 @@
 "use client";
 
+import type { TOfficeDetailResponse } from "@repo/types";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,21 +12,30 @@ import { OfficeDetailPanel } from "../OfficeDetailPanel";
 
 const SEONGNAM_CITY_HALL = { lat: 37.4201, lng: 127.1265 };
 const DEFAULT_LEVEL = 8;
+// office-detail-route-and-deeplink AC15: 딥링크로 들어오면 사무소 단위로 확대해 보여준다.
+const DEEPLINK_LEVEL = 3;
 
 type TSdkStatus = "loading" | "loaded" | "error";
+
+export interface IKakaoMapProps {
+  /** `/?office=<id>` 딥링크로 들어왔을 때 초기 중심·선택으로 쓸 사무소 (없으면 기본 화면). */
+  initialOffice?: TOfficeDetailResponse | null;
+}
 
 /**
  * SDK 로드 + 빈 지도 렌더링까지만 담당한다. 마커·bbox 연동은 다음 명세.
  * next/script 의 afterInteractive 전략이 스크립트 중복 삽입을 막아준다.
  */
-export const KakaoMap = () => {
+export const KakaoMap = ({ initialOffice = null }: IKakaoMapProps = {}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<kakao.maps.Map | null>(null);
   const [status, setStatus] = useState<TSdkStatus>("loading");
   const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? "";
   const map = status === "loaded" ? mapRef.current : null;
-  const { isTruncated, selectedOffice, clearSelection } =
-    useOfficeMarkers(map);
+  const { isTruncated, selectedOffice, clearSelection } = useOfficeMarkers(
+    map,
+    initialOffice,
+  );
 
   // AC15: 백드롭 대신 지도 클릭으로 닫는다 — 패널이 열려 있어도 지도 조작이 살아 있어야
   // 하기 때문이다 (근거: docs/specs/office-detail-panel.md 설계 메모).
@@ -40,12 +50,14 @@ export const KakaoMap = () => {
     window.kakao.maps.load(() => {
       if (!containerRef.current) return;
 
+      const center = initialOffice
+        ? { lat: initialOffice.lat, lng: initialOffice.lng }
+        : SEONGNAM_CITY_HALL;
+      const level = initialOffice ? DEEPLINK_LEVEL : DEFAULT_LEVEL;
+
       mapRef.current = new window.kakao.maps.Map(containerRef.current, {
-        center: new window.kakao.maps.LatLng(
-          SEONGNAM_CITY_HALL.lat,
-          SEONGNAM_CITY_HALL.lng,
-        ),
-        level: DEFAULT_LEVEL,
+        center: new window.kakao.maps.LatLng(center.lat, center.lng),
+        level,
       });
       setStatus("loaded");
     });

@@ -150,11 +150,14 @@ AC20~22, my-reviews-list `MyReviewsPanel`)뿐이며 `docs/decisions.md`에 후�
 
 #### Phase 8 — 사무소 상세 라우트 & 딥링크
 
-- [ ] `/offices/[id]` 독립 라우트(서버 컴포넌트, 기존 `GET /api/offices/:id` 재사용)
-- [ ] 존재하지 않는 id → 404
-- [ ] OG 메타데이터(사무소명·주소·리뷰 수)
-- [ ] `/?office=<id>` 진입 시 지도 이동 + 마커 활성화 + 패널 오픈
-- [ ] 상세 페이지 내 미니맵(단일 마커)
+**완료** (명세: `specs/office-detail-route-and-deeplink.md` — AC1~20 전부 확인,
+Vitest 12건 신규 + 브라우저 검증)
+
+- [x] `/offices/[id]` 독립 라우트(서버 컴포넌트, 기존 `GET /api/offices/:id` 재사용)
+- [x] 존재하지 않는 id → 404
+- [x] OG 메타데이터(사무소명·주소·리뷰 수)
+- [x] `/?office=<id>` 진입 시 지도 이동 + 마커 활성화 + 패널 오픈
+- [x] 상세 페이지 내 미니맵(단일 마커)
 
 #### Phase 9 — 마이페이지 고도화
 

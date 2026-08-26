@@ -21,16 +21,23 @@ export interface IUseOfficeMarkersResult {
 /**
  * 지도의 현재 bbox를 기준으로 오피스를 조회해 상태로 노출하고, 지도 위 마커를 동기화한다.
  * 지도 이동(bounds_changed)은 300ms debounce로 묶는다 — 명세: office-marker-bbox-sync.
+ *
+ * `initialSelectedOffice`는 `/?office=<id>` 딥링크로 들어왔을 때 마커 클릭 없이 패널을 바로
+ * 열기 위한 값이다(office-detail-route-and-deeplink AC16·AC18).
  */
 export const useOfficeMarkers = (
   map: kakao.maps.Map | null,
+  initialSelectedOffice: TOfficeSummary | null = null,
 ): IUseOfficeMarkersResult => {
   const [offices, setOffices] = useState<TOfficeSummary[]>([]);
   const [isTruncated, setIsTruncated] = useState(false);
   const [selectedOffice, setSelectedOffice] = useState<TOfficeSummary | null>(
-    null,
+    initialSelectedOffice,
   );
   const clustererRef = useRef<kakao.maps.MarkerClusterer | null>(null);
+  // AC19: 최초 bbox 응답이 오기 전에는 딥링크로 미리 넣어둔 선택을 정리하지 않는다 —
+  // 그 시점의 offices는 아직 빈 배열이라 "화면 밖" 판정과 구분이 안 되기 때문이다.
+  const hasLoadedOnceRef = useRef(false);
 
   const clearSelection = useCallback(() => setSelectedOffice(null), []);
 
@@ -52,6 +59,7 @@ export const useOfficeMarkers = (
       try {
         const response = await fetchOfficesByBbox(bbox);
         if (isCancelled) return;
+        hasLoadedOnceRef.current = true;
         setOffices(response.offices);
         setIsTruncated(response.isTruncated);
       } catch (error) {
@@ -103,7 +111,10 @@ export const useOfficeMarkers = (
   }, [offices, handleMarkerClick]);
 
   // AC5: 목록이 갱신돼 선택된 사무소가 화면 밖으로 나가면 패널을 남겨두지 않는다.
+  // AC19: 단, 최초 bbox 응답이 오기 전(hasLoadedOnceRef=false)에는 정리하지 않는다 —
+  // 이 시점의 offices=[]는 "화면 밖"이 아니라 "아직 모른다"이기 때문이다.
   useEffect(() => {
+    if (!hasLoadedOnceRef.current) return;
     setSelectedOffice((current) => {
       if (!current) return current;
       return offices.some((office) => office.id === current.id)

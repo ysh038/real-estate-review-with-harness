@@ -1,12 +1,12 @@
 "use client";
 
 import type { TOfficeSummary } from "@repo/types";
+import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
 
 import styles from "./OfficeDetailPanel.module.css";
+import { OfficeInfoFields } from "../OfficeInfoFields";
 import { ReviewSection } from "../ReviewSection";
-
-const EMPTY_VALUE = "정보 없음";
 
 export interface IOfficeDetailPanelProps {
   office: TOfficeSummary;
@@ -54,20 +54,10 @@ export const OfficeDetailPanel = ({
           닫기
         </button>
       </div>
-      <dl className={styles.fields}>
-        <div className={styles.field}>
-          <dt className={styles.label}>대표자명</dt>
-          <dd className={styles.value}>{office.ownerName ?? EMPTY_VALUE}</dd>
-        </div>
-        <div className={styles.field}>
-          <dt className={styles.label}>주소</dt>
-          <dd className={styles.value}>{office.address}</dd>
-        </div>
-        <div className={styles.field}>
-          <dt className={styles.label}>전화번호</dt>
-          <dd className={styles.value}>{office.phone ?? EMPTY_VALUE}</dd>
-        </div>
-      </dl>
+      <OfficeInfoFields office={office} />
+      <Link className={styles.detailLink} href={`/offices/${office.id}`}>
+        상세 페이지 보기
+      </Link>
       <ReviewSection officeId={office.id} />
     </aside>
   );
