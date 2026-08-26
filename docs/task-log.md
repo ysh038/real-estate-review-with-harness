@@ -2,6 +2,10 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-26 e2127f0 마이페이지 뼈대 + 프로필 편집 (Phase 9 절반, 명세:
+  docs/specs/mypage-shell-and-profile.md — AC1~22 전부 확인. MyReviewsPanel 모달을
+  /mypage 서브라우트로 전환, LoginButton 루트 레이아웃 승격, 로그아웃 시 홈 이동.
+  회원 탈퇴·리뷰 익명화는 스키마 마이그레이션 필요해 별도 명세로 분리)
 - 2026-08-26 5fd723d 사무소 상세 라우트 & 딥링크 (Phase 8, docs/decisions.md #10 원본
   캐치업 범위 확장 이후 첫 착수. 명세: docs/specs/office-detail-route-and-deeplink.md —
   AC1~20 전부 확인, OfficeInfoFields 공유 컴포넌트 추출)
