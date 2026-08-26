@@ -3,6 +3,7 @@ import { z } from "zod";
 export * from "./office";
 export * from "./review";
 export * from "./reviewTag";
+export * from "./user";
 
 /**
  * 앱 간 계약(contract)의 단일 정본.

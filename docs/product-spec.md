@@ -161,11 +161,19 @@ Vitest 12건 신규 + 브라우저 검증)
 
 #### Phase 9 — 마이페이지 고도화
 
-- [ ] `MyReviewsPanel`(모달)을 유지할지 `/mypage` 서브라우트로 전환할지 설계 시 결정
-- [ ] 프로필(표시명 편집, 가입일, 카카오 연동 표시)
-- [ ] 설정(로그아웃, 회원 탈퇴 플로우 + 리뷰 익명화 안내)
-- [ ] `GET/PATCH/DELETE /api/users/me`
-- [ ] 비로그인 시 마이페이지 접근 → 홈 리다이렉트
+**뼈대+리뷰탭+프로필탭 완료** (명세: `specs/mypage-shell-and-profile.md` — AC1~22
+전부 확인, Vitest 22건 신규 + 브라우저 검증). 회원 탈퇴·리뷰 익명화는 스키마
+마이그레이션이 얽혀 있어 별도 명세로 분리했다 — 아래 미완료 항목 참고.
+
+- [x] `MyReviewsPanel`(모달) → `/mypage` 서브라우트로 전환 (모달 폐기)
+- [x] 프로필(닉네임 편집, 가입일, 카카오 연동 표시)
+- [x] 로그아웃 (기존 기능 유지 + 로그아웃 시 항상 홈으로 이동하도록 보강)
+- [x] `GET/PATCH /api/users/me`
+- [x] 비로그인 시 마이페이지 접근 → 홈 리다이렉트
+- [ ] `/mypage/settings` 페이지, `DELETE /api/users/me`(회원 탈퇴), 리뷰 익명화 —
+      `reviews.user_id`를 nullable + `ON DELETE SET NULL`로 바꾸는 마이그레이션이
+      선행돼야 한다(현재는 `NOT NULL` + `CASCADE`라 탈퇴 시 리뷰까지 삭제됨). 별도
+      명세로 착수 필요.
 
 #### Phase 10 — 법적·정책·고객지원
 

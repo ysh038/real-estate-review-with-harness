@@ -11,7 +11,12 @@ import {
 } from "../../services/authService";
 
 const PROFILE = { kakaoId: "K1", nickname: "홍길동", profileImageUrl: "https://x/img.png" };
-const USER: IAuthUser = { id: "u-1", nickname: "홍길동", profileImageUrl: "https://x/img.png" };
+const USER: IAuthUser = {
+  id: "u-1",
+  nickname: "홍길동",
+  profileImageUrl: "https://x/img.png",
+  createdAt: "2026-01-01T00:00:00.000Z",
+};
 
 const buildOAuthClient = (overrides: Partial<IKakaoOAuthClient> = {}): IKakaoOAuthClient => ({
   buildAuthorizeUrl: vi.fn((state: string) => `https://kauth.kakao.com/oauth/authorize?state=${state}`),
@@ -23,6 +28,7 @@ const buildOAuthClient = (overrides: Partial<IKakaoOAuthClient> = {}): IKakaoOAu
 const buildUserRepository = (overrides: Partial<IUserRepository> = {}): IUserRepository => ({
   upsertByKakaoId: vi.fn(async () => USER),
   findById: vi.fn(async () => USER),
+  updateNickname: vi.fn(async () => USER),
   ...overrides,
 });
 

@@ -1,55 +1,8 @@
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: color-mix(in srgb, var(--color-text) 60%, transparent);
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  width: 400px;
-  max-width: calc(100% - var(--space-8));
-  max-height: calc(100% - var(--space-8));
-  padding: var(--space-6);
-  overflow-y: auto;
-  background-color: var(--color-background);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-}
-
-.header {
-  display: flex;
-  gap: var(--space-4);
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
 .title {
-  margin: 0;
+  margin: 0 0 var(--space-4);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
-}
-
-.closeButton {
-  flex-shrink: 0;
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.closeButton:hover {
-  color: var(--color-text);
-  background-color: var(--color-surface);
 }
 
 .status {

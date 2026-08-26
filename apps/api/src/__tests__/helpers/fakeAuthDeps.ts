@@ -23,12 +23,34 @@ export const createFakeKakaoOAuthClient = (
   ...overrides,
 });
 
+/**
+ * `current`로 지금 저장된 사용자 정보를 노출한다 — updateNickname 테스트가 갱신 후
+ * 값을 직접 확인할 수 있게 한다(mypage-shell-and-profile AC7과 대응).
+ */
 export const createFakeUserRepository = (
-  user: IAuthUser = { id: "u-1", nickname: "홍길동", profileImageUrl: null },
-): IUserRepository => ({
-  upsertByKakaoId: vi.fn(async () => user),
-  findById: vi.fn(async (id: string) => (id === user.id ? user : null)),
-});
+  user: IAuthUser = {
+    id: "u-1",
+    nickname: "홍길동",
+    profileImageUrl: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  },
+): IUserRepository & { current: IAuthUser } => {
+  let current = user;
+  return {
+    get current() {
+      return current;
+    },
+    upsertByKakaoId: vi.fn(async () => current),
+    findById: vi.fn(async (id: string) => (id === current.id ? current : null)),
+    updateNickname: vi.fn(async (id: string, nickname: string) => {
+      if (id !== current.id) {
+        throw new Error("존재하지 않는 사용자의 닉네임을 갱신하려 했습니다");
+      }
+      current = { ...current, nickname };
+      return current;
+    }),
+  };
+};
 
 /**
  * 실제 DB 세션 테이블을 흉내낸 인메모리 저장소. `store` 를 노출해 테스트가 세션을

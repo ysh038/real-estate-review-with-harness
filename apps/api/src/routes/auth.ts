@@ -1,5 +1,9 @@
 import { zValidator } from "@hono/zod-validator";
-import { myReviewListResponseSchema, reviewListQuerySchema } from "@repo/types";
+import {
+  authUserSchema,
+  myReviewListResponseSchema,
+  reviewListQuerySchema,
+} from "@repo/types";
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { randomUUID } from "node:crypto";
@@ -99,7 +103,9 @@ export const createMeRoute = (deps: IMeRouteDeps) => {
   const reviewService = createReviewService(deps.reviewRepository);
 
   return new Hono<{ Variables: IAuthedVariables }>()
-    .get("/", requireAuth(deps), (c) => c.json(c.get("authUser")))
+    .get("/", requireAuth(deps), (c) =>
+      c.json(authUserSchema.parse(c.get("authUser"))),
+    )
     .get(
       "/reviews",
       requireAuth(deps),

@@ -1,1 +1,0 @@
-export { MyReviewsPanel } from "./MyReviewsPanel";

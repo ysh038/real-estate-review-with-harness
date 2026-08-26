@@ -3,11 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useSession } from "../../hooks/useSession";
 
-const { fetchCurrentUser, logoutRequest } = vi.hoisted(() => ({
+const { fetchCurrentUser, logoutRequest, updateNickname } = vi.hoisted(() => ({
   fetchCurrentUser: vi.fn(),
   logoutRequest: vi.fn(),
+  updateNickname: vi.fn(),
 }));
-vi.mock("../../lib/authApi", () => ({ fetchCurrentUser, logoutRequest }));
+vi.mock("../../lib/authApi", () => ({ fetchCurrentUser, logoutRequest, updateNickname }));
 
 const USER = { id: "u-1", nickname: "홍길동", profileImageUrl: null };
 
@@ -58,5 +59,21 @@ describe("useSession", () => {
     expect(logoutRequest).toHaveBeenCalled();
     expect(result.current.status).toBe("unauthenticated");
     expect(result.current.user).toBeNull();
+  });
+
+  it("AC22(mypage-shell-and-profile): updateNickname을 호출하면 user.nickname이 즉시 갱신된다", async () => {
+    fetchCurrentUser.mockResolvedValue(USER);
+    const updatedUser = { ...USER, nickname: "새닉네임" };
+    updateNickname.mockResolvedValue(updatedUser);
+
+    const { result } = renderHook(() => useSession());
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+
+    await act(async () => {
+      await result.current.updateNickname("새닉네임");
+    });
+
+    expect(updateNickname).toHaveBeenCalledWith("새닉네임");
+    expect(result.current.user).toEqual(updatedUser);
   });
 });

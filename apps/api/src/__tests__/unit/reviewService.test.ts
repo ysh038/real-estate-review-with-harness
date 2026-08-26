@@ -41,6 +41,7 @@ const AUTH_USER: IAuthUser = {
   id: "user-1",
   nickname: "홍길동",
   profileImageUrl: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
 };
 
 const CONTENT = "열 자를 넘기는 충분한 길이의 리뷰 본문입니다";

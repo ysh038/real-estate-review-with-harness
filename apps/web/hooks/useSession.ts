@@ -1,21 +1,24 @@
 "use client";
 
+import type { TAuthUser } from "@repo/types";
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchCurrentUser, logoutRequest, type IAuthUser } from "../lib/authApi";
+import { fetchCurrentUser, logoutRequest, updateNickname as updateNicknameRequest } from "../lib/authApi";
 
 export type TSessionStatus = "loading" | "authenticated" | "unauthenticated";
 
 export interface IUseSessionResult {
   status: TSessionStatus;
-  user: IAuthUser | null;
+  user: TAuthUser | null;
   logout: () => Promise<void>;
+  /** 성공하면 로컬 user.nickname을 즉시 갱신한다 — 재조회 없이 (mypage-shell-and-profile AC22). */
+  updateNickname: (nickname: string) => Promise<void>;
 }
 
 /** 앱 진입 시 `/api/me` 로 로그인 여부를 확인하고, 로그아웃을 노출한다. */
 export const useSession = (): IUseSessionResult => {
   const [status, setStatus] = useState<TSessionStatus>("loading");
-  const [user, setUser] = useState<IAuthUser | null>(null);
+  const [user, setUser] = useState<TAuthUser | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,5 +48,10 @@ export const useSession = (): IUseSessionResult => {
     setStatus("unauthenticated");
   }, []);
 
-  return { status, user, logout };
+  const updateNickname = useCallback(async (nickname: string) => {
+    const updated = await updateNicknameRequest(nickname);
+    setUser(updated);
+  }, []);
+
+  return { status, user, logout, updateNickname };
 };

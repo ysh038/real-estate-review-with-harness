@@ -11,6 +11,7 @@ import {
 import { createHealthRoute } from "./routes/health";
 import { createOfficesRoute } from "./routes/offices";
 import { createReviewsRoute } from "./routes/reviews";
+import { createUsersRoute } from "./routes/users";
 import type {
   IOfficeDetailRepository,
   IOfficeRepository,
@@ -42,5 +43,6 @@ export const createApp = (deps: IAppDeps) =>
     .route("/api/offices", createOfficesRoute(deps))
     .route("/api/reviews", createReviewsRoute(deps))
     .route("/api/me", createMeRoute(deps))
+    .route("/api/users", createUsersRoute(deps))
     .route("/api/auth", createAuthActionsRoute(deps))
     .route("/api/admin", createAdminRoute(deps));

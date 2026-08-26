@@ -6,6 +6,8 @@ export interface IAuthUser {
   id: string;
   nickname: string;
   profileImageUrl: string | null;
+  /** ISO datetime — 마이페이지 프로필의 가입일 표시용 (mypage-shell-and-profile 명세). */
+  createdAt: string;
 }
 
 export interface IUserRepository {
@@ -16,6 +18,8 @@ export interface IUserRepository {
     profileImageUrl: string | null;
   }) => Promise<IAuthUser>;
   findById: (userId: string) => Promise<IAuthUser | null>;
+  /** 닉네임만 갱신하고 최신 사용자 정보를 반환한다 (mypage-shell-and-profile AC5·AC7). */
+  updateNickname: (userId: string, nickname: string) => Promise<IAuthUser>;
 }
 
 export interface ISessionRow {
