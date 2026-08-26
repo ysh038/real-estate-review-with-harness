@@ -1,13 +1,34 @@
 import type { TBbox, TTagCount } from "@repo/types";
-import { and, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { TDatabase } from "../db/client";
 import { offices, reviews, reviewTags, type TOfficeInsert } from "../db/schema";
 import type {
   IOfficeDetailRepository,
   IOfficeRepository,
+  IOfficeSearchRepository,
   TOfficeSummaryRow,
 } from "../services/officeService";
+
+/**
+ * ILIKE의 와일드카드 문자(`%`·`_`)와 이스케이프 문자(`\`) 자체를 리터럴로 escape한다 —
+ * 안 그러면 검색어에 우연히 `%`가 들어간 순간 패턴 매칭으로 해석돼 엉뚱한 결과가 늘어난다
+ * (office-search-bar AC9).
+ */
+const escapeLikePattern = (value: string): string =>
+  value.replace(/[\\%_]/g, (char) => `\\${char}`);
 
 /**
  * 시딩만 필요한 좁은 인터페이스. 시딩 서비스가 조회 메서드까지 알 필요는 없다 —
@@ -20,6 +41,7 @@ export interface IOfficeUpsertRepository {
 export interface IOfficeWriteRepository
   extends IOfficeRepository,
     IOfficeDetailRepository,
+    IOfficeSearchRepository,
     IOfficeUpsertRepository {}
 
 export const createOfficeRepository = (
@@ -124,6 +146,40 @@ export const createOfficeRepository = (
     }
 
     return result;
+  },
+
+  /**
+   * 이름·주소 ILIKE 매칭 + 비숨김 리뷰 수 내림차순 (office-search-bar 명세).
+   * LEFT JOIN이라 리뷰가 하나도 없는 사무소도 결과에 남는다(count는 0).
+   */
+  searchByQuery: async (
+    query: string,
+    limit: number,
+  ): Promise<TOfficeSummaryRow[]> => {
+    const pattern = `%${escapeLikePattern(query)}%`;
+
+    const rows = await db
+      .select({
+        id: offices.id,
+        name: offices.name,
+        ownerName: offices.ownerName,
+        address: offices.address,
+        phone: offices.phone,
+        sigungu: offices.sigungu,
+        lat: offices.lat,
+        lng: offices.lng,
+      })
+      .from(offices)
+      .leftJoin(
+        reviews,
+        and(eq(reviews.officeId, offices.id), isNull(reviews.hiddenAt)),
+      )
+      .where(or(ilike(offices.name, pattern), ilike(offices.address, pattern)))
+      .groupBy(offices.id)
+      .orderBy(desc(count(reviews.id)))
+      .limit(limit);
+
+    return rows;
   },
 
   /** 재시딩은 멱등이어야 한다 — 같은 등록번호는 갱신하고 행을 늘리지 않는다. */

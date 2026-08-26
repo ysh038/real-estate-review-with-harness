@@ -2,7 +2,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createDb } from "../../db/client";
-import { offices, type TOfficeInsert } from "../../db/schema";
+import { offices, reviews, users, type TOfficeInsert } from "../../db/schema";
 import { createOfficeRepository } from "../../repositories/officeRepository";
 import { TEST_DATABASE_URL, canConnect } from "../helpers/testDb";
 
@@ -44,13 +44,26 @@ describe.skipIf(!isDbReachable)("officeRepository (real DB)", () => {
   });
 
   // 테스트끼리 행이 새면 단정이 조용히 무의미해진다 — 매 케이스 전에 비운다.
+  // offices를 지우면 reviews도 CASCADE로 함께 지워지므로 users만 따로 정리한다.
   beforeEach(async () => {
     await db.delete(offices);
+    await db.delete(users);
   });
 
   afterAll(async () => {
     await db.delete(offices);
+    await db.delete(users);
   });
+
+  let userSeq = 0;
+  const insertUser = async (nickname: string) => {
+    userSeq += 1;
+    const [row] = await db
+      .insert(users)
+      .values({ kakaoId: `search-test-${userSeq}`, nickname })
+      .returning({ id: users.id });
+    return row!.id;
+  };
 
   it("AC1: offices 테이블이 존재하고 조회할 수 있다", async () => {
     await expect(repository.findByBbox(
@@ -95,5 +108,110 @@ describe.skipIf(!isDbReachable)("officeRepository (real DB)", () => {
       "on-max-corner",
       "on-min-corner",
     ]);
+  });
+
+  describe("searchByQuery (office-search-bar)", () => {
+    it("AC4·AC5: 이름 또는 주소에 검색어가 포함되면(대소문자 무시) 매칭된다", async () => {
+      await repository.upsertMany([
+        buildOffice("name-match", 37.4, 127.1, { name: "Bundang Realty" }),
+        buildOffice("address-match", 37.4, 127.1, {
+          name: "다른이름",
+          address: "경기도 성남시 분당구 정자로 1",
+        }),
+        buildOffice("no-match", 37.4, 127.1, {
+          name: "관련없음",
+          address: "서울시 강남구",
+        }),
+      ]);
+
+      const rows = await repository.searchByQuery("분당", 10);
+
+      expect(rows.map((row) => row.id).sort()).toEqual([
+        "address-match",
+        "name-match",
+      ]);
+    });
+
+    it("AC6: 비숨김 리뷰 수 내림차순으로 정렬된다", async () => {
+      await repository.upsertMany([
+        buildOffice("few-reviews", 37.4, 127.1, { name: "분당사무소A" }),
+        buildOffice("many-reviews", 37.4, 127.1, { name: "분당사무소B" }),
+        buildOffice("hidden-review-only", 37.4, 127.1, { name: "분당사무소C" }),
+      ]);
+      const [u1, u2, u3, u4] = await Promise.all([
+        insertUser("리뷰어1"),
+        insertUser("리뷰어2"),
+        insertUser("리뷰어3"),
+        insertUser("리뷰어4"),
+      ]);
+      await db.insert(reviews).values([
+        { officeId: "few-reviews", userId: u1!, rating: 5, content: "테스트 리뷰 본문입니다" },
+        { officeId: "many-reviews", userId: u2!, rating: 5, content: "테스트 리뷰 본문입니다" },
+        { officeId: "many-reviews", userId: u3!, rating: 4, content: "테스트 리뷰 본문입니다" },
+        // 숨김 리뷰는 개수에서 빠져야 한다 — hidden-review-only는 0건 취급.
+        {
+          officeId: "hidden-review-only",
+          userId: u4!,
+          rating: 1,
+          content: "테스트 리뷰 본문입니다",
+          hiddenAt: new Date(),
+        },
+      ]);
+
+      const rows = await repository.searchByQuery("분당사무소", 10);
+
+      expect(rows.map((row) => row.id)).toEqual([
+        "many-reviews",
+        "few-reviews",
+        "hidden-review-only",
+      ]);
+    });
+
+    it("AC7: 최대 limit 건까지만 반환한다", async () => {
+      await repository.upsertMany(
+        Array.from({ length: 10 }, (_, i) =>
+          buildOffice(`many-${i}`, 37.4, 127.1, { name: `검색많음사무소${i}` }),
+        ),
+      );
+
+      const rows = await repository.searchByQuery("검색많음", 8);
+
+      expect(rows).toHaveLength(8);
+    });
+
+    it("AC8: 매칭되는 사무소가 없으면 빈 배열을 반환한다", async () => {
+      const rows = await repository.searchByQuery("존재하지않는이름", 10);
+
+      expect(rows).toEqual([]);
+    });
+
+    it("AC9: 검색어의 %는 와일드카드가 아니라 리터럴로 취급된다", async () => {
+      // 이스케이프가 안 됐다면 "50%할인"이 "50" + (임의 문자) + "할인"으로 해석돼
+      // literal-percent 뿐 아니라 사이에 다른 문자가 낀 wildcard-match-if-unescaped도
+      // 매칭돼버린다 — 이 둘을 구분해야 이스케이프가 실제로 동작하는지 알 수 있다.
+      await repository.upsertMany([
+        buildOffice("literal-percent", 37.4, 127.1, { name: "50%할인부동산" }),
+        buildOffice("wildcard-match-if-unescaped", 37.4, 127.1, {
+          name: "50XX할인부동산",
+        }),
+      ]);
+
+      const rows = await repository.searchByQuery("50%할인", 10);
+
+      expect(rows.map((row) => row.id)).toEqual(["literal-percent"]);
+    });
+
+    it("AC9: 검색어의 _는 와일드카드가 아니라 리터럴로 취급된다", async () => {
+      await repository.upsertMany([
+        buildOffice("literal-underscore", 37.4, 127.1, { name: "성남_공인중개사" }),
+        buildOffice("wildcard-match-if-unescaped", 37.4, 127.1, {
+          name: "성남X공인중개사",
+        }),
+      ]);
+
+      const rows = await repository.searchByQuery("성남_공인", 10);
+
+      expect(rows.map((row) => row.id)).toEqual(["literal-underscore"]);
+    });
   });
 });

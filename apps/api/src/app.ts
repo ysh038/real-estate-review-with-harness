@@ -15,11 +15,12 @@ import { createUsersRoute } from "./routes/users";
 import type {
   IOfficeDetailRepository,
   IOfficeRepository,
+  IOfficeSearchRepository,
 } from "./services/officeService";
 import type { IReviewWriteRepository } from "./services/reviewService";
 
 export interface IAppDeps extends IAuthRouteDeps {
-  officeRepository: IOfficeRepository & IOfficeDetailRepository;
+  officeRepository: IOfficeRepository & IOfficeDetailRepository & IOfficeSearchRepository;
   reviewRepository: IReviewWriteRepository;
   /** 관리자 API(x-admin-api-key) 인증 키. 미설정이면 admin 라우트가 항상 503. */
   adminApiKey: string | undefined;

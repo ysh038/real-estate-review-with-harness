@@ -4,6 +4,8 @@ import {
   createReviewRequestSchema,
   officeDetailResponseSchema,
   officeReviewListQuerySchema,
+  officeSearchQuerySchema,
+  officeSearchResponseSchema,
   officesByBboxResponseSchema,
   reviewListResponseSchema,
   reviewSchema,
@@ -19,9 +21,11 @@ import {
 import type { IAuthServiceDeps } from "../services/authService";
 import {
   createOfficeDetailService,
+  createOfficeSearchService,
   createOfficeService,
   type IOfficeDetailRepository,
   type IOfficeRepository,
+  type IOfficeSearchRepository,
 } from "../services/officeService";
 import {
   createReviewService,
@@ -33,7 +37,7 @@ import {
 } from "../services/reviewService";
 
 export interface IOfficesRouteDeps extends IAuthServiceDeps {
-  officeRepository: IOfficeRepository & IOfficeDetailRepository;
+  officeRepository: IOfficeRepository & IOfficeDetailRepository & IOfficeSearchRepository;
   reviewRepository: IReviewWriteRepository;
 }
 
@@ -42,6 +46,7 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
   const { officeRepository, reviewRepository } = deps;
   const service = createOfficeService(officeRepository);
   const detailService = createOfficeDetailService(officeRepository);
+  const searchService = createOfficeSearchService(officeRepository);
   const reviewService = createReviewService(reviewRepository);
 
   return new Hono<{ Variables: IAuthedVariables }>()
@@ -50,6 +55,14 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
       const result = await service.findByBbox(bbox);
 
       return c.json(officesByBboxResponseSchema.parse(result));
+    })
+    // /:id 보다 먼저 등록해야 한다 — 안 그러면 Hono가 "search"를 id로 매칭한다
+    // (office-search-bar 명세, 라우트 등록 순서 주의).
+    .get("/search", zValidator("query", officeSearchQuerySchema), async (c) => {
+      const { q } = c.req.valid("query");
+      const result = await searchService.search(q);
+
+      return c.json(officeSearchResponseSchema.parse(result));
     })
     .get("/:id", async (c) => {
       const detail = await detailService.findDetailById(c.req.param("id"));

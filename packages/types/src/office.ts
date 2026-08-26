@@ -84,3 +84,21 @@ export const officesByBboxResponseSchema = z.object({
 export type TOfficesByBboxResponse = z.infer<
   typeof officesByBboxResponseSchema
 >;
+
+/** `GET /api/offices/search?q=` 쿼리. 빈 문자열은 "전체 검색"이 아니라 거부한다. */
+export const officeSearchQuerySchema = z.object({
+  q: z.string().min(1, "검색어를 입력해주세요"),
+});
+
+export type TOfficeSearchQuery = z.infer<typeof officeSearchQuerySchema>;
+
+/**
+ * 검색 결과는 `tagCounts`를 항상 빈 배열로 둔다 — 선택 후 열리는 상세 패널이
+ * 태그를 렌더링하지 않아(`ReviewSection`이 별도로 다시 조회) 채울 실익이 없다
+ * (근거: office-search-bar 설계 메모).
+ */
+export const officeSearchResponseSchema = z.object({
+  offices: z.array(officeSummarySchema),
+});
+
+export type TOfficeSearchResponse = z.infer<typeof officeSearchResponseSchema>;

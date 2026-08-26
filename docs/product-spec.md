@@ -206,10 +206,14 @@ AC1~12 전부 확인, Vitest 20건 신규 + 통합 테스트 + 브라우저 검�
 
 #### Phase 13 — 검색 & 탐색 UX
 
-- [ ] 사무소 이름/주소 검색 API + 검색바 컴포넌트
-- [ ] 디바운스 + 키보드 탐색(방향키/Enter/Esc), combobox ARIA
-- [ ] 검색 결과 없음 상태
-- [ ] 주소/지역명 검색(카카오 Places 등 — 인터페이스만 참고, 구현 코드 복사 안 함)
+**사무소 이름/주소 검색 완료** (명세: `specs/office-search-bar.md` — AC1~21 전부
+확인, Vitest 20건 신규 + 통합 테스트 + 브라우저 검증에서 실제 버그 2건 발견·수정)
+
+- [x] 사무소 이름/주소 검색 API(`GET /api/offices/search`) + 검색바 컴포넌트
+- [x] 디바운스 + 키보드 탐색(방향키/Enter/Esc), combobox ARIA
+- [x] 검색 결과 없음 상태
+- [ ] 주소/지역명 검색(카카오 Places) — 별도 데이터 소스·UI가 필요해 별도 명세로
+      분리(`docs/specs/office-search-bar.md` "범위 밖" 참고)
 
 ## 하지 않기로 한 것
 

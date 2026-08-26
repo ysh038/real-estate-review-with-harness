@@ -26,6 +26,15 @@ declare global {
       constructor(container: HTMLElement, options: IMapOptions);
       relayout(): void;
       getBounds(): LatLngBounds;
+      /**
+       * office-search-bar: 검색 결과 선택 시 그 위치로 지도를 즉시 이동한다.
+       * `panTo`(애니메이션)는 쓰지 않는다 — 바로 뒤에 setLevel을 호출하면 애니메이션이
+       * 끝나기 전에 잘려서 중심이 원래 위치 근처에 남는 경합이 생긴다(브라우저 검증으로
+       * 확인).
+       */
+      setCenter(latlng: LatLng): void;
+      /** office-search-bar: 선택한 사무소 단위로 확대한다. */
+      setLevel(level: number): void;
     }
 
     interface IMarkerOptions {

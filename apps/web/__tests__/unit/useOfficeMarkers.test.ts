@@ -415,6 +415,27 @@ describe("useOfficeMarkers", () => {
     expect(result.current.selectedOffice).toEqual(OFFICE_A);
   });
 
+  it("(office-search-bar): selectOffice를 호출하면 그 사무소가 selectedOffice가 된다(토글 아님)", async () => {
+    fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
+    const map = makeFakeMap();
+
+    const { result } = renderHook(() => useOfficeMarkers(map));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    act(() => {
+      result.current.selectOffice(OFFICE_A);
+    });
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
+
+    // 같은 사무소를 다시 selectOffice해도 토글(닫힘)되지 않는다 — 마커 클릭과 다르다.
+    act(() => {
+      result.current.selectOffice(OFFICE_A);
+    });
+    expect(result.current.selectedOffice).toEqual(OFFICE_A);
+  });
+
   it("AC18(office-detail-route-and-deeplink): initialSelectedOffice를 넘기면 최초 selectedOffice가 그 값으로 시작한다", () => {
     fetchOfficesByBbox.mockResolvedValue({ offices: [OFFICE_A], isTruncated: false });
     const map = makeFakeMap();

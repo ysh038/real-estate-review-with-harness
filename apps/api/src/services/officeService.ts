@@ -1,6 +1,7 @@
 import type {
   TBbox,
   TOfficeDetailResponse,
+  TOfficeSearchResponse,
   TOfficeSummary,
   TOfficesByBboxResponse,
   TTagCount,
@@ -54,6 +55,25 @@ export const createOfficeService = (repository: IOfficeRepository) => ({
 });
 
 export type TOfficeService = ReturnType<typeof createOfficeService>;
+
+/** 검색 결과 드롭다운 하나에 다 담을 수 있는 정도로 좁게 — office-search-bar 명세. */
+export const MAX_SEARCH_RESULTS = 8;
+
+export interface IOfficeSearchRepository {
+  /** 이름·주소 ILIKE + 비숨김 리뷰 수 내림차순. 개수 제한은 서비스가 건다. */
+  searchByQuery: (query: string, limit: number) => Promise<TOfficeSummaryRow[]>;
+}
+
+export const createOfficeSearchService = (
+  repository: IOfficeSearchRepository,
+) => ({
+  search: async (query: string): Promise<TOfficeSearchResponse> => {
+    const rows = await repository.searchByQuery(query, MAX_SEARCH_RESULTS);
+    return { offices: rows.map((row) => ({ ...row, tagCounts: [] })) };
+  },
+});
+
+export type TOfficeSearchService = ReturnType<typeof createOfficeSearchService>;
 
 export interface IOfficeDetailRepository {
   findById: (id: string) => Promise<TOfficeSummaryRow | null>;

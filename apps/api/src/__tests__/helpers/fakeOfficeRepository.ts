@@ -4,6 +4,7 @@ import { vi } from "vitest";
 import type {
   IOfficeDetailRepository,
   IOfficeRepository,
+  IOfficeSearchRepository,
   TOfficeSummaryRow,
 } from "../../services/officeService";
 
@@ -16,7 +17,7 @@ export const createFakeOfficeRepository = (
   rows: TOfficeSummaryRow[] = [],
   ratings: number[] = [],
   tagCounts: TTagCount[] = [],
-): IOfficeRepository & IOfficeDetailRepository => ({
+): IOfficeRepository & IOfficeDetailRepository & IOfficeSearchRepository => ({
   findByBbox: vi.fn(async (_bbox: TBbox, limit: number) => rows.slice(0, limit)),
   findById: vi.fn(async (id: string) => rows.find((row) => row.id === id) ?? null),
   findVisibleRatingsByOfficeId: vi.fn(async () => ratings),
@@ -26,4 +27,5 @@ export const createFakeOfficeRepository = (
     for (const id of officeIds) map.set(id, tagCounts);
     return map;
   }),
+  searchByQuery: vi.fn(async (_query: string, limit: number) => rows.slice(0, limit)),
 });

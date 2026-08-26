@@ -16,6 +16,8 @@ export interface IUseOfficeMarkersResult {
   isTruncated: boolean;
   selectedOffice: TOfficeSummary | null;
   clearSelection: () => void;
+  /** 마커 클릭(토글)과 달리 항상 그 사무소를 연다 — 검색 결과 선택용(office-search-bar). */
+  selectOffice: (office: TOfficeSummary) => void;
 }
 
 /**
@@ -40,6 +42,10 @@ export const useOfficeMarkers = (
   const hasLoadedOnceRef = useRef(false);
 
   const clearSelection = useCallback(() => setSelectedOffice(null), []);
+  const selectOffice = useCallback(
+    (office: TOfficeSummary) => setSelectedOffice(office),
+    [],
+  );
 
   /** 같은 사무소를 다시 누르면 닫는다 (토글) — office-detail-panel AC3 */
   const handleMarkerClick = useCallback((office: TOfficeSummary) => {
@@ -123,5 +129,5 @@ export const useOfficeMarkers = (
     });
   }, [offices]);
 
-  return { offices, isTruncated, selectedOffice, clearSelection };
+  return { offices, isTruncated, selectedOffice, clearSelection, selectOffice };
 };

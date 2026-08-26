@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchOfficesByBbox } from "../../lib/officesApi";
+import { fetchOfficesByBbox, searchOffices } from "../../lib/officesApi";
 
 const BBOX = { minLng: 127.1, minLat: 37.4, maxLng: 127.2, maxLat: 37.5 };
 
@@ -61,5 +61,53 @@ describe("fetchOfficesByBbox", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchOfficesByBbox(BBOX, "http://localhost:8788")).rejects.toThrow();
+  });
+});
+
+describe("searchOffices", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("q를 쿼리스트링으로 실어 요청하고, 응답을 그대로 노출한다", async () => {
+    const responseBody = {
+      offices: [
+        {
+          id: "office-1",
+          name: "분당공인중개사",
+          ownerName: "홍길동",
+          address: "성남시 분당구",
+          phone: null,
+          sigungu: "성남시",
+          lat: 37.45,
+          lng: 127.15,
+          tagCounts: [],
+        },
+      ],
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(responseBody),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await searchOffices("분당", "http://localhost:8788");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8788/api/offices/search?q=%EB%B6%84%EB%8B%B9",
+    );
+    expect(result).toEqual(responseBody);
+  });
+
+  it("응답이 실패(non-2xx)면 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({}),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(searchOffices("분당", "http://localhost:8788")).rejects.toThrow();
   });
 });

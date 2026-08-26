@@ -1,6 +1,6 @@
 "use client";
 
-import type { TOfficeDetailResponse } from "@repo/types";
+import type { TOfficeDetailResponse, TOfficeSummary } from "@repo/types";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
@@ -9,11 +9,13 @@ import { useOfficeMarkers } from "../../hooks/useOfficeMarkers";
 import { addMapListener, removeMapListener } from "../../lib/kakaoMapEvents";
 import { buildKakaoMapScriptUrl } from "../../lib/kakaoMapSdk";
 import { OfficeDetailPanel } from "../OfficeDetailPanel";
+import { OfficeSearchBar } from "../OfficeSearchBar";
 
 const SEONGNAM_CITY_HALL = { lat: 37.4201, lng: 127.1265 };
 const DEFAULT_LEVEL = 8;
-// office-detail-route-and-deeplink AC15: 딥링크로 들어오면 사무소 단위로 확대해 보여준다.
-const DEEPLINK_LEVEL = 3;
+// office-detail-route-and-deeplink AC15 / office-search-bar AC20: 딥링크·검색
+// 선택으로 들어오면 사무소 단위로 확대해 보여준다.
+const FOCUS_LEVEL = 3;
 
 type TSdkStatus = "loading" | "loaded" | "error";
 
@@ -32,10 +34,16 @@ export const KakaoMap = ({ initialOffice = null }: IKakaoMapProps = {}) => {
   const [status, setStatus] = useState<TSdkStatus>("loading");
   const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? "";
   const map = status === "loaded" ? mapRef.current : null;
-  const { isTruncated, selectedOffice, clearSelection } = useOfficeMarkers(
-    map,
-    initialOffice,
-  );
+  const { isTruncated, selectedOffice, clearSelection, selectOffice } =
+    useOfficeMarkers(map, initialOffice);
+
+  // office-search-bar AC20·AC21: 검색 결과 선택 시 지도 이동 + 확대 + 패널 오픈.
+  const handleSearchSelect = (office: TOfficeSummary) => {
+    if (!map) return;
+    map.setCenter(new window.kakao.maps.LatLng(office.lat, office.lng));
+    map.setLevel(FOCUS_LEVEL);
+    selectOffice(office);
+  };
 
   // AC15: 백드롭 대신 지도 클릭으로 닫는다 — 패널이 열려 있어도 지도 조작이 살아 있어야
   // 하기 때문이다 (근거: docs/specs/office-detail-panel.md 설계 메모).
@@ -53,7 +61,7 @@ export const KakaoMap = ({ initialOffice = null }: IKakaoMapProps = {}) => {
       const center = initialOffice
         ? { lat: initialOffice.lat, lng: initialOffice.lng }
         : SEONGNAM_CITY_HALL;
-      const level = initialOffice ? DEEPLINK_LEVEL : DEFAULT_LEVEL;
+      const level = initialOffice ? FOCUS_LEVEL : DEFAULT_LEVEL;
 
       mapRef.current = new window.kakao.maps.Map(containerRef.current, {
         center: new window.kakao.maps.LatLng(center.lat, center.lng),
@@ -97,6 +105,9 @@ export const KakaoMap = ({ initialOffice = null }: IKakaoMapProps = {}) => {
         <p className={styles.truncatedNotice}>
           결과가 많아 일부만 표시됩니다. 지도를 확대해보세요.
         </p>
+      ) : null}
+      {status === "loaded" ? (
+        <OfficeSearchBar onSelect={handleSearchSelect} />
       ) : null}
       <div ref={containerRef} className={styles.mapContainer} />
       {selectedOffice ? (
