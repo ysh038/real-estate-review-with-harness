@@ -2,6 +2,9 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-26 5fd723d 사무소 상세 라우트 & 딥링크 (Phase 8, docs/decisions.md #10 원본
+  캐치업 범위 확장 이후 첫 착수. 명세: docs/specs/office-detail-route-and-deeplink.md —
+  AC1~20 전부 확인, OfficeInfoFields 공유 컴포넌트 추출)
 - 2026-08-25 a6a137a 관리자 숨김 리뷰 목록 + 복구 (격차 보완 덩이 J·마지막, docs/decisions.md
   #9, 명세: docs/specs/admin-hidden-reviews.md — 덩이 E~J 전부 완료)
 - 2026-08-25 7ede190 내 리뷰 목록 (격차 보완 덩이 I, docs/decisions.md #9, 명세:
