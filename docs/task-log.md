@@ -2,6 +2,16 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 cc409b8 리뷰 로딩/빈/에러 상태 일관화 + 작성 임시저장 (Phase 11
+  마무리, 명세: docs/specs/review-ux-consistency-and-draft.md — AC1~16 전부
+  확인). Skeleton/ReviewListSkeleton·EmptyState·ErrorState 공유 컴포넌트로
+  ReviewSection·mypage/reviews·OfficeSearchBar 통일, OfficeSearchBar가
+  useOfficeSearch의 error를 화면에 안 그리던 기존 누락도 보완. useReviewDraft
+  훅으로 리뷰 작성 폼 localStorage 임시저장·이탈 경고·복원 배너 추가(원본
+  ReviewForm.tsx의 "복원은 storage 유지, 새로 작성만 삭제" 로직을 통제변인으로
+  참조). Vitest 33건 신규/확장 + 실 브라우저로 검색바 로딩/빈/에러·리뷰 빈 상태
+  검증(작성 폼은 카카오 로그인 필요해 브라우저 재현 불가, 단위 테스트로 대체).
+
 - 2026-08-27 56536eb 법적·정책 페이지 + 공통 푸터 (Phase 10, 명세:
   docs/specs/legal-pages-and-footer.md — AC1~10 전부 확인. 개인정보처리방침·
   오픈소스 목록·FAQ는 placeholder 대신 이 저장소의 실제 동작·의존성·기능 기준
