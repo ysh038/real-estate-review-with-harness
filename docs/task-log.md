@@ -2,6 +2,12 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 07ff99f 리뷰 사진 업로드 (Phase 2, 명세: docs/specs/review-photo-upload.md
+  — AC1~22 전부 확인. 로컬 MinIO(포트 9002/9003) + sharp EXIF 제거·리사이즈, 업로드
+  API 경로만 구현(presign은 서버 처리와 상충해 제외). review_photos에 position 컬럼
+  추가(원본의 잠재적 정렬 불안정 회피). 리뷰 수정 UI 자체가 없어 "수정 시 사진 변경"은
+  별도 명세로 분리. 실 MinIO 통합 테스트 + 개발 서버 스모크 테스트로 전체 파이프라인
+  검증(대용량 실제 JPEG 리사이즈 확인 포함))
 - 2026-08-27 9e85dd2 회원 탈퇴 + 리뷰 익명화 (Phase 9 나머지, 명세:
   docs/specs/member-account-deletion-and-anonymization.md — AC1~18 전부 확인.
   reviews.user_id를 nullable + ON DELETE SET NULL로 마이그레이션, DELETE
