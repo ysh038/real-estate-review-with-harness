@@ -8,6 +8,8 @@ export interface IReviewDraft {
   content: string;
   dealType: string;
   dealResult: string;
+  expertise: string;
+  defectResponse: string;
   visitedYear: string;
   visitedMonth: string;
   tags: TReviewTag[];
@@ -31,6 +33,8 @@ const isEmptyDraft = (draft: IReviewDraft) =>
   draft.content.length === 0 &&
   draft.dealType === "" &&
   draft.dealResult === "" &&
+  draft.expertise === "" &&
+  draft.defectResponse === "" &&
   draft.visitedYear === "" &&
   draft.visitedMonth === "" &&
   draft.tags.length === 0;

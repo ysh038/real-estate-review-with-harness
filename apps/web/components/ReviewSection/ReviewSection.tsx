@@ -3,6 +3,8 @@
 import {
   DEAL_RESULTS,
   DEAL_TYPES,
+  DEFECT_RESPONSES,
+  EXPERTISE_LEVELS,
   REVIEW_CONTENT_MIN_LENGTH,
   REVIEW_PHOTOS_MAX,
   REVIEW_TAGS,
@@ -83,6 +85,8 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
   const [content, setContent] = useState("");
   const [dealType, setDealType] = useState<string>(NOT_SELECTED);
   const [dealResult, setDealResult] = useState<string>(NOT_SELECTED);
+  const [expertise, setExpertise] = useState<string>(NOT_SELECTED);
+  const [defectResponse, setDefectResponse] = useState<string>(NOT_SELECTED);
   const [visitedYear, setVisitedYear] = useState<string>("");
   const [visitedMonth, setVisitedMonth] = useState<string>(NOT_SELECTED);
   const [selectedTags, setSelectedTags] = useState<TReviewTag[]>([]);
@@ -106,6 +110,8 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       content,
       dealType,
       dealResult,
+      expertise,
+      defectResponse,
       visitedYear,
       visitedMonth,
       tags: selectedTags,
@@ -116,6 +122,8 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
     content,
     dealType,
     dealResult,
+    expertise,
+    defectResponse,
     visitedYear,
     visitedMonth,
     selectedTags,
@@ -128,6 +136,8 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
     setContent(draft.content);
     setDealType(draft.dealType);
     setDealResult(draft.dealResult);
+    setExpertise(draft.expertise);
+    setDefectResponse(draft.defectResponse);
     setVisitedYear(draft.visitedYear);
     setVisitedMonth(draft.visitedMonth);
     setSelectedTags(draft.tags);
@@ -207,6 +217,12 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       ...(dealResult !== NOT_SELECTED && {
         dealResult: dealResult as (typeof DEAL_RESULTS)[number],
       }),
+      ...(expertise !== NOT_SELECTED && {
+        expertise: expertise as (typeof EXPERTISE_LEVELS)[number],
+      }),
+      ...(defectResponse !== NOT_SELECTED && {
+        defectResponse: defectResponse as (typeof DEFECT_RESPONSES)[number],
+      }),
       ...(visitedYear !== "" && { visitedYear: Number(visitedYear) }),
       ...(visitedMonth !== NOT_SELECTED && { visitedMonth: Number(visitedMonth) }),
       ...(selectedTags.length > 0 && { tags: selectedTags }),
@@ -223,6 +239,8 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       setContent("");
       setDealType(NOT_SELECTED);
       setDealResult(NOT_SELECTED);
+      setExpertise(NOT_SELECTED);
+      setDefectResponse(NOT_SELECTED);
       setVisitedYear("");
       setVisitedMonth(NOT_SELECTED);
       setSelectedTags([]);
@@ -301,6 +319,12 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
             <p className={styles.content}>{review.content}</p>
             {formatDealInfo(review) ? (
               <p className={styles.dealInfo}>{formatDealInfo(review)}</p>
+            ) : null}
+            {review.expertise ? (
+              <p className={styles.dealInfo}>전문성: {review.expertise}</p>
+            ) : null}
+            {review.defectResponse ? (
+              <p className={styles.dealInfo}>하자 대응: {review.defectResponse}</p>
             ) : null}
             {review.tags.length > 0 ? (
               <ul className={styles.tagList}>
@@ -465,6 +489,32 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
               {MONTH_OPTIONS.map((month) => (
                 <option key={month} value={month}>
                   {month}월
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.dealSelect}
+              aria-label="전문성"
+              value={expertise}
+              onChange={(event) => setExpertise(event.target.value)}
+            >
+              <option value={NOT_SELECTED}>선택 안 함</option>
+              {EXPERTISE_LEVELS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.dealSelect}
+              aria-label="하자 대응"
+              value={defectResponse}
+              onChange={(event) => setDefectResponse(event.target.value)}
+            >
+              <option value={NOT_SELECTED}>선택 안 함</option>
+              {DEFECT_RESPONSES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
                 </option>
               ))}
             </select>

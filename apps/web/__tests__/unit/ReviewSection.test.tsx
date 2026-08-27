@@ -37,6 +37,8 @@ const REVIEW: TReview = {
   createdAt: "2026-08-21T00:00:00.000Z",
   dealType: null,
   dealResult: null,
+  expertise: null,
+  defectResponse: null,
   visitedYear: null,
   visitedMonth: null,
   tags: [],
@@ -51,6 +53,8 @@ const REVIEW_WITH_DEAL_INFO: TReview = {
   author: { nickname: "이영희", profileImageUrl: null },
   dealType: "전세",
   dealResult: "계약함",
+  expertise: null,
+  defectResponse: null,
   visitedYear: 2026,
   visitedMonth: 3,
 };
@@ -711,6 +715,83 @@ describe("ReviewSection", () => {
     });
   });
 
+  describe("정형 설문 항목 (review-structured-survey)", () => {
+    it("AC7: 전문성 select에 3개 옵션 + 선택 안 함이 보인다", () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+
+      render(<ReviewSection officeId="office-1" />);
+
+      const select = screen.getByRole("combobox", { name: "전문성" });
+      expect(select).toBeInTheDocument();
+      for (const label of ["전문적이었음", "보통", "아쉬웠음"]) {
+        expect(screen.getByRole("option", { name: label })).toBeInTheDocument();
+      }
+    });
+
+    it("AC7: 하자 대응 select에 3개 옵션 + 선택 안 함이 보인다", () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+
+      render(<ReviewSection officeId="office-1" />);
+
+      const select = screen.getByRole("combobox", { name: "하자 대응" });
+      expect(select).toBeInTheDocument();
+      for (const label of ["원만히 해결됨", "미흡했음", "하자 없었음"]) {
+        expect(screen.getByRole("option", { name: label })).toBeInTheDocument();
+      }
+    });
+
+    it("AC9: 전문성·하자 대응을 선택해 제출하면 submitReview에 포함된다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const submitReview = vi.fn().mockResolvedValue(true);
+      useOfficeReviews.mockReturnValue({ ...baseHookState, submitReview });
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.click(screen.getByRole("radio", { name: "5점" }));
+      await user.type(
+        screen.getByRole("textbox"),
+        "충분히 긴 리뷰 본문입니다 열 자 이상",
+      );
+      await user.selectOptions(
+        screen.getByRole("combobox", { name: "전문성" }),
+        "전문적이었음",
+      );
+      await user.selectOptions(
+        screen.getByRole("combobox", { name: "하자 대응" }),
+        "원만히 해결됨",
+      );
+      await user.click(screen.getByRole("button", { name: "등록" }));
+
+      expect(submitReview).toHaveBeenCalledWith({
+        rating: 5,
+        content: "충분히 긴 리뷰 본문입니다 열 자 이상",
+        expertise: "전문적이었음",
+        defectResponse: "원만히 해결됨",
+      });
+    });
+
+    it("AC10: 리뷰에 전문성·하자 대응 값이 있으면 카드에 보인다", () => {
+      useOfficeReviews.mockReturnValue({
+        ...baseHookState,
+        reviews: [
+          { ...REVIEW, expertise: "전문적이었음", defectResponse: "원만히 해결됨" },
+        ],
+      });
+
+      render(<ReviewSection officeId="office-1" />);
+
+      expect(screen.getByText(/전문성: 전문적이었음/)).toBeInTheDocument();
+      expect(screen.getByText(/하자 대응: 원만히 해결됨/)).toBeInTheDocument();
+    });
+
+    it("AC11: 값이 둘 다 없으면 표시 영역이 없다", () => {
+      render(<ReviewSection officeId="office-1" />);
+
+      expect(screen.queryByText(/전문성:/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/하자 대응:/)).not.toBeInTheDocument();
+    });
+  });
+
   describe("작성 임시저장 (review-ux-consistency-and-draft)", () => {
     const DRAFT_KEY = "review-draft-office-1";
     const STORED_DRAFT = {
@@ -718,6 +799,8 @@ describe("ReviewSection", () => {
       content: "친절했어요",
       dealType: "전세",
       dealResult: "계약함",
+      expertise: "",
+      defectResponse: "",
       visitedYear: "2026",
       visitedMonth: "3",
       tags: ["친절함"],

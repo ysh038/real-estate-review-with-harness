@@ -26,6 +26,8 @@ const buildOwnedRow = (
   hiddenAt: null,
   dealType: null,
   dealResult: null,
+  expertise: null,
+  defectResponse: null,
   visitedYear: null,
   visitedMonth: null,
   tags: [],
@@ -145,6 +147,8 @@ describe("PATCH /api/reviews/:id", () => {
       content: VALID_BODY.content,
       dealType: null,
       dealResult: null,
+      expertise: null,
+      defectResponse: null,
       visitedYear: null,
       visitedMonth: null,
       tags: [],
@@ -190,11 +194,38 @@ describe("PATCH /api/reviews/:id", () => {
       content: VALID_BODY.content,
       dealType: "전세",
       dealResult: "계약함",
+      expertise: null,
+      defectResponse: null,
       visitedYear: 2026,
       visitedMonth: 3,
       tags: [],
       photoKeys: [],
     });
+  });
+
+  it("AC6(review-structured-survey): 정형 설문 항목을 채워 보내면 repository.update에 그대로 전달된다", async () => {
+    const { app, sessionRepository, reviewRepository } = buildApp({
+      findById: async () => buildOwnedRow(),
+    });
+    const headers = await withSession(sessionRepository);
+
+    await app.request(`/api/reviews/${REVIEW_ID}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        expertise: "아쉬웠음",
+        defectResponse: "미흡했음",
+      }),
+    });
+
+    expect(reviewRepository.update).toHaveBeenCalledWith(
+      REVIEW_ID,
+      expect.objectContaining({
+        expertise: "아쉬웠음",
+        defectResponse: "미흡했음",
+      }),
+    );
   });
 });
 

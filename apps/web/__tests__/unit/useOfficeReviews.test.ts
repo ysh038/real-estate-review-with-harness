@@ -64,6 +64,8 @@ const buildReview = (id: string): TReview => ({
   createdAt: "2026-08-21T00:00:00.000Z",
   dealType: null,
   dealResult: null,
+  expertise: null,
+  defectResponse: null,
   visitedYear: null,
   visitedMonth: null,
   tags: [],

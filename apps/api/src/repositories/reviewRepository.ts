@@ -51,6 +51,8 @@ const OWNED_ROW_COLUMNS = {
   hiddenAt: reviews.hiddenAt,
   dealType: reviews.dealType,
   dealResult: reviews.dealResult,
+  expertise: reviews.expertise,
+  defectResponse: reviews.defectResponse,
   visitedYear: reviews.visitedYear,
   visitedMonth: reviews.visitedMonth,
 };
@@ -201,6 +203,8 @@ export const createReviewRepository = (
         createdAt: reviews.createdAt,
         dealType: reviews.dealType,
         dealResult: reviews.dealResult,
+        expertise: reviews.expertise,
+        defectResponse: reviews.defectResponse,
         visitedYear: reviews.visitedYear,
         visitedMonth: reviews.visitedMonth,
       })
@@ -296,6 +300,8 @@ export const createReviewRepository = (
       content: string;
       dealType: string | null;
       dealResult: string | null;
+      expertise: string | null;
+      defectResponse: string | null;
       visitedYear: number | null;
       visitedMonth: number | null;
       tags: string[];
@@ -446,6 +452,8 @@ export const createReviewRepository = (
         hiddenAt: reviews.hiddenAt,
         dealType: reviews.dealType,
         dealResult: reviews.dealResult,
+        expertise: reviews.expertise,
+        defectResponse: reviews.defectResponse,
         visitedYear: reviews.visitedYear,
         visitedMonth: reviews.visitedMonth,
       })
@@ -500,6 +508,8 @@ export const createReviewRepository = (
         hiddenAt: reviews.hiddenAt,
         dealType: reviews.dealType,
         dealResult: reviews.dealResult,
+        expertise: reviews.expertise,
+        defectResponse: reviews.defectResponse,
         visitedYear: reviews.visitedYear,
         visitedMonth: reviews.visitedMonth,
         reportCount: sql<number>`(
@@ -553,6 +563,8 @@ export const createReviewRepository = (
         createdAt: reviews.createdAt,
         dealType: reviews.dealType,
         dealResult: reviews.dealResult,
+        expertise: reviews.expertise,
+        defectResponse: reviews.defectResponse,
         visitedYear: reviews.visitedYear,
         visitedMonth: reviews.visitedMonth,
       })

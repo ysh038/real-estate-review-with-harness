@@ -20,6 +20,8 @@ const buildMyReviewRow = (index: number): IMyReviewRow => ({
   hiddenAt: null,
   dealType: null,
   dealResult: null,
+  expertise: null,
+  defectResponse: null,
   visitedYear: null,
   visitedMonth: null,
   tags: [],

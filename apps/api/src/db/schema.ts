@@ -107,6 +107,12 @@ export const reviews = pgTable(
      */
     dealType: text("deal_type"),
     dealResult: text("deal_result"),
+    /**
+     * 정형 설문 항목(Phase 12-C, docs/specs/review-structured-survey.md) — dealType/
+     * dealResult와 동일한 nullable text 패턴.
+     */
+    expertise: text("expertise"),
+    defectResponse: text("defect_response"),
     visitedYear: smallint("visited_year"),
     visitedMonth: smallint("visited_month"),
     createdAt: timestamp("created_at", { withTimezone: true })

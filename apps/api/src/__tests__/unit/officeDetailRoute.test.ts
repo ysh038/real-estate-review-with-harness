@@ -39,6 +39,8 @@ const buildReviewRow = (index: number): IReviewListRow => ({
   createdAt: new Date(`2026-08-${10 + index}T00:00:00.000Z`),
   dealType: null,
   dealResult: null,
+  expertise: null,
+  defectResponse: null,
   visitedYear: null,
   visitedMonth: null,
   tags: [],

@@ -11,6 +11,8 @@ const EMPTY_DRAFT: IReviewDraft = {
   content: "",
   dealType: "",
   dealResult: "",
+  expertise: "",
+  defectResponse: "",
   visitedYear: "",
   visitedMonth: "",
   tags: [],
@@ -21,6 +23,8 @@ const FILLED_DRAFT: IReviewDraft = {
   content: "친절했어요",
   dealType: "전세",
   dealResult: "계약함",
+  expertise: "전문적이었음",
+  defectResponse: "원만히 해결됨",
   visitedYear: "2026",
   visitedMonth: "3",
   tags: ["친절함"],
@@ -39,6 +43,22 @@ describe("useReviewDraft", () => {
     });
 
     expect(JSON.parse(localStorage.getItem(DRAFT_KEY)!)).toEqual(FILLED_DRAFT);
+  });
+
+  it("AC10(review-structured-survey): 전문성·하자 대응만 값이 있어도 저장된다", () => {
+    const { result } = renderHook(() => useReviewDraft(OFFICE_ID, ""));
+
+    act(() => {
+      result.current.saveDraft({
+        ...EMPTY_DRAFT,
+        expertise: "전문적이었음",
+        defectResponse: "하자 없었음",
+      });
+    });
+
+    const stored = JSON.parse(localStorage.getItem(DRAFT_KEY)!);
+    expect(stored.expertise).toBe("전문적이었음");
+    expect(stored.defectResponse).toBe("하자 없었음");
   });
 
   it("AC11: 모든 필드가 빈 값으로 돌아오면 저장된 키를 완전히 지운다", () => {

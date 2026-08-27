@@ -18,6 +18,8 @@ const REVIEW: TMyReview = {
   createdAt: "2026-08-01T00:00:00.000Z",
   dealType: null,
   dealResult: null,
+  expertise: null,
+  defectResponse: null,
   visitedYear: null,
   visitedMonth: null,
   tags: [],

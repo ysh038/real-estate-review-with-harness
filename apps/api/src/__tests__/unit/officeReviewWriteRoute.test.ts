@@ -320,6 +320,70 @@ describe("POST /api/offices/:id/reviews — 거래정보·방문시기 필드 (r
   });
 });
 
+describe("POST /api/offices/:id/reviews — 정형 설문 항목 (review-structured-survey)", () => {
+  it("AC5: expertise가 허용값이 아니면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, expertise: "매우 좋음" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC5: defectResponse가 허용값이 아니면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, defectResponse: "예" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC4: 생략하면 201이고 응답 필드는 둘 다 null이다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(VALID_BODY),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.expertise).toBeNull();
+    expect(body.defectResponse).toBeNull();
+  });
+
+  it("AC3: 채워 보내면 응답에 그대로 반영된다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        expertise: "전문적이었음",
+        defectResponse: "원만히 해결됨",
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.expertise).toBe("전문적이었음");
+    expect(body.defectResponse).toBe("원만히 해결됨");
+  });
+});
+
 describe("POST /api/offices/:id/reviews — 태그 (review-tags)", () => {
   it("AC1: 화이트리스트 밖 태그가 섞이면 400", async () => {
     const { app, sessionRepository } = buildAuthedApp();

@@ -37,6 +37,18 @@ export type TDealResult = z.infer<typeof dealResultEnum>;
 const visitedYearSchema = z.number().int().min(2000).max(2100);
 const visitedMonthSchema = z.number().int().min(1).max(12);
 
+/**
+ * 정형 설문 항목(Phase 12-C, docs/specs/review-structured-survey.md). 원본에는 항목
+ * 자체가 미확정 상태(직접 확인)라 보기 문구는 이 저장소가 새로 정한다 — dealType/
+ * dealResult와 달리 원본 도메인 어휘를 그대로 채택한 것이 아니다.
+ */
+export const EXPERTISE_LEVELS = ["전문적이었음", "보통", "아쉬웠음"] as const;
+export const DEFECT_RESPONSES = ["원만히 해결됨", "미흡했음", "하자 없었음"] as const;
+export const expertiseLevelEnum = z.enum(EXPERTISE_LEVELS);
+export const defectResponseEnum = z.enum(DEFECT_RESPONSES);
+export type TExpertiseLevel = z.infer<typeof expertiseLevelEnum>;
+export type TDefectResponse = z.infer<typeof defectResponseEnum>;
+
 /** 리뷰에 함께 노출되는 작성자 정보. 개인 식별에 쓰이지 않는 공개 필드만. */
 export const reviewAuthorSchema = z.object({
   nickname: z.string(),
@@ -62,6 +74,8 @@ export const reviewSchema = z.object({
   createdAt: z.string().datetime(),
   dealType: dealTypeEnum.nullable(),
   dealResult: dealResultEnum.nullable(),
+  expertise: expertiseLevelEnum.nullable(),
+  defectResponse: defectResponseEnum.nullable(),
   visitedYear: visitedYearSchema.nullable(),
   visitedMonth: visitedMonthSchema.nullable(),
   /** 태그가 없으면 빈 배열 — null 아님. */
@@ -184,6 +198,8 @@ export const createReviewRequestSchema = z
     content: z.string().min(REVIEW_CONTENT_MIN_LENGTH),
     dealType: dealTypeEnum.optional(),
     dealResult: dealResultEnum.optional(),
+    expertise: expertiseLevelEnum.optional(),
+    defectResponse: defectResponseEnum.optional(),
     visitedYear: visitedYearSchema.optional(),
     visitedMonth: visitedMonthSchema.optional(),
     tags: z.array(reviewTagEnum).max(REVIEW_TAGS_MAX).optional(),

@@ -37,6 +37,8 @@ export interface IReviewListRow {
   createdAt: Date;
   dealType: string | null;
   dealResult: string | null;
+  expertise: string | null;
+  defectResponse: string | null;
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
@@ -72,6 +74,8 @@ export interface IMyReviewRow {
   hiddenAt: Date | null;
   dealType: string | null;
   dealResult: string | null;
+  expertise: string | null;
+  defectResponse: string | null;
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
@@ -100,6 +104,8 @@ export interface IReviewOwnedRow {
   hiddenAt: Date | null;
   dealType: string | null;
   dealResult: string | null;
+  expertise: string | null;
+  defectResponse: string | null;
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
@@ -124,6 +130,8 @@ export interface IReviewWriteRepository extends IReviewRepository {
     createdFromIp: string | null;
     dealType: string | null;
     dealResult: string | null;
+    expertise: string | null;
+    defectResponse: string | null;
     visitedYear: number | null;
     visitedMonth: number | null;
     /** 중복은 서비스가 이미 걸러 보낸다 (AC7) — repository는 그대로 저장만 한다. */
@@ -139,6 +147,8 @@ export interface IReviewWriteRepository extends IReviewRepository {
       content: string;
       dealType: string | null;
       dealResult: string | null;
+      expertise: string | null;
+      defectResponse: string | null;
       visitedYear: number | null;
       visitedMonth: number | null;
       tags: string[];
@@ -262,6 +272,8 @@ const toReview = (row: IReviewListRow, photoPublicUrl: string | undefined): TRev
   createdAt: row.createdAt.toISOString(),
   dealType: row.dealType as TReview["dealType"],
   dealResult: row.dealResult as TReview["dealResult"],
+  expertise: row.expertise as TReview["expertise"],
+  defectResponse: row.defectResponse as TReview["defectResponse"],
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
@@ -283,6 +295,8 @@ const toReviewWithAuthor = (
   createdAt: row.createdAt.toISOString(),
   dealType: row.dealType as TReview["dealType"],
   dealResult: row.dealResult as TReview["dealResult"],
+  expertise: row.expertise as TReview["expertise"],
+  defectResponse: row.defectResponse as TReview["defectResponse"],
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
@@ -306,6 +320,8 @@ const toMyReview = (
   isHidden: row.hiddenAt != null,
   dealType: row.dealType as TReview["dealType"],
   dealResult: row.dealResult as TReview["dealResult"],
+  expertise: row.expertise as TReview["expertise"],
+  defectResponse: row.defectResponse as TReview["defectResponse"],
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
@@ -342,6 +358,8 @@ export interface ICreateReviewParams {
   clientIp: string | null;
   dealType?: string | null;
   dealResult?: string | null;
+  expertise?: string | null;
+  defectResponse?: string | null;
   visitedYear?: number | null;
   visitedMonth?: number | null;
   tags?: string[];
@@ -355,6 +373,8 @@ export interface IUpdateReviewParams {
   content: string;
   dealType?: string | null;
   dealResult?: string | null;
+  expertise?: string | null;
+  defectResponse?: string | null;
   visitedYear?: number | null;
   visitedMonth?: number | null;
   tags?: string[];
@@ -396,6 +416,8 @@ export const createReviewService = (
         createdFromIp: params.clientIp,
         dealType: params.dealType ?? null,
         dealResult: params.dealResult ?? null,
+        expertise: params.expertise ?? null,
+        defectResponse: params.defectResponse ?? null,
         visitedYear: params.visitedYear ?? null,
         visitedMonth: params.visitedMonth ?? null,
         tags: dedupeTags(params.tags),
@@ -420,6 +442,8 @@ export const createReviewService = (
       content: params.content,
       dealType: params.dealType ?? null,
       dealResult: params.dealResult ?? null,
+      expertise: params.expertise ?? null,
+      defectResponse: params.defectResponse ?? null,
       visitedYear: params.visitedYear ?? null,
       visitedMonth: params.visitedMonth ?? null,
       tags: dedupeTags(params.tags),
