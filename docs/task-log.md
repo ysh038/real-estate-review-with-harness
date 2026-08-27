@@ -2,6 +2,19 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 7760509 Storybook 온디맨드 설치(ds-init, design-system 스킬
+  Part 1). Next.js 15(Turbopack) 자동 감지로 `@storybook/nextjs-vite` 설치,
+  a11y.test=error 전환, 하네스 checks에 test-storybook 등록, 이 저장소
+  토큰만 쓰는 참조 구현 3종(ExampleForm/ExampleTable/ExampleDetail) + 상호작용
+  스토리 추가. 환경 특이 이슈 2건 우회: `.storybook/**`가 타입 인식 린트의
+  tsconfig 프로그램에 안 잡혀 무관한 파일까지 규칙을 못 찾는 것처럼 보였던
+  문제(린트 대상 제외로 해결), addon-vitest 브라우저 서버 기본 포트(63315)가
+  이 Windows 머신의 Hyper-V 동적 포트 제외 범위에 걸려 EACCES 나던 문제(고정
+  포트 61245로 우회). 부수 발견: a11y.test=error를 켜자마자
+  `--color-success`·`--color-warning` 토큰이 흰 글자와 쓰이면 WCAG AA
+  미달임을 실측(3.29·3.18:1)으로 잡아냄 — `--color-info`는 흰/진한 글자 둘 다
+  기준 미달이라 별도 디자인 토큰 이슈로 남김(UX 감사 리포트와 같은 계열의
+  발견).
 - 2026-08-27 5e01bdd 리뷰 수정 시 사진 변경(추가/삭제) — Phase 2 완료 (명세:
   docs/specs/review-edit-photo-changes.md — AC1~11 전부 확인).
   review-photo-upload·review-edit-and-delete-ui 두 명세에서 범위 밖으로
