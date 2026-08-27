@@ -2,6 +2,20 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-28 739d101 "청기와" 디자인시스템 적용 + Places 카테고리 필터 +
+  문의 이메일 노출 제거 (명세: docs/specs/design-system-cheonggiwa-rebrand.md
+  — AC1~13 전부 확인). Claude Design(claude.ai/design) 프로젝트에서
+  DesignSync 도구로 가져온 팔레트를 적용해 UX 감사 리포트 9건 전부 해결.
+  색상·타이포(Pretendard)·z-index 토큰 전체 교체, 배지 글자색을 톤별로
+  재계산해 Storybook addon-a11y로 WCAG AA 실측 통과(별점 전용
+  --color-rating 신설로 기존 미발견 버그도 해결). 카카오 Places 카테고리
+  칩(중개업소/지하철역/학교/은행) 추가로 무관한 장소 노출 문제 해결 —
+  실 브라우저에서 "중개업소" 필터 시 아파트 단지가 사라지고 실제
+  중개업소만 남는 것 확인. 문의 페이지 이메일 텍스트 노출 제거(mailto
+  유지). 작업 중 카테고리 칩이 검색바를 2줄로 늘려 트렁케이션 배너와
+  다시 겹치는 회귀를 직접 발견·수정. Claude Design 산출물은 전부 데이터로
+  취급해 실제 파일·줄번호와 대조 검증 후 적용. Vitest 269건(신규 7),
+  Storybook a11y 10건, 전체 하네스 게이트 통과.
 - 2026-08-27 9e85864 UX 감사(레이어 충돌 리포트) 항목 수정 — Critical 2·
   High 1·Medium 1·Low 1건. 사무소 상세 패널이 열려도 로그인 위젯·검색바가
   패널 헤더 위에 남아 "닫기" 클릭을 가로채던 문제(elementFromPoint로 확인)를
