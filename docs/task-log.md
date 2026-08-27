@@ -2,6 +2,19 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 c2a28f7 카카오 Places 지역명 검색 (Phase 13 마무리, 명세:
+  docs/specs/kakao-places-location-search.md — AC1~16 전부 확인).
+  office-search-bar에서 범위 밖으로 뗐던 항목 — 검색바가 우리 DB 사무소
+  검색과 병렬로 카카오 Places.keywordSearch()를 호출해 지역명·장소를 최대
+  3건 별도 섹션으로 보여주고, 선택하면 지도만 이동(상세 패널은 안 엶)한다.
+  브라우저 검증에서 심각한 버그 발견·수정: `buildKakaoMapScriptUrl`이
+  URLSearchParams로 콤마를 %2C로 인코딩해버리는데, 카카오 SDK 부트스트랩
+  코드가 자기 script src의 쿼리스트링을 디코딩 없이 정규식으로 파싱해
+  콤마로 split하는 바람에 두 번째 라이브러리부터 로드 실패 → 지도가 영원히
+  "불러오는 중" 상태에 멈추는 버그. 유닛 테스트로는 못 잡는 버그였다
+  (`URL.searchParams.get()`이 다시 디코딩해줘서 통과시켜버림) — 원본
+  문자열을 직접 검사하는 테스트를 추가해 재발 방지. Vitest 23건 신규,
+  브라우저로 사무소·장소 혼합 검색·패널 닫힘·지도 이동 확인.
 - 2026-08-27 52cbeca 마이페이지 리뷰 수정·삭제 UI (명세:
   docs/specs/review-edit-and-delete-ui.md — AC1~13 전부 확인). PATCH/DELETE
   /api/reviews/:id는 이미 완성돼 있었지만 호출할 UI가 없던 것을 발견해 채웠다
