@@ -1,0 +1,29 @@
+.footer {
+  padding: var(--space-6) var(--space-4);
+  background-color: var(--color-background);
+  border-top: 1px solid var(--color-border);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.link {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--color-text);
+}
+
+.copyright {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}

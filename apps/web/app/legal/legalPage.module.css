@@ -1,0 +1,156 @@
+.title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.revisionDate {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.card {
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.preparingCard {
+  text-align: center;
+}
+
+.preparingTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+}
+
+.preparingBody {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.listItem {
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.listItemTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.listItemBody {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.noticeCard {
+  background-color: var(--color-surface);
+}
+
+.noticeTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-warning);
+}
+
+.noticeBody {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.ossItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.ossName {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.ossLicense {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.ossLink {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.ossFootnote {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.faqQuestion {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.faqAnswer {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.contactPrompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background-color: var(--color-info);
+  border-radius: var(--radius-lg);
+}
+
+.contactPromptText {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-inverse);
+}
+
+.contactPromptLink {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+}

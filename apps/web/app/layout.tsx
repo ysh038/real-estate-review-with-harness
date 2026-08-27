@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "../design-system/tokens.css";
 import "./globals.css";
+import { Footer } from "../components/Footer";
 import { LoginButton } from "../components/LoginButton";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => (
     <body>
       <LoginButton />
       {children}
+      <Footer />
     </body>
   </html>
 );

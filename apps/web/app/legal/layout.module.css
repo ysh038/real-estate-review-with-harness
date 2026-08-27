@@ -1,0 +1,22 @@
+.page {
+  min-height: 100vh;
+  background-color: var(--color-surface);
+}
+
+.header {
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.backLink {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
