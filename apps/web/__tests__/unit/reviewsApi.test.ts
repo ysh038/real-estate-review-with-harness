@@ -2,11 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createReview,
+  deleteReview,
   fetchMyReviews,
   fetchOfficeDetail,
   fetchReviews,
   reportReview,
   toggleReviewHelpful,
+  updateReview,
   uploadPhoto,
 } from "../../lib/reviewsApi";
 
@@ -232,6 +234,90 @@ describe("reviewsApi", () => {
     await expect(
       createReview("office-1", { rating: 5, content: "x".repeat(10) }, BASE_URL),
     ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("updateReview: PATCH /api/reviews/:id 를 credentials 포함해 호출한다", async () => {
+    const body = {
+      id: "00000000-0000-4000-8000-000000000001",
+      officeId: "office-1",
+      rating: 3,
+      content: "수정된 충분히 긴 리뷰 본문입니다",
+      author: { nickname: "홍길동", profileImageUrl: null },
+      createdAt: "2026-08-21T00:00:00.000Z",
+      dealType: null,
+      dealResult: null,
+      expertise: null,
+      defectResponse: null,
+      visitedYear: null,
+      visitedMonth: null,
+      tags: [],
+      photos: [],
+      helpfulCount: 0,
+      isHelpful: false,
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await updateReview(
+      "review-1",
+      { rating: 3, content: "수정된 충분히 긴 리뷰 본문입니다" },
+      BASE_URL,
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/reviews/review-1`,
+      expect.objectContaining({
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: 3,
+          content: "수정된 충분히 긴 리뷰 본문입니다",
+        }),
+      }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("updateReview: 실패 응답이면 status를 포함한 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: () => Promise.resolve({ message: "본인 리뷰에만 할 수 있는 작업입니다" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      updateReview("review-1", { rating: 3, content: "x".repeat(10) }, BASE_URL),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("deleteReview: DELETE /api/reviews/:id 를 credentials 포함해 호출한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteReview("review-1", BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/reviews/review-1`,
+      expect.objectContaining({ method: "DELETE", credentials: "include" }),
+    );
+  });
+
+  it("deleteReview: 실패 응답이면 status를 포함한 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ message: "리뷰를 찾을 수 없습니다" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(deleteReview("review-1", BASE_URL)).rejects.toMatchObject({
+      status: 404,
+    });
   });
 
   it("toggleReviewHelpful: POST /api/reviews/:id/helpful 를 credentials 포함해 호출한다", async () => {

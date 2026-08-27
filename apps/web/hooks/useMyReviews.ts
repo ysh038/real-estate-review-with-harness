@@ -1,9 +1,9 @@
 "use client";
 
-import type { TMyReview } from "@repo/types";
+import type { TMyReview, TUpdateReviewRequest } from "@repo/types";
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchMyReviews } from "../lib/reviewsApi";
+import { deleteReview as deleteReviewRequest, fetchMyReviews, updateReview as updateReviewRequest } from "../lib/reviewsApi";
 
 export interface IUseMyReviewsResult {
   reviews: TMyReview[];
@@ -11,11 +11,15 @@ export interface IUseMyReviewsResult {
   isLoading: boolean;
   error: Error | null;
   loadMore: () => Promise<void>;
+  /** 성공하면 그 id의 항목만 새 값으로 교체한다(review-edit-and-delete-ui AC3). */
+  updateReview: (reviewId: string, input: TUpdateReviewRequest) => Promise<void>;
+  /** 성공하면 그 id의 항목을 목록에서 제거한다(review-edit-and-delete-ui AC4). */
+  deleteReview: (reviewId: string) => Promise<void>;
 }
 
 /**
- * 내 리뷰 목록을 불러온다. `useOfficeReviews`와 비슷한 모양이지만 작성 폼이 없어
- * 조회·페이지네이션만 다룬다 (근거: docs/specs/my-reviews-list.md).
+ * 내 리뷰 목록을 불러오고, 본인 리뷰의 수정·삭제도 함께 다룬다
+ * (근거: docs/specs/my-reviews-list.md, docs/specs/review-edit-and-delete-ui.md).
  */
 export const useMyReviews = (): IUseMyReviewsResult => {
   const [reviews, setReviews] = useState<TMyReview[]>([]);
@@ -55,5 +59,30 @@ export const useMyReviews = (): IUseMyReviewsResult => {
     setNextCursor(page.nextCursor);
   }, [nextCursor]);
 
-  return { reviews, nextCursor, isLoading, error, loadMore };
+  const updateReview = useCallback(
+    async (reviewId: string, input: TUpdateReviewRequest) => {
+      const updated = await updateReviewRequest(reviewId, input);
+      setReviews((current) =>
+        current.map((review) =>
+          review.id === reviewId ? { ...review, ...updated } : review,
+        ),
+      );
+    },
+    [],
+  );
+
+  const deleteReview = useCallback(async (reviewId: string) => {
+    await deleteReviewRequest(reviewId);
+    setReviews((current) => current.filter((review) => review.id !== reviewId));
+  }, []);
+
+  return {
+    reviews,
+    nextCursor,
+    isLoading,
+    error,
+    loadMore,
+    updateReview,
+    deleteReview,
+  };
 };

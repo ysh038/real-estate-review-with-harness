@@ -119,8 +119,10 @@ AC20~22, my-reviews-list `MyReviewsPanel`)뿐이며 `docs/decisions.md`에 후�
 - [x] 리뷰 작성 폼에 사진 첨부(최대 3장) + 업로드 진행 상태("사진 업로드 중...")
 - [x] 리뷰 목록 썸네일 + 라이트박스(확대) 뷰어
 - [x] EXIF 제거·리사이즈(서버 처리, sharp — 최대 2000px, jpeg/webp 품질 85, gif→png)
-- [ ] 리뷰 수정 시 사진 변경(추가/삭제) — 이 저장소에 리뷰 수정 UI 자체가 없어(API만
-      존재) 범위 밖으로 분리. 계약(`photoKeys`)은 이미 준비됨. 수정 UI가 생기면 후속.
+- [ ] 리뷰 수정 시 사진 변경(추가/삭제) — 수정 UI는 `review-edit-and-delete-ui.md`로
+      생겼지만(아래 신규 항목), 사진 UI는 기존 유지/신규 업로드/삭제 3방향 diff가
+      필요해 그 명세에서도 다시 범위 밖으로 미뤘다. 편집 폼은 `photoKeys`에 기존
+      사진을 그대로 실어 보내 사진이 사라지지 않게만 보장한다.
 
 #### Phase 3 — 모더레이션
 
@@ -187,6 +189,15 @@ Vitest 22건 신규 + 브라우저 검증. `specs/member-account-deletion-and-an
       `reviews.user_id`를 nullable + `ON DELETE SET NULL`로 바꾸는 마이그레이션
       완료(`0007_pink_satana.sql`). 탈퇴해도 리뷰는 남고 작성자만 "탈퇴한 사용자"로
       표시된다.
+
+**마이페이지 리뷰 수정·삭제 UI 완료** (명세: `specs/review-edit-and-delete-ui.md` —
+AC1~13 전부 확인, Vitest 17건 신규). `PATCH`/`DELETE /api/reviews/:id`는
+`review-write-and-report.md`에서 이미 완성돼 있었지만 호출할 UI가 없던 것을
+발견해 이번에 추가했다 — Phase 2의 "리뷰 수정 UI 없음" 메모가 그 전제였다.
+
+- [x] `/mypage/reviews`에 항목별 수정(인라인 폼)·삭제(확인 후 하드 삭제) 추가.
+      사진 편집은 3방향 diff가 필요해 별도 후속으로 유지, 대신 기존 사진이 PATCH
+      전체교체로 사라지지 않게 `photoKeys`를 그대로 보존
 
 #### Phase 10 — 법적·정책·고객지원
 

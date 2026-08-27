@@ -5,6 +5,7 @@ import {
   officeDetailResponseSchema,
   reviewListResponseSchema,
   reviewSchema,
+  updateReviewRequestSchema,
   uploadPhotoResponseSchema,
   type TCreateReviewRequest,
   type THelpfulResponse,
@@ -13,6 +14,7 @@ import {
   type TReview,
   type TReviewListResponse,
   type TReviewSort,
+  type TUpdateReviewRequest,
   type TUploadPhotoResponse,
 } from "@repo/types";
 
@@ -115,6 +117,48 @@ export const createReview = async (
     throw new ReviewApiError(response.status, message);
   }
   return reviewSchema.parse(await response.json());
+};
+
+export const updateReview = async (
+  reviewId: string,
+  input: TUpdateReviewRequest,
+  baseUrl: string = DEFAULT_BASE_URL,
+): Promise<TReview> => {
+  const body = updateReviewRequestSchema.parse(input);
+  const response = await fetch(`${baseUrl}/api/reviews/${reviewId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === "object" && "message" in payload
+        ? String((payload as { message: unknown }).message)
+        : `리뷰 수정 실패 (status ${response.status})`;
+    throw new ReviewApiError(response.status, message);
+  }
+  return reviewSchema.parse(await response.json());
+};
+
+/** 성공(204)엔 응답 본문이 없다 — 실패(403·404)일 때만 message가 있는 JSON을 준다. */
+export const deleteReview = async (
+  reviewId: string,
+  baseUrl: string = DEFAULT_BASE_URL,
+): Promise<void> => {
+  const response = await fetch(`${baseUrl}/api/reviews/${reviewId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === "object" && "message" in payload
+        ? String((payload as { message: unknown }).message)
+        : `리뷰 삭제 실패 (status ${response.status})`;
+    throw new ReviewApiError(response.status, message);
+  }
 };
 
 /**

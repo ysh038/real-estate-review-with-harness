@@ -4,11 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useMyReviews } from "../../hooks/useMyReviews";
 
-const { fetchMyReviews } = vi.hoisted(() => ({
+const { fetchMyReviews, updateReview, deleteReview } = vi.hoisted(() => ({
   fetchMyReviews: vi.fn(),
+  updateReview: vi.fn(),
+  deleteReview: vi.fn(),
 }));
 vi.mock("../../lib/reviewsApi", () => ({
   fetchMyReviews,
+  updateReview,
+  deleteReview,
   ReviewApiError: class ReviewApiError extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -47,6 +51,8 @@ const PAGE_1: TMyReviewListResponse = {
 describe("useMyReviews", () => {
   beforeEach(() => {
     fetchMyReviews.mockReset();
+    updateReview.mockReset();
+    deleteReview.mockReset();
   });
 
   it("마운트되면 내 리뷰 목록을 불러오고 로딩 상태가 끝난다", async () => {
@@ -99,5 +105,42 @@ describe("useMyReviews", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.reviews).toEqual([]);
+  });
+
+  it("AC3(review-edit-and-delete-ui): updateReview 성공 시 그 id의 항목만 새 값으로 교체된다", async () => {
+    fetchMyReviews.mockResolvedValue({
+      reviews: [buildMyReview("review-1"), buildMyReview("review-2")],
+      nextCursor: null,
+    });
+    const { result } = renderHook(() => useMyReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const updated = { ...buildMyReview("review-1"), rating: 1 };
+    updateReview.mockResolvedValue(updated);
+
+    await act(async () => {
+      await result.current.updateReview("review-1", { rating: 1, content: updated.content });
+    });
+
+    expect(result.current.reviews.find((r) => r.id === "review-1")?.rating).toBe(1);
+    expect(result.current.reviews.find((r) => r.id === "review-2")?.rating).toBe(5);
+    expect(result.current.reviews).toHaveLength(2);
+  });
+
+  it("AC4(review-edit-and-delete-ui): deleteReview 성공 시 그 id의 항목이 제거된다", async () => {
+    fetchMyReviews.mockResolvedValue({
+      reviews: [buildMyReview("review-1"), buildMyReview("review-2")],
+      nextCursor: null,
+    });
+    const { result } = renderHook(() => useMyReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    deleteReview.mockResolvedValue(undefined);
+
+    await act(async () => {
+      await result.current.deleteReview("review-1");
+    });
+
+    expect(result.current.reviews.map((r) => r.id)).toEqual(["review-2"]);
   });
 });
