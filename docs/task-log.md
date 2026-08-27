@@ -2,6 +2,17 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 52cbeca 마이페이지 리뷰 수정·삭제 UI (명세:
+  docs/specs/review-edit-and-delete-ui.md — AC1~13 전부 확인). PATCH/DELETE
+  /api/reviews/:id는 이미 완성돼 있었지만 호출할 UI가 없던 것을 발견해 채웠다
+  — /mypage/reviews에 항목별 수정(인라인 폼, 새 MyReviewItem 컴포넌트로 분리)·
+  삭제(확인 후 하드 삭제) 추가. PATCH 전체교체 때문에 photoKeys를 생략하면
+  기존 사진이 사라지는 함정을 편집 폼이 항상 기존 사진 키를 보존해 보내는
+  방식으로 막았다 — sabotage-verify로 이 지점의 기존 테스트 공백을 발견하고
+  전용 테스트 추가. 사진 추가/삭제 자체는 3방향 diff가 필요해 여전히 범위
+  밖. Vitest 17건 신규, 브라우저로 라우트 리다이렉트 무회귀 확인(인터랙션은
+  카카오 로그인 필요해 단위 테스트로 대체).
+
 - 2026-08-27 290be5f 정형 설문 항목 - 전문성 평가 + 하자 대응 경험 (Phase
   12-C, 명세: docs/specs/review-structured-survey.md — AC1~12 전부 확인).
   원본도 항목 미확정 상태였던 것을 이 저장소가 먼저 확정 — 전문성 평가(3단계)·
