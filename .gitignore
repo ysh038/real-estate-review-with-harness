@@ -148,3 +148,6 @@ vite.config.ts.timestamp-*
 # Build output
 dist/
 *.tsbuildinfo
+
+*storybook.log
+storybook-static

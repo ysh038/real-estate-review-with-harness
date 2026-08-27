@@ -14,6 +14,10 @@
             "command": "bunx stylelint \"apps/**/*.css\" \"packages/**/*.css\""
         },
         {
+            "id": "test-storybook",
+            "command": "bun run --cwd apps/web test:storybook"
+        },
+        {
             "id": "test",
             "command": "bun run test"
         },
