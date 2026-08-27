@@ -17,6 +17,7 @@ import type { TDatabase } from "../db/client";
 import {
   offices,
   reviewHelpfulVotes,
+  reviewPhotos,
   reviewReports,
   reviews,
   reviewTags,
@@ -26,6 +27,7 @@ import type { ICursorPosition } from "../lib/cursor";
 import type {
   IAdminHiddenReviewRow,
   IMyReviewRow,
+  IPhotoRow,
   IReviewListRow,
   IReviewOwnedRow,
   IReviewWriteRepository,
@@ -83,6 +85,41 @@ const replaceTags = async (
   await db.delete(reviewTags).where(eq(reviewTags.reviewId, reviewId));
   if (tags.length === 0) return;
   await db.insert(reviewTags).values(tags.map((tagKey) => ({ reviewId, tagKey })));
+};
+
+/** 여러 리뷰의 사진을 한 번에 — N+1 방지 (findTagsByReviewIds와 같은 패턴). position 순서로. */
+const findPhotosByReviewIds = async (
+  db: TDbOrTx,
+  reviewIds: string[],
+): Promise<Map<string, IPhotoRow[]>> => {
+  const map = new Map<string, IPhotoRow[]>();
+  if (reviewIds.length === 0) return map;
+
+  const rows = await db
+    .select({ reviewId: reviewPhotos.reviewId, storageKey: reviewPhotos.storageKey })
+    .from(reviewPhotos)
+    .where(inArray(reviewPhotos.reviewId, reviewIds))
+    .orderBy(reviewPhotos.position);
+
+  for (const row of rows) {
+    const list = map.get(row.reviewId) ?? [];
+    list.push({ storageKey: row.storageKey });
+    map.set(row.reviewId, list);
+  }
+  return map;
+};
+
+/** update() 전용 — insert()는 새 행이라 지울 기존 사진이 없어 바로 삽입한다(tags와 같은 결). */
+const replacePhotos = async (
+  db: TDbOrTx,
+  reviewId: string,
+  photoKeys: string[],
+): Promise<void> => {
+  await db.delete(reviewPhotos).where(eq(reviewPhotos.reviewId, reviewId));
+  if (photoKeys.length === 0) return;
+  await db.insert(reviewPhotos).values(
+    photoKeys.map((storageKey, position) => ({ reviewId, storageKey, position })),
+  );
 };
 
 /** 여러 리뷰의 "도움돼요" 개수를 한 번에 — N+1 방지 (findTagsByReviewIds와 같은 패턴). */
@@ -183,8 +220,9 @@ export const createReviewRepository = (
       .limit(limit);
 
     const reviewIds = rows.map((row) => row.id);
-    const [tagsByReview, helpfulCounts, userHelpfulIds] = await Promise.all([
+    const [tagsByReview, photosByReview, helpfulCounts, userHelpfulIds] = await Promise.all([
       findTagsByReviewIds(db, reviewIds),
+      findPhotosByReviewIds(db, reviewIds),
       findHelpfulCountsByReviewIds(db, reviewIds),
       requestingUserId
         ? findUserHelpfulReviewIds(db, reviewIds, requestingUserId)
@@ -194,13 +232,14 @@ export const createReviewRepository = (
     return rows.map((row) => ({
       ...row,
       tags: tagsByReview.get(row.id) ?? [],
+      photos: photosByReview.get(row.id) ?? [],
       helpfulCount: helpfulCounts.get(row.id) ?? 0,
       isHelpful: userHelpfulIds ? userHelpfulIds.has(row.id) : null,
     }));
   },
 
   insert: async (row): Promise<IReviewOwnedRow> => {
-    const { tags, ...reviewFields } = row;
+    const { tags, photoKeys, ...reviewFields } = row;
 
     return db.transaction(async (tx) => {
       const [inserted] = await tx
@@ -213,9 +252,20 @@ export const createReviewRepository = (
       if (tags.length > 0) {
         await tx.insert(reviewTags).values(tags.map((tagKey) => ({ reviewId: inserted.id, tagKey })));
       }
+      if (photoKeys.length > 0) {
+        await tx
+          .insert(reviewPhotos)
+          .values(photoKeys.map((storageKey, position) => ({ reviewId: inserted.id, storageKey, position })));
+      }
 
       // 방금 만든 리뷰라 도움돼요 투표가 있을 수 없다 — 조회 없이 확정값(설계 메모 참고).
-      return { ...inserted, tags, helpfulCount: 0, isHelpful: false };
+      return {
+        ...inserted,
+        tags,
+        photos: photoKeys.map((storageKey) => ({ storageKey })),
+        helpfulCount: 0,
+        isHelpful: false,
+      };
     });
   },
 
@@ -228,9 +278,15 @@ export const createReviewRepository = (
     if (!row) return null;
 
     const tagsByReview = await findTagsByReviewIds(db, [row.id]);
-    // findById는 소유권·존재 확인용이라 helpfulCount/isHelpful을 표시에 쓰지 않는다 —
+    // findById는 소유권·존재 확인용이라 helpfulCount/isHelpful/photos를 표시에 쓰지 않는다 —
     // 조회 비용을 아끼려고 확정값을 둔다.
-    return { ...row, tags: tagsByReview.get(row.id) ?? [], helpfulCount: 0, isHelpful: false };
+    return {
+      ...row,
+      tags: tagsByReview.get(row.id) ?? [],
+      photos: [],
+      helpfulCount: 0,
+      isHelpful: false,
+    };
   },
 
   update: async (
@@ -243,9 +299,10 @@ export const createReviewRepository = (
       visitedYear: number | null;
       visitedMonth: number | null;
       tags: string[];
+      photoKeys: string[];
     },
   ): Promise<IReviewOwnedRow> => {
-    const { tags, ...reviewPatch } = patch;
+    const { tags, photoKeys, ...reviewPatch } = patch;
 
     return db.transaction(async (tx) => {
       const [updated] = await tx
@@ -260,7 +317,7 @@ export const createReviewRepository = (
         throw new Error("탈퇴한 사용자의 리뷰는 수정할 수 없습니다");
       }
 
-      await replaceTags(tx, id, tags);
+      await Promise.all([replaceTags(tx, id, tags), replacePhotos(tx, id, photoKeys)]);
 
       // 수정해도 기존에 쌓인 도움돼요 투표는 그대로다 — 0으로 하드코딩하지 않고 실제
       // 값을 반영한다(설계 메모: "update() 응답의 helpfulCount는 실제 값을 반영한다").
@@ -272,6 +329,7 @@ export const createReviewRepository = (
       return {
         ...updated,
         tags,
+        photos: photoKeys.map((storageKey) => ({ storageKey })),
         helpfulCount: helpfulCounts.get(id) ?? 0,
         isHelpful: userHelpfulIds.has(id),
       };
@@ -398,8 +456,9 @@ export const createReviewRepository = (
       .limit(limit);
 
     const reviewIds = rows.map((row) => row.id);
-    const [tagsByReview, helpfulCounts, userHelpfulIds] = await Promise.all([
+    const [tagsByReview, photosByReview, helpfulCounts, userHelpfulIds] = await Promise.all([
       findTagsByReviewIds(db, reviewIds),
+      findPhotosByReviewIds(db, reviewIds),
       findHelpfulCountsByReviewIds(db, reviewIds),
       findUserHelpfulReviewIds(db, reviewIds, userId),
     ]);
@@ -407,6 +466,7 @@ export const createReviewRepository = (
     return rows.map((row) => ({
       ...row,
       tags: tagsByReview.get(row.id) ?? [],
+      photos: photosByReview.get(row.id) ?? [],
       helpfulCount: helpfulCounts.get(row.id) ?? 0,
       isHelpful: userHelpfulIds.has(row.id),
     }));
@@ -456,8 +516,9 @@ export const createReviewRepository = (
       .limit(limit);
 
     const reviewIds = rows.map((row) => row.id);
-    const [tagsByReview, helpfulCounts] = await Promise.all([
+    const [tagsByReview, photosByReview, helpfulCounts] = await Promise.all([
       findTagsByReviewIds(db, reviewIds),
+      findPhotosByReviewIds(db, reviewIds),
       findHelpfulCountsByReviewIds(db, reviewIds),
     ]);
 
@@ -466,6 +527,7 @@ export const createReviewRepository = (
       // where 절이 이미 hiddenAt not null 을 보장한다.
       hiddenAt: row.hiddenAt as Date,
       tags: tagsByReview.get(row.id) ?? [],
+      photos: photosByReview.get(row.id) ?? [],
       helpfulCount: helpfulCounts.get(row.id) ?? 0,
       // 관리자 액션엔 "뷰어" 개념이 없다 — 로그인 세션이 아니라 API 키 인증이다.
       isHelpful: null,
@@ -501,14 +563,16 @@ export const createReviewRepository = (
       .limit(1);
     if (!row) return null;
 
-    const [tagsByReview, helpfulCounts] = await Promise.all([
+    const [tagsByReview, photosByReview, helpfulCounts] = await Promise.all([
       findTagsByReviewIds(db, [row.id]),
+      findPhotosByReviewIds(db, [row.id]),
       findHelpfulCountsByReviewIds(db, [row.id]),
     ]);
 
     return {
       ...row,
       tags: tagsByReview.get(row.id) ?? [],
+      photos: photosByReview.get(row.id) ?? [],
       helpfulCount: helpfulCounts.get(row.id) ?? 0,
       isHelpful: null,
     };

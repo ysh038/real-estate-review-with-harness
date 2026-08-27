@@ -39,6 +39,7 @@ import {
 export interface IOfficesRouteDeps extends IAuthServiceDeps {
   officeRepository: IOfficeRepository & IOfficeDetailRepository & IOfficeSearchRepository;
   reviewRepository: IReviewWriteRepository;
+  photoPublicUrl: string | undefined;
 }
 
 /** 라우트는 검증 → 서비스 호출 → 응답만 한다. SQL·비즈니스 판단은 아래 레이어. */
@@ -47,7 +48,7 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
   const service = createOfficeService(officeRepository);
   const detailService = createOfficeDetailService(officeRepository);
   const searchService = createOfficeSearchService(officeRepository);
-  const reviewService = createReviewService(reviewRepository);
+  const reviewService = createReviewService(reviewRepository, deps.photoPublicUrl);
 
   return new Hono<{ Variables: IAuthedVariables }>()
     .get("/", zValidator("query", bboxQuerySchema), async (c) => {
@@ -103,8 +104,16 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
         const office = await officeRepository.findById(officeId);
         if (!office) return c.json({ message: "사무소를 찾을 수 없습니다" }, 404);
 
-        const { rating, content, dealType, dealResult, visitedYear, visitedMonth, tags } =
-          c.req.valid("json");
+        const {
+          rating,
+          content,
+          dealType,
+          dealResult,
+          visitedYear,
+          visitedMonth,
+          tags,
+          photoKeys,
+        } = c.req.valid("json");
         try {
           const review = await reviewService.create({
             officeId,
@@ -117,6 +126,7 @@ export const createOfficesRoute = (deps: IOfficesRouteDeps) => {
             visitedYear,
             visitedMonth,
             tags,
+            photoKeys,
           });
           return c.json(reviewSchema.parse(review), 201);
         } catch (error) {

@@ -93,6 +93,7 @@ export const createKakaoOAuthRoute = (deps: IAuthRouteDeps) => {
 
 export interface IMeRouteDeps extends IAuthServiceDeps {
   reviewRepository: IReviewWriteRepository;
+  photoPublicUrl: string | undefined;
 }
 
 /**
@@ -100,7 +101,7 @@ export interface IMeRouteDeps extends IAuthServiceDeps {
  * GET /api/me/reviews — 내 리뷰 목록 (my-reviews-list 명세)
  */
 export const createMeRoute = (deps: IMeRouteDeps) => {
-  const reviewService = createReviewService(deps.reviewRepository);
+  const reviewService = createReviewService(deps.reviewRepository, deps.photoPublicUrl);
 
   return new Hono<{ Variables: IAuthedVariables }>()
     .get("/", requireAuth(deps), (c) =>

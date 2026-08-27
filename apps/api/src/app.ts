@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
+import type { IPhotoStorage } from "./lib/photoStorage";
 import { createAdminRoute } from "./routes/admin";
 import {
   createAuthActionsRoute,
@@ -11,6 +12,7 @@ import {
 import { createHealthRoute } from "./routes/health";
 import { createOfficesRoute } from "./routes/offices";
 import { createReviewsRoute } from "./routes/reviews";
+import { createUploadsRoute } from "./routes/uploads";
 import { createUsersRoute } from "./routes/users";
 import type {
   IOfficeDetailRepository,
@@ -24,6 +26,14 @@ export interface IAppDeps extends IAuthRouteDeps {
   reviewRepository: IReviewWriteRepository;
   /** 관리자 API(x-admin-api-key) 인증 키. 미설정이면 admin 라우트가 항상 503. */
   adminApiKey: string | undefined;
+  /** 사진 업로드 스토리지. 미설정이면 업로드 라우트가 항상 503. */
+  photoStorage: IPhotoStorage | undefined;
+  /**
+   * 사진 공개 URL의 base(S3_PUBLIC_URL). photoStorage와 별도로 둔다 — 업로드(쓰기)가
+   * 꺼져 있어도 이미 있는 리뷰의 사진 url은 그대로 읽혀야 한다(review-photo-upload
+   * 설계 메모).
+   */
+  photoPublicUrl: string | undefined;
 }
 
 /**
@@ -46,4 +56,5 @@ export const createApp = (deps: IAppDeps) =>
     .route("/api/me", createMeRoute(deps))
     .route("/api/users", createUsersRoute(deps))
     .route("/api/auth", createAuthActionsRoute(deps))
-    .route("/api/admin", createAdminRoute(deps));
+    .route("/api/admin", createAdminRoute(deps))
+    .route("/api/uploads", createUploadsRoute(deps));

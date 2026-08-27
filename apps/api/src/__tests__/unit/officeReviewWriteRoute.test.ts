@@ -403,6 +403,90 @@ describe("POST /api/offices/:id/reviews — 태그 (review-tags)", () => {
   });
 });
 
+describe("POST /api/offices/:id/reviews — 사진 (review-photo-upload)", () => {
+  it("AC12: photoKeys가 4개 이상이면 400", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        photoKeys: ["uploads/a.jpg", "uploads/b.jpg", "uploads/c.jpg", "uploads/d.jpg"],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("AC13: photoKeys를 생략해도 201이고 응답의 photos는 빈 배열이다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(VALID_BODY),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.photos).toEqual([]);
+  });
+
+  it("AC13: photoKeys를 빈 배열로 보내도 응답의 photos는 빈 배열이다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, photoKeys: [] }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.photos).toEqual([]);
+  });
+
+  it("AC11: photoKeys를 채워 보내면 제출한 순서 그대로 응답 photos에 반영된다", async () => {
+    const { app, sessionRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    const res = await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_BODY,
+        photoKeys: ["uploads/first.jpg", "uploads/second.jpg"],
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { photos: { storageKey: string }[] };
+    expect(body.photos.map((p) => p.storageKey)).toEqual([
+      "uploads/first.jpg",
+      "uploads/second.jpg",
+    ]);
+  });
+
+  it("AC11: photoKeys는 repository.insert에 그대로 전달된다", async () => {
+    const { app, sessionRepository, reviewRepository } = buildAuthedApp();
+    const headers = await withSession(sessionRepository);
+
+    await app.request(`/api/offices/${OFFICE.id}/reviews`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...VALID_BODY, photoKeys: ["uploads/a.jpg"] }),
+    });
+
+    expect(reviewRepository.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ photoKeys: ["uploads/a.jpg"] }),
+    );
+  });
+});
+
 describe("POST /api/offices/:id/reviews — 비속어 필터 (review-profanity-filter)", () => {
   it("AC5: 본문에 비속어가 있으면 422", async () => {
     const { app, sessionRepository } = buildAuthedApp();

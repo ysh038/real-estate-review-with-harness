@@ -21,6 +21,7 @@ const REVIEW: TMyReview = {
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: null,
   isHidden: false,

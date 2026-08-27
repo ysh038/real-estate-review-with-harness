@@ -10,6 +10,7 @@ const {
   createReview,
   toggleReviewHelpful,
   reportReview: reportReviewApi,
+  uploadPhoto,
   FakeReviewApiError,
 } = vi.hoisted(() => {
   class FakeReviewApiError extends Error {
@@ -25,6 +26,7 @@ const {
     createReview: vi.fn(),
     toggleReviewHelpful: vi.fn(),
     reportReview: vi.fn(),
+    uploadPhoto: vi.fn(),
     FakeReviewApiError,
   };
 });
@@ -34,6 +36,7 @@ vi.mock("../../lib/reviewsApi", () => ({
   createReview,
   toggleReviewHelpful,
   reportReview: reportReviewApi,
+  uploadPhoto,
   ReviewApiError: FakeReviewApiError,
 }));
 
@@ -63,6 +66,7 @@ const buildReview = (id: string): TReview => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: false,
 });
@@ -78,6 +82,7 @@ describe("useOfficeReviews", () => {
     fetchReviews.mockReset();
     createReview.mockReset();
     toggleReviewHelpful.mockReset();
+    uploadPhoto.mockReset();
   });
 
   it("AC1/AC2: officeId가 주어지면 집계와 첫 페이지를 함께 불러오고 로딩 상태가 끝난다", async () => {
@@ -192,6 +197,77 @@ describe("useOfficeReviews", () => {
 
     expect(result.current.submitError).not.toBeNull();
     expect(result.current.reviews).toEqual(PAGE_1.reviews);
+  });
+
+  it("AC16(review-photo-upload): photoFiles가 있으면 순차 업로드 후 photoKeys로 createReview를 호출한다", async () => {
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    uploadPhoto
+      .mockResolvedValueOnce({ storageKey: "uploads/first.jpg" })
+      .mockResolvedValueOnce({ storageKey: "uploads/second.jpg" });
+    createReview.mockResolvedValue(buildReview("review-new"));
+
+    const fileA = new File(["a"], "a.jpg", { type: "image/jpeg" });
+    const fileB = new File(["b"], "b.jpg", { type: "image/jpeg" });
+
+    await act(async () => {
+      await result.current.submitReview(
+        { rating: 5, content: "x".repeat(10) },
+        [fileA, fileB],
+      );
+    });
+
+    expect(uploadPhoto).toHaveBeenNthCalledWith(1, fileA);
+    expect(uploadPhoto).toHaveBeenNthCalledWith(2, fileB);
+    expect(createReview).toHaveBeenCalledWith(
+      "office-1",
+      expect.objectContaining({
+        photoKeys: ["uploads/first.jpg", "uploads/second.jpg"],
+      }),
+    );
+  });
+
+  it("AC17(review-photo-upload): 사진 업로드가 실패하면 createReview를 호출하지 않고 submitError를 채운다", async () => {
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    uploadPhoto.mockRejectedValue(new Error("파일 용량이 너무 큽니다"));
+    const file = new File(["a"], "a.jpg", { type: "image/jpeg" });
+
+    await act(async () => {
+      await result.current.submitReview(
+        { rating: 5, content: "x".repeat(10) },
+        [file],
+      );
+    });
+
+    expect(createReview).not.toHaveBeenCalled();
+    expect(result.current.submitError).not.toBeNull();
+    expect(result.current.reviews).toEqual(PAGE_1.reviews);
+  });
+
+  it("photoFiles를 안 넘기면 photoKeys 없이 createReview를 호출한다(사진 없는 기존 흐름 유지)", async () => {
+    fetchOfficeDetail.mockResolvedValue(DETAIL);
+    fetchReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useOfficeReviews("office-1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    createReview.mockResolvedValue(buildReview("review-new"));
+
+    await act(async () => {
+      await result.current.submitReview({ rating: 5, content: "x".repeat(10) });
+    });
+
+    expect(uploadPhoto).not.toHaveBeenCalled();
+    expect(createReview).toHaveBeenCalledWith("office-1", {
+      rating: 5,
+      content: "x".repeat(10),
+    });
   });
 
   it("AC13(review-helpful-toggle): toggleHelpful은 서버 응답으로 그 리뷰 하나만 갱신하고 목록을 다시 불러오지 않는다", async () => {

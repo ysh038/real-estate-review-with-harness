@@ -17,6 +17,7 @@ import {
 
 export interface IAdminRouteDeps extends IRequireAdminDeps {
   reviewRepository: IReviewWriteRepository;
+  photoPublicUrl: string | undefined;
 }
 
 /**
@@ -25,7 +26,7 @@ export interface IAdminRouteDeps extends IRequireAdminDeps {
  * 원본과 동일하게 admin web UI 없이 API만 (근거: docs/specs/admin-hidden-reviews.md).
  */
 export const createAdminRoute = (deps: IAdminRouteDeps) => {
-  const service = createReviewService(deps.reviewRepository);
+  const service = createReviewService(deps.reviewRepository, deps.photoPublicUrl);
 
   return new Hono()
     .get(

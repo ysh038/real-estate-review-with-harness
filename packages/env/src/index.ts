@@ -28,6 +28,20 @@ const serverEnvSchema = z.object({
   /** 관리자 API(`x-admin-api-key` 헤더) 인증 키. 선택값 — 미설정이면 admin 라우트가
    * 항상 503을 반환할 뿐 서버 부팅 자체는 막지 않는다 (docs/specs/admin-hidden-reviews.md). */
   ADMIN_API_KEY: z.string().min(1).optional(),
+  /**
+   * 사진 업로드 스토리지. 전부 선택값 — 미설정이면 업로드 API가 항상 503을 반환할 뿐
+   * 서버 부팅은 막지 않는다(ADMIN_API_KEY와 같은 패턴, docs/specs/review-photo-upload.md).
+   * 로컬 개발 기본값은 MinIO.
+   */
+  STORAGE_PROVIDER: z.enum(["minio", "s3", "r2"]).default("minio"),
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default("us-east-1"),
+  S3_ACCESS_KEY: z.string().min(1).optional(),
+  S3_SECRET_KEY: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(1).default("reviews"),
+  /** 브라우저가 사진을 직접 불러올 공개 base URL. 미설정이면 storageKey를 그대로 쓴다
+   * (실제로 열리지 않을 수 있음 — 로컬 .env에 항상 채워두는 것을 전제한다). */
+  S3_PUBLIC_URL: z.string().url().optional(),
 });
 
 /** 시딩 스크립트 전용. 런타임 서버는 이 값들을 읽지 않는다. */

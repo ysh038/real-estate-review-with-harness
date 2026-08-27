@@ -39,6 +39,7 @@ const REVIEW: TReview = {
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: null,
 };
@@ -221,7 +222,7 @@ describe("ReviewSection", () => {
 
     render(<ReviewSection officeId="office-1" />);
 
-    expect(screen.getByRole("button", { name: "등록" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /등록/ })).toBeDisabled();
   });
 
   it("AC19: 서버 실패면 에러 문구가 보이고 입력값은 유지된다", async () => {
@@ -516,5 +517,164 @@ describe("ReviewSection", () => {
     expect(
       screen.getByText("본인 리뷰는 신고할 수 없습니다"),
     ).toBeInTheDocument();
+  });
+
+  describe("사진 첨부 (review-photo-upload)", () => {
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => "blob:fake-preview-url");
+    });
+
+    it("AC14: 파일을 선택하면 미리보기 썸네일과 개별 삭제 버튼이 보인다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+      render(<ReviewSection officeId="office-1" />);
+      const file = new File(["a"], "a.jpg", { type: "image/jpeg" });
+
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+
+      expect(screen.getByAltText("첨부 사진 1")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "사진 1 삭제" }),
+      ).toBeInTheDocument();
+    });
+
+    it("AC14: 삭제 버튼을 누르면 그 미리보기가 사라진다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+      render(<ReviewSection officeId="office-1" />);
+      const file = new File(["a"], "a.jpg", { type: "image/jpeg" });
+
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+      await user.click(screen.getByRole("button", { name: "사진 1 삭제" }));
+
+      expect(screen.queryByAltText("첨부 사진 1")).not.toBeInTheDocument();
+    });
+
+    it("AC15: 이미 3장을 첨부했으면 파일 선택 입력이 사라진다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+      render(<ReviewSection officeId="office-1" />);
+      const files = [
+        new File(["a"], "a.jpg", { type: "image/jpeg" }),
+        new File(["b"], "b.jpg", { type: "image/jpeg" }),
+        new File(["c"], "c.jpg", { type: "image/jpeg" }),
+      ];
+
+      await user.upload(screen.getByLabelText("사진 추가"), files);
+
+      expect(screen.queryByLabelText("사진 추가")).not.toBeInTheDocument();
+    });
+
+    it("AC16: 첨부 사진과 함께 제출하면 submitReview에 파일 배열이 함께 전달된다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const submitReview = vi.fn().mockResolvedValue(true);
+      useOfficeReviews.mockReturnValue({ ...baseHookState, submitReview });
+      const user = userEvent.setup();
+      render(<ReviewSection officeId="office-1" />);
+      const file = new File(["a"], "a.jpg", { type: "image/jpeg" });
+
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+      await user.click(screen.getByRole("radio", { name: "5점" }));
+      await user.type(
+        screen.getByRole("textbox"),
+        "충분히 긴 리뷰 본문입니다 열 자 이상",
+      );
+      await user.click(screen.getByRole("button", { name: "등록" }));
+
+      expect(submitReview).toHaveBeenCalledWith(
+        { rating: 5, content: "충분히 긴 리뷰 본문입니다 열 자 이상" },
+        [file],
+      );
+    });
+
+    it("AC16: 사진 업로드 중(제출 중 + 첨부 사진 있음)에는 버튼 문구가 바뀐다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      useOfficeReviews.mockReturnValue({ ...baseHookState, isSubmitting: true });
+      const user = userEvent.setup();
+      render(<ReviewSection officeId="office-1" />);
+      const file = new File(["a"], "a.jpg", { type: "image/jpeg" });
+
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+
+      expect(
+        screen.getByRole("button", { name: "사진 업로드 중..." }),
+      ).toBeDisabled();
+    });
+
+    it("정상 제출 후에는 첨부했던 사진 미리보기도 비워진다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const submitReview = vi.fn().mockResolvedValue(true);
+      useOfficeReviews.mockReturnValue({ ...baseHookState, submitReview });
+      const user = userEvent.setup();
+      render(<ReviewSection officeId="office-1" />);
+      const file = new File(["a"], "a.jpg", { type: "image/jpeg" });
+
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+      await user.click(screen.getByRole("radio", { name: "5점" }));
+      await user.type(
+        screen.getByRole("textbox"),
+        "충분히 긴 리뷰 본문입니다 열 자 이상",
+      );
+      await user.click(screen.getByRole("button", { name: "등록" }));
+
+      expect(screen.queryByAltText("첨부 사진 1")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("사진 표시 + 라이트박스 (review-photo-upload)", () => {
+    const REVIEW_WITH_PHOTOS: TReview = {
+      ...REVIEW,
+      id: "00000000-0000-4000-8000-000000000099",
+      photos: [
+        { storageKey: "uploads/a.jpg", url: "https://example.com/a.jpg" },
+        { storageKey: "uploads/b.jpg", url: "https://example.com/b.jpg" },
+      ],
+    };
+
+    it("AC18: 사진이 있는 리뷰는 썸네일이 보이고, 없는 리뷰는 아무것도 안 보인다", () => {
+      useOfficeReviews.mockReturnValue({
+        ...baseHookState,
+        reviews: [REVIEW_WITH_PHOTOS, REVIEW],
+      });
+
+      render(<ReviewSection officeId="office-1" />);
+
+      expect(screen.getByAltText("리뷰 사진 1")).toBeInTheDocument();
+      expect(screen.getByAltText("리뷰 사진 2")).toBeInTheDocument();
+    });
+
+    it("AC19: 썸네일을 클릭하면 그 사진부터 라이트박스가 열린다", async () => {
+      useOfficeReviews.mockReturnValue({
+        ...baseHookState,
+        reviews: [REVIEW_WITH_PHOTOS],
+      });
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.click(screen.getByAltText("리뷰 사진 2"));
+
+      const dialog = screen.getByRole("dialog", { name: "사진 보기" });
+      expect(dialog).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "사진 2" })).toHaveAttribute(
+        "src",
+        "https://example.com/b.jpg",
+      );
+    });
+
+    it("AC22: 라이트박스를 닫으면 다시 사라진다", async () => {
+      useOfficeReviews.mockReturnValue({
+        ...baseHookState,
+        reviews: [REVIEW_WITH_PHOTOS],
+      });
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.click(screen.getByAltText("리뷰 사진 1"));
+      await user.click(screen.getByRole("button", { name: "닫기" }));
+
+      expect(
+        screen.queryByRole("dialog", { name: "사진 보기" }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

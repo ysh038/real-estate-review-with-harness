@@ -32,6 +32,7 @@ const buildMyReview = (id: string): TMyReview => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: false,
 });

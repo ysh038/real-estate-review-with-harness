@@ -1,0 +1,70 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-overlay);
+}
+
+.closeButton {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  color: var(--color-text-inverse);
+  cursor: pointer;
+  background-color: var(--color-overlay-control);
+  border: none;
+  border-radius: var(--radius-full);
+}
+
+.counter {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-inverse);
+  transform: translateX(-50%);
+}
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  color: var(--color-text-inverse);
+  cursor: pointer;
+  background-color: var(--color-overlay-control);
+  border: none;
+  border-radius: var(--radius-full);
+  transform: translateY(-50%);
+}
+
+.navButtonPrev {
+  left: var(--space-3);
+}
+
+.navButtonNext {
+  right: var(--space-3);
+}
+
+.image {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}

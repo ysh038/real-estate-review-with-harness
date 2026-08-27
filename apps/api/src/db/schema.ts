@@ -182,6 +182,35 @@ export type TReviewTagRow = typeof reviewTags.$inferSelect;
 export type TReviewTagInsert = typeof reviewTags.$inferInsert;
 
 /**
+ * 리뷰 첨부 사진. `position`으로 표시 순서를 명시적으로 고정한다 — `created_at` 정렬만
+ * 쓰면 여러 장을 한 번의 벌크 insert로 넣을 때 타임스탬프가 밀리초 단위로 겹쳐 순서가
+ * 흔들릴 수 있다(근거: docs/specs/review-photo-upload.md 설계 메모).
+ */
+export const reviewPhotos = pgTable(
+  "review_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    storageKey: text("storage_key").notNull(),
+    position: integer("position").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("review_photos_review_id_position_idx").on(
+      table.reviewId,
+      table.position,
+    ),
+  ],
+);
+
+export type TReviewPhotoRow = typeof reviewPhotos.$inferSelect;
+export type TReviewPhotoInsert = typeof reviewPhotos.$inferInsert;
+
+/**
  * 리뷰별 "도움돼요" 토글. 한 사람이 같은 리뷰에 중복으로 누를 수 없다 — 행의 존재
  * 자체가 "지금 눌러져 있음"을 뜻한다(토글은 행 삽입/삭제로 구현, 근거:
  * docs/specs/review-helpful-toggle.md).

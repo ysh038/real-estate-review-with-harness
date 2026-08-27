@@ -110,11 +110,17 @@ AC20~22, my-reviews-list `MyReviewsPanel`)뿐이며 `docs/decisions.md`에 후�
 
 #### Phase 2 — 사진 업로드
 
-- [ ] 사진 스토리지 연동(로컬은 S3 호환, 예: MinIO) + presign 업로드
-- [ ] 리뷰 작성 폼에 사진 첨부(최대 3장) + 업로드 진행 상태
-- [ ] 리뷰 목록 썸네일 + 라이트박스(확대) 뷰어
-- [ ] EXIF 제거·리사이즈(서버 처리)
-- [ ] 리뷰 수정 시 사진 변경(추가/삭제)
+**작성·표시 완료** (명세: `specs/review-photo-upload.md` — AC1~22 전부 확인, 실 MinIO
+통합 테스트 + 개발 서버 스모크 테스트). presign 경로는 EXIF 제거(서버 처리)와 상충해
+제외하고 업로드 API 경로만 구현 — 아래 "presign 업로드" 항목은 "업로드 API"로 대체.
+
+- [x] 사진 스토리지 연동(로컬 MinIO, `STORAGE_PROVIDER`로 S3/R2 전환 가능) + 업로드 API
+      (`POST /api/uploads`)
+- [x] 리뷰 작성 폼에 사진 첨부(최대 3장) + 업로드 진행 상태("사진 업로드 중...")
+- [x] 리뷰 목록 썸네일 + 라이트박스(확대) 뷰어
+- [x] EXIF 제거·리사이즈(서버 처리, sharp — 최대 2000px, jpeg/webp 품질 85, gif→png)
+- [ ] 리뷰 수정 시 사진 변경(추가/삭제) — 이 저장소에 리뷰 수정 UI 자체가 없어(API만
+      존재) 범위 밖으로 분리. 계약(`photoKeys`)은 이미 준비됨. 수정 UI가 생기면 후속.
 
 #### Phase 3 — 모더레이션
 

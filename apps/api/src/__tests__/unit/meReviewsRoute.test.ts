@@ -23,6 +23,7 @@ const buildMyReviewRow = (index: number): IMyReviewRow => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: false,
 });

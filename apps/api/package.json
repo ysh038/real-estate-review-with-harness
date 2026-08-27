@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch --env-file=../../.env src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "build": "bun build src/index.ts --outdir dist --target bun --external sharp",
     "start": "bun --env-file=../../.env dist/index.js",
     "lint": "eslint src *.config.ts --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -16,12 +16,14 @@
     "seed:sigungu": "bun --env-file=../../.env src/scripts/seed-sigungu.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1119.0",
     "@hono/zod-validator": "0.4.3",
     "@repo/env": "workspace:*",
     "@repo/types": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.7.7",
     "postgres": "^3.4.9",
+    "sharp": "^0.35.4",
     "zod": "^3.24.3"
   },
   "devDependencies": {

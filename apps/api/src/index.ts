@@ -3,6 +3,7 @@ import { loadServerEnv } from "@repo/env";
 import { createApp } from "./app";
 import { createDb } from "./db/client";
 import { createKakaoOAuthClient } from "./lib/kakaoOAuthClient";
+import { createPhotoStorageFromEnv } from "./lib/photoStorage";
 import { createOfficeRepository } from "./repositories/officeRepository";
 import { createReviewRepository } from "./repositories/reviewRepository";
 import { createSessionRepository } from "./repositories/sessionRepository";
@@ -23,6 +24,8 @@ const app = createApp({
   webBaseUrl: env.WEB_BASE_URL,
   isProduction: env.NODE_ENV === "production",
   adminApiKey: env.ADMIN_API_KEY,
+  photoStorage: createPhotoStorageFromEnv(env),
+  photoPublicUrl: env.S3_PUBLIC_URL,
 });
 
 console.log(`[api] listening on :${env.API_PORT}`);

@@ -19,5 +19,21 @@ services:
     volumes:
       - harness_postgres_data:/var/lib/postgresql/data
 
+  minio:
+    image: minio/minio:latest
+    container_name: harness-review-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    # 원본이 9000/9001을 쓰므로 충돌을 피해 9002/9003을 기본으로 한다 (postgres와 같은 원칙).
+    ports:
+      - "${S3_PORT:-9002}:9000"
+      - "${S3_CONSOLE_PORT:-9003}:9001"
+    volumes:
+      - harness_minio_data:/data
+
 volumes:
   harness_postgres_data:
+  harness_minio_data:

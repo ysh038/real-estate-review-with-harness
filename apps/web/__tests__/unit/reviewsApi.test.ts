@@ -7,6 +7,7 @@ import {
   fetchReviews,
   reportReview,
   toggleReviewHelpful,
+  uploadPhoto,
 } from "../../lib/reviewsApi";
 
 const BASE_URL = "http://localhost:8788";
@@ -141,6 +142,38 @@ describe("reviewsApi", () => {
     await expect(fetchOfficeDetail("no-such", BASE_URL)).rejects.toThrow();
   });
 
+  it("uploadPhoto: POST /api/uploads를 multipart로 credentials 포함해 호출한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ storageKey: "uploads/abc.jpg" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["x"], "a.jpg", { type: "image/jpeg" });
+
+    const result = await uploadPhoto(file, BASE_URL);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/api/uploads`,
+      expect.objectContaining({ method: "POST", credentials: "include" }),
+    );
+    const [, options] = fetchMock.mock.calls[0] as [string, { body: FormData }];
+    expect(options.body).toBeInstanceOf(FormData);
+    expect(options.body.get("file")).toBe(file);
+    expect(result).toEqual({ storageKey: "uploads/abc.jpg" });
+  });
+
+  it("uploadPhoto: 실패 응답이면 status를 포함한 예외를 던진다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 413,
+      json: () => Promise.resolve({ message: "파일 용량이 너무 큽니다" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["x"], "a.jpg", { type: "image/jpeg" });
+
+    await expect(uploadPhoto(file, BASE_URL)).rejects.toMatchObject({ status: 413 });
+  });
+
   it("createReview: POST /api/offices/:id/reviews 를 credentials 포함해 호출한다", async () => {
     const body = {
       id: "00000000-0000-4000-8000-000000000001",
@@ -154,6 +187,7 @@ describe("reviewsApi", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photos: [],
       helpfulCount: 0,
       isHelpful: false,
     };

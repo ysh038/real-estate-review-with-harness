@@ -5,6 +5,7 @@ import {
   officeDetailResponseSchema,
   reviewListResponseSchema,
   reviewSchema,
+  uploadPhotoResponseSchema,
   type TCreateReviewRequest,
   type THelpfulResponse,
   type TMyReviewListResponse,
@@ -12,6 +13,7 @@ import {
   type TReview,
   type TReviewListResponse,
   type TReviewSort,
+  type TUploadPhotoResponse,
 } from "@repo/types";
 
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
@@ -65,6 +67,29 @@ export const fetchReviews = async (
     );
   }
   return reviewListResponseSchema.parse(await response.json());
+};
+
+/** POST /api/uploads — 리뷰 작성/수정 시 먼저 각 파일을 업로드해 storageKey를 받는다. */
+export const uploadPhoto = async (
+  file: File,
+  baseUrl: string = DEFAULT_BASE_URL,
+): Promise<TUploadPhotoResponse> => {
+  const form = new FormData();
+  form.set("file", file);
+  const response = await fetch(`${baseUrl}/api/uploads`, {
+    method: "POST",
+    credentials: "include",
+    body: form,
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === "object" && "message" in payload
+        ? String((payload as { message: unknown }).message)
+        : `사진 업로드 실패 (status ${response.status})`;
+    throw new ReviewApiError(response.status, message);
+  }
+  return uploadPhotoResponseSchema.parse(await response.json());
 };
 
 export const createReview = async (

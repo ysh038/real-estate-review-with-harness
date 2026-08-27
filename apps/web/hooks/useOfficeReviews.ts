@@ -15,6 +15,7 @@ import {
   reportReview as reportReviewRequest,
   ReviewApiError,
   toggleReviewHelpful,
+  uploadPhoto,
 } from "../lib/reviewsApi";
 
 export interface IUseOfficeReviewsResult {
@@ -26,8 +27,15 @@ export interface IUseOfficeReviewsResult {
   isSubmitting: boolean;
   submitError: Error | null;
   loadMore: () => Promise<void>;
-  /** 성공하면 true, 실패하면(submitError에 이유가 채워진 채) false. */
-  submitReview: (input: TCreateReviewRequest) => Promise<boolean>;
+  /**
+   * photoFiles가 있으면 먼저 각 파일을 순차 업로드해 photoKeys를 채운 뒤 리뷰를
+   * 생성한다(review-photo-upload AC16). 성공하면 true, 실패하면(submitError에 이유가
+   * 채워진 채) false — 업로드 실패도 리뷰 생성 실패와 동일하게 다룬다(AC17).
+   */
+  submitReview: (
+    input: TCreateReviewRequest,
+    photoFiles?: File[],
+  ) => Promise<boolean>;
   /** 서버 응답으로 그 리뷰 하나만 갱신한다 — 목록 전체를 다시 불러오지 않는다
    * (근거: docs/specs/review-helpful-toggle.md AC13). */
   toggleHelpful: (reviewId: string) => Promise<void>;
@@ -102,11 +110,22 @@ export const useOfficeReviews = (
   }, [officeId, nextCursor, sort]);
 
   const submitReview = useCallback(
-    async (input: TCreateReviewRequest): Promise<boolean> => {
+    async (input: TCreateReviewRequest, photoFiles: File[] = []): Promise<boolean> => {
       setIsSubmitting(true);
       setSubmitError(null);
       try {
-        await createReview(officeId, input);
+        // 한 장씩 순차 업로드한다 — 병렬로 올려도 순서 자체는 배열 순서로 보존되지만,
+        // 사진은 최대 3장뿐이라 병렬화 이득보다 단순함을 택한다(설계 메모).
+        const photoKeys: string[] = [];
+        for (const file of photoFiles) {
+          const { storageKey } = await uploadPhoto(file);
+          photoKeys.push(storageKey);
+        }
+
+        await createReview(officeId, {
+          ...input,
+          ...(photoKeys.length > 0 && { photoKeys }),
+        });
         // AC6: 낙관적으로 끼워 넣지 않고 서버 기준으로 다시 불러온다.
         const [detailResult, reviewsResult] = await Promise.all([
           fetchOfficeDetail(officeId),

@@ -16,6 +16,7 @@ import {
 
 export interface IReviewsRouteDeps extends IAuthServiceDeps {
   reviewRepository: IReviewWriteRepository;
+  photoPublicUrl: string | undefined;
 }
 
 /**
@@ -23,7 +24,7 @@ export interface IReviewsRouteDeps extends IAuthServiceDeps {
  * POST /api/reviews/:id/report — 신고 (본인 리뷰 제외, 1인 1회, 5회 누적 시 자동 숨김)
  */
 export const createReviewsRoute = (deps: IReviewsRouteDeps) => {
-  const service = createReviewService(deps.reviewRepository);
+  const service = createReviewService(deps.reviewRepository, deps.photoPublicUrl);
 
   return new Hono<{ Variables: IAuthedVariables }>()
     .patch(
@@ -31,8 +32,16 @@ export const createReviewsRoute = (deps: IReviewsRouteDeps) => {
       requireAuth(deps),
       zValidator("json", updateReviewRequestSchema),
       async (c) => {
-        const { rating, content, dealType, dealResult, visitedYear, visitedMonth, tags } =
-          c.req.valid("json");
+        const {
+          rating,
+          content,
+          dealType,
+          dealResult,
+          visitedYear,
+          visitedMonth,
+          tags,
+          photoKeys,
+        } = c.req.valid("json");
         try {
           const review = await service.update({
             reviewId: c.req.param("id"),
@@ -44,6 +53,7 @@ export const createReviewsRoute = (deps: IReviewsRouteDeps) => {
             visitedYear,
             visitedMonth,
             tags,
+            photoKeys,
           });
           return c.json(reviewSchema.parse(review));
         } catch (error) {

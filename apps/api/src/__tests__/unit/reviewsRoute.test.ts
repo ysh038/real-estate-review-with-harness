@@ -29,6 +29,7 @@ const buildOwnedRow = (
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: false,
   ...overrides,
@@ -147,6 +148,7 @@ describe("PATCH /api/reviews/:id", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
   });
 
@@ -191,6 +193,7 @@ describe("PATCH /api/reviews/:id", () => {
       visitedYear: 2026,
       visitedMonth: 3,
       tags: [],
+      photoKeys: [],
     });
   });
 });

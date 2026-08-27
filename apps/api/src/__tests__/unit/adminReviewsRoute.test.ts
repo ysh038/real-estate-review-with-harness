@@ -31,6 +31,7 @@ const buildHiddenRow = (index: number): IAdminHiddenReviewRow => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: null,
 });
@@ -50,6 +51,7 @@ const buildOwnedRow = (
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: false,
   ...overrides,
@@ -244,6 +246,7 @@ describe("POST /api/admin/reviews/:id/restore", () => {
           visitedYear: null,
           visitedMonth: null,
           tags: [],
+          photos: [],
           helpfulCount: 0,
           isHelpful: null,
         })),

@@ -6,6 +6,14 @@ import { reviewTagEnum } from "./reviewTag";
 /** 태그 종류 자체가 6개뿐이라 이 상한은 사실상 "전부 선택"과 같은 경계값이다. */
 const REVIEW_TAGS_MAX = 6;
 
+/**
+ * 리뷰당 첨부 가능한 최대 사진 수(review-photo-upload 명세). 태그 상한(REVIEW_TAGS_MAX)과
+ * 달리 export한다 — 태그는 6개짜리 고정 선택지라 프런트가 "더 못 고름" 상태를 스스로
+ * 계산할 필요가 없지만, 사진은 사용자가 임의 개수를 골라 첨부하는 열린 목록이라
+ * 파일 선택 버튼을 몇 장부터 숨길지 프런트도 같은 값을 알아야 한다.
+ */
+export const REVIEW_PHOTOS_MAX = 3;
+
 /** 리뷰 본문 최소 길이 — 한 줄짜리 "좋아요"가 평점만 올리는 것을 막는다. */
 export const REVIEW_CONTENT_MIN_LENGTH = 10;
 
@@ -37,6 +45,14 @@ export const reviewAuthorSchema = z.object({
 
 export type TReviewAuthor = z.infer<typeof reviewAuthorSchema>;
 
+/** 업로드된 사진 한 장. url은 storageKey로부터 계산되는 공개 접근 주소다. */
+export const reviewPhotoSchema = z.object({
+  storageKey: z.string(),
+  url: z.string(),
+});
+
+export type TReviewPhoto = z.infer<typeof reviewPhotoSchema>;
+
 export const reviewSchema = z.object({
   id: z.string().uuid(),
   officeId: z.string(),
@@ -50,12 +66,21 @@ export const reviewSchema = z.object({
   visitedMonth: visitedMonthSchema.nullable(),
   /** 태그가 없으면 빈 배열 — null 아님. */
   tags: z.array(reviewTagEnum),
+  /** 사진이 없으면 빈 배열. 업로드한(제출한) 순서 그대로. */
+  photos: z.array(reviewPhotoSchema),
   helpfulCount: z.number().int().nonnegative(),
   /** 비로그인 요청은 null("모름") — 로그인했지만 안 눌렀으면 false ("안 눌렀음"). */
   isHelpful: z.boolean().nullable(),
 });
 
 export type TReview = z.infer<typeof reviewSchema>;
+
+/** POST /api/uploads 응답. */
+export const uploadPhotoResponseSchema = z.object({
+  storageKey: z.string(),
+});
+
+export type TUploadPhotoResponse = z.infer<typeof uploadPhotoResponseSchema>;
 
 /**
  * POST /api/reviews/:id/helpful 응답. 토글은 항상 로그인 상태에서만 일어나므로
@@ -162,6 +187,9 @@ export const createReviewRequestSchema = z
     visitedYear: visitedYearSchema.optional(),
     visitedMonth: visitedMonthSchema.optional(),
     tags: z.array(reviewTagEnum).max(REVIEW_TAGS_MAX).optional(),
+    /** 업로드 API(POST /api/uploads)로 먼저 받은 storageKey들. tags와 같은 전체교체
+     * 원칙(review-photo-upload 설계 메모). */
+    photoKeys: z.array(z.string().min(1)).max(REVIEW_PHOTOS_MAX).optional(),
   })
   // 연도만 있고 월이 없는(또는 반대) 반쪽 데이터를 막는다 — 원본과 동일한 제약
   // (docs/specs/review-deal-and-visit-fields.md 설계 메모).

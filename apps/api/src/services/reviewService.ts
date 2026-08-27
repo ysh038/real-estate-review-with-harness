@@ -6,6 +6,7 @@ import type {
   TMyReviewListResponse,
   TReview,
   TReviewListResponse,
+  TReviewPhoto,
   TReviewSort,
 } from "@repo/types";
 
@@ -16,7 +17,13 @@ import {
   type ICursorPosition,
 } from "../lib/cursor";
 import { isUniqueViolation } from "../lib/pgErrors";
+import { resolvePhotoPublicUrl } from "../lib/photoStorage";
 import { containsProfanity } from "../lib/profanity";
+
+/** repository 가 사진 목록으로 돌려주는 최소 형태 — 순서(position)는 이미 반영돼 있다. */
+export interface IPhotoRow {
+  storageKey: string;
+}
 
 /** repository 가 돌려주는 원시 행 — 작성자가 join 으로 붙어 있고 날짜는 아직 Date 다. */
 export interface IReviewListRow {
@@ -33,6 +40,8 @@ export interface IReviewListRow {
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
+  /** 업로드(제출) 순서대로. 없으면 빈 배열. */
+  photos: IPhotoRow[];
   helpfulCount: number;
   /** requestingUserId를 안 넘겼으면(비로그인) null. */
   isHelpful: boolean | null;
@@ -66,6 +75,7 @@ export interface IMyReviewRow {
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
+  photos: IPhotoRow[];
   helpfulCount: number;
   isHelpful: boolean;
 }
@@ -93,6 +103,7 @@ export interface IReviewOwnedRow {
   visitedYear: number | null;
   visitedMonth: number | null;
   tags: string[];
+  photos: IPhotoRow[];
   helpfulCount: number;
   isHelpful: boolean;
 }
@@ -117,6 +128,8 @@ export interface IReviewWriteRepository extends IReviewRepository {
     visitedMonth: number | null;
     /** 중복은 서비스가 이미 걸러 보낸다 (AC7) — repository는 그대로 저장만 한다. */
     tags: string[];
+    /** 업로드 API로 먼저 받은 storageKey들. 제출한 순서 = 표시 순서(position). */
+    photoKeys: string[];
   }) => Promise<IReviewOwnedRow>;
   findById: (id: string) => Promise<IReviewOwnedRow | null>;
   update: (
@@ -129,6 +142,7 @@ export interface IReviewWriteRepository extends IReviewRepository {
       visitedYear: number | null;
       visitedMonth: number | null;
       tags: string[];
+      photoKeys: string[];
     },
   ) => Promise<IReviewOwnedRow>;
   deleteById: (id: string) => Promise<void>;
@@ -229,7 +243,14 @@ export const REPORT_HIDE_THRESHOLD = 5;
  */
 export const DELETED_USER_NICKNAME = "탈퇴한 사용자";
 
-const toReview = (row: IReviewListRow): TReview => ({
+/** photoPublicUrl 미설정(undefined)이면 storageKey를 그대로 url로 쓴다(설계 메모). */
+const toPhotoList = (photos: IPhotoRow[], photoPublicUrl: string | undefined): TReviewPhoto[] =>
+  photos.map((photo) => ({
+    storageKey: photo.storageKey,
+    url: resolvePhotoPublicUrl(photo.storageKey, photoPublicUrl),
+  }));
+
+const toReview = (row: IReviewListRow, photoPublicUrl: string | undefined): TReview => ({
   id: row.id,
   officeId: row.officeId,
   rating: row.rating,
@@ -244,6 +265,7 @@ const toReview = (row: IReviewListRow): TReview => ({
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
+  photos: toPhotoList(row.photos, photoPublicUrl),
   helpfulCount: row.helpfulCount,
   isHelpful: row.isHelpful,
 });
@@ -251,6 +273,7 @@ const toReview = (row: IReviewListRow): TReview => ({
 const toReviewWithAuthor = (
   row: IReviewOwnedRow,
   author: Pick<IAuthUser, "nickname" | "profileImageUrl">,
+  photoPublicUrl: string | undefined,
 ): TReview => ({
   id: row.id,
   officeId: row.officeId,
@@ -263,6 +286,7 @@ const toReviewWithAuthor = (
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
+  photos: toPhotoList(row.photos, photoPublicUrl),
   helpfulCount: row.helpfulCount,
   isHelpful: row.isHelpful,
 });
@@ -270,6 +294,7 @@ const toReviewWithAuthor = (
 const toMyReview = (
   row: IMyReviewRow,
   author: Pick<IAuthUser, "nickname" | "profileImageUrl">,
+  photoPublicUrl: string | undefined,
 ): TMyReview => ({
   id: row.id,
   officeId: row.officeId,
@@ -284,12 +309,16 @@ const toMyReview = (
   visitedYear: row.visitedYear,
   visitedMonth: row.visitedMonth,
   tags: row.tags as TReview["tags"],
+  photos: toPhotoList(row.photos, photoPublicUrl),
   helpfulCount: row.helpfulCount,
   isHelpful: row.isHelpful,
 });
 
-const toAdminHiddenReview = (row: IAdminHiddenReviewRow): TAdminHiddenReview => ({
-  ...toReview(row),
+const toAdminHiddenReview = (
+  row: IAdminHiddenReviewRow,
+  photoPublicUrl: string | undefined,
+): TAdminHiddenReview => ({
+  ...toReview(row, photoPublicUrl),
   officeName: row.officeName,
   reportCount: row.reportCount,
   hiddenAt: row.hiddenAt.toISOString(),
@@ -316,6 +345,7 @@ export interface ICreateReviewParams {
   visitedYear?: number | null;
   visitedMonth?: number | null;
   tags?: string[];
+  photoKeys?: string[];
 }
 
 export interface IUpdateReviewParams {
@@ -328,6 +358,7 @@ export interface IUpdateReviewParams {
   visitedYear?: number | null;
   visitedMonth?: number | null;
   tags?: string[];
+  photoKeys?: string[];
 }
 
 /** AC7: 중복 태그가 섞여 와도 저장은 1건으로 — repository의 PK(review_id, tag_key) 위반을
@@ -339,7 +370,11 @@ export interface IReviewOwnerActionParams {
   authUser: IAuthUser;
 }
 
-export const createReviewService = (repository: IReviewWriteRepository) => ({
+export const createReviewService = (
+  repository: IReviewWriteRepository,
+  /** S3_PUBLIC_URL — 미설정이면 photos[].url이 storageKey 그대로 나간다(설계 메모). */
+  photoPublicUrl?: string,
+) => ({
   create: async (params: ICreateReviewParams): Promise<TReview> => {
     if (containsProfanity(params.content)) throw new ProfanityError();
 
@@ -364,8 +399,9 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
         visitedYear: params.visitedYear ?? null,
         visitedMonth: params.visitedMonth ?? null,
         tags: dedupeTags(params.tags),
+        photoKeys: params.photoKeys ?? [],
       });
-      return toReviewWithAuthor(row, params.authUser);
+      return toReviewWithAuthor(row, params.authUser, photoPublicUrl);
     } catch (error) {
       if (isUniqueViolation(error)) throw new DuplicateReviewError();
       throw error;
@@ -387,8 +423,9 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
       visitedYear: params.visitedYear ?? null,
       visitedMonth: params.visitedMonth ?? null,
       tags: dedupeTags(params.tags),
+      photoKeys: params.photoKeys ?? [],
     });
-    return toReviewWithAuthor(updated, params.authUser);
+    return toReviewWithAuthor(updated, params.authUser, photoPublicUrl);
   },
 
   remove: async (params: IReviewOwnerActionParams): Promise<void> => {
@@ -440,7 +477,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
     const last = page.at(-1);
 
     return {
-      reviews: page.map(toReview),
+      reviews: page.map((row) => toReview(row, photoPublicUrl)),
       nextCursor:
         hasNext && last
           ? encodeCursor({ createdAt: last.createdAt, id: last.id })
@@ -475,7 +512,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
     const last = page.at(-1);
 
     return {
-      reviews: page.map((row) => toMyReview(row, authUser)),
+      reviews: page.map((row) => toMyReview(row, authUser, photoPublicUrl)),
       nextCursor:
         hasNext && last
           ? encodeCursor({ createdAt: last.createdAt, id: last.id })
@@ -500,7 +537,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
     const last = page.at(-1);
 
     return {
-      reviews: page.map(toAdminHiddenReview),
+      reviews: page.map((row) => toAdminHiddenReview(row, photoPublicUrl)),
       nextCursor:
         hasNext && last
           ? encodeCursor({ createdAt: last.createdAt, id: last.id })
@@ -515,7 +552,7 @@ export const createReviewService = (repository: IReviewWriteRepository) => ({
 
     const restored = await repository.restore(reviewId);
     if (!restored) throw new ReviewNotFoundError();
-    return toReview(restored);
+    return toReview(restored, photoPublicUrl);
   },
 });
 

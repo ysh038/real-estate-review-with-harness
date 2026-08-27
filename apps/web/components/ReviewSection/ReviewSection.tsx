@@ -4,6 +4,7 @@ import {
   DEAL_RESULTS,
   DEAL_TYPES,
   REVIEW_CONTENT_MIN_LENGTH,
+  REVIEW_PHOTOS_MAX,
   REVIEW_TAGS,
   type TReview,
   type TReviewSort,
@@ -14,6 +15,14 @@ import { useEffect, useState } from "react";
 import styles from "./ReviewSection.module.css";
 import { useOfficeReviews } from "../../hooks/useOfficeReviews";
 import { useSession } from "../../hooks/useSession";
+import { PhotoLightbox } from "../PhotoLightbox";
+
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+interface ILightboxTarget {
+  reviewId: string;
+  index: number;
+}
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -73,11 +82,15 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
   const [visitedYear, setVisitedYear] = useState<string>("");
   const [visitedMonth, setVisitedMonth] = useState<string>(NOT_SELECTED);
   const [selectedTags, setSelectedTags] = useState<TReviewTag[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedReviewId, setCopiedReviewId] = useState<string | null>(null);
   const [highlightedReviewId, setHighlightedReviewId] = useState<
     string | null
   >(null);
+  const [lightboxTarget, setLightboxTarget] = useState<ILightboxTarget | null>(
+    null,
+  );
 
   // 개별 리뷰 퍼머링크(review-permalink-report-and-sort AC12): 이미 로드된 목록
   // 안에 해시가 가리키는 리뷰가 있으면 스크롤 + 잠깐 강조한다.
@@ -114,6 +127,18 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
     );
   };
 
+  const handlePhotoFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files ?? []);
+    const room = REVIEW_PHOTOS_MAX - photoFiles.length;
+    setPhotoFiles((current) => [...current, ...selected.slice(0, room)]);
+    // 같은 파일을 다시 선택해도 change가 발생하도록 초기화한다.
+    event.target.value = "";
+  };
+
+  const removePhotoFile = (index: number) => {
+    setPhotoFiles((current) => current.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -132,7 +157,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
     }
     setFormError(null);
 
-    const wasSubmitted = await submitReview({
+    const reviewInput = {
       rating,
       content,
       ...(dealType !== NOT_SELECTED && {
@@ -144,7 +169,14 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       ...(visitedYear !== "" && { visitedYear: Number(visitedYear) }),
       ...(visitedMonth !== NOT_SELECTED && { visitedMonth: Number(visitedMonth) }),
       ...(selectedTags.length > 0 && { tags: selectedTags }),
-    });
+    };
+    // photoFiles가 비어 있으면 두 번째 인자를 아예 생략한다 — undefined를 명시적으로
+    // 넘기는 것과 인자를 생략하는 것은 호출 형태가 달라(테스트의 toHaveBeenCalledWith가
+    // 인자 개수까지 비교) 기존 사진 없는 흐름의 호출 시그니처를 그대로 지킨다.
+    const wasSubmitted =
+      photoFiles.length > 0
+        ? await submitReview(reviewInput, photoFiles)
+        : await submitReview(reviewInput);
     if (wasSubmitted) {
       setRating(0);
       setContent("");
@@ -153,6 +185,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       setVisitedYear("");
       setVisitedMonth(NOT_SELECTED);
       setSelectedTags([]);
+      setPhotoFiles([]);
     }
   };
 
@@ -234,6 +267,28 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
                 {review.tags.map((tag) => (
                   <li key={tag} className={styles.tagBadge}>
                     {tag}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {review.photos.length > 0 ? (
+              <ul className={styles.photoThumbnailList}>
+                {review.photos.map((photo, index) => (
+                  <li key={photo.storageKey}>
+                    <button
+                      type="button"
+                      className={styles.photoThumbnailButton}
+                      onClick={() =>
+                        setLightboxTarget({ reviewId: review.id, index })
+                      }
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photo.url}
+                        alt={`리뷰 사진 ${index + 1}`}
+                        className={styles.photoThumbnailImage}
+                      />
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -352,6 +407,43 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
               ))}
             </select>
           </div>
+          <div className={styles.photoSection}>
+            {photoFiles.length > 0 ? (
+              <ul className={styles.photoPreviewList}>
+                {photoFiles.map((file, index) => (
+                  <li key={`${file.name}-${index}`} className={styles.photoPreviewItem}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`첨부 사진 ${index + 1}`}
+                      className={styles.photoPreviewImage}
+                    />
+                    <button
+                      type="button"
+                      className={styles.photoRemoveButton}
+                      aria-label={`사진 ${index + 1} 삭제`}
+                      onClick={() => removePhotoFile(index)}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {photoFiles.length < REVIEW_PHOTOS_MAX ? (
+              <label className={styles.photoAddLabel}>
+                + 사진 추가
+                <input
+                  type="file"
+                  aria-label="사진 추가"
+                  accept={ALLOWED_PHOTO_TYPES.join(",")}
+                  multiple
+                  className={styles.photoFileInput}
+                  onChange={handlePhotoFilesChange}
+                />
+              </label>
+            ) : null}
+          </div>
           <div className={styles.tagChipGroup} role="group" aria-label="태그">
             {REVIEW_TAGS.map((tag) => (
               <button
@@ -384,12 +476,27 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
             className={styles.submitButton}
             disabled={isSubmitting}
           >
-            등록
+            {isSubmitting
+              ? photoFiles.length > 0
+                ? "사진 업로드 중..."
+                : "등록 중..."
+              : "등록"}
           </button>
         </form>
       ) : (
         <p className={styles.loginPrompt}>로그인하면 리뷰를 남길 수 있어요</p>
       )}
+
+      {lightboxTarget ? (
+        <PhotoLightbox
+          photos={
+            reviews.find((review) => review.id === lightboxTarget.reviewId)
+              ?.photos ?? []
+          }
+          startIndex={lightboxTarget.index}
+          onClose={() => setLightboxTarget(null)}
+        />
+      ) : null}
     </section>
   );
 };

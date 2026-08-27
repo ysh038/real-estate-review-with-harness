@@ -31,6 +31,7 @@ const buildRow = (index: number): IReviewListRow => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: null,
 });
@@ -61,6 +62,7 @@ const buildOwnedRow = (
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: false,
   ...overrides,
@@ -189,6 +191,31 @@ describe("reviewService.listByOfficeId", () => {
       nickname: "탈퇴한 사용자",
       profileImageUrl: null,
     });
+  });
+
+  it("AC1(review-photo-upload): photoPublicUrl이 설정돼 있으면 photos[].url이 그 base로 계산된다", async () => {
+    const row = { ...buildRow(1), photos: [{ storageKey: "uploads/a.jpg" }] };
+    const service = createReviewService(
+      createFakeRepository([row]),
+      "http://localhost:9002/reviews",
+    );
+
+    const result = await service.listByOfficeId("office-1", { limit: 10 });
+
+    expect(result.reviews[0]?.photos).toEqual([
+      { storageKey: "uploads/a.jpg", url: "http://localhost:9002/reviews/uploads/a.jpg" },
+    ]);
+  });
+
+  it("AC1(review-photo-upload): photoPublicUrl 미설정이면 photos[].url이 storageKey 그대로다", async () => {
+    const row = { ...buildRow(1), photos: [{ storageKey: "uploads/a.jpg" }] };
+    const service = createReviewService(createFakeRepository([row]));
+
+    const result = await service.listByOfficeId("office-1", { limit: 10 });
+
+    expect(result.reviews[0]?.photos).toEqual([
+      { storageKey: "uploads/a.jpg", url: "uploads/a.jpg" },
+    ]);
   });
 });
 
@@ -446,6 +473,7 @@ describe("reviewService.update (review-write-and-report)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
     expect(updated.author.nickname).toBe(AUTH_USER.nickname);
   });
@@ -624,6 +652,7 @@ const buildHiddenRow = (index: number): IAdminHiddenReviewRow => ({
   visitedYear: null,
   visitedMonth: null,
   tags: [],
+  photos: [],
   helpfulCount: 0,
   isHelpful: null,
 });
@@ -696,6 +725,7 @@ describe("reviewService.restore (admin-hidden-reviews)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photos: [],
       helpfulCount: 0,
       isHelpful: null,
     }));

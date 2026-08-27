@@ -89,6 +89,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
 
     await expect(
@@ -103,6 +104,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       }),
     ).rejects.toThrow();
   });
@@ -121,6 +123,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
     const [review] = await reviewRepository.findByOfficeId(OFFICE.id, 1);
 
@@ -150,6 +153,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       }),
     ).rejects.toThrow();
   });
@@ -169,6 +173,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       }),
     ).rejects.toThrow();
   });
@@ -186,6 +191,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: 2026,
       visitedMonth: 3,
       tags: [],
+      photoKeys: [],
     });
 
     const [row] = await reviewRepository.findByOfficeId(OFFICE.id, 1);
@@ -210,6 +216,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
     await reviewRepository.insert({
       officeId: OFFICE.id,
@@ -222,6 +229,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
 
     const ratings = await officeRepository.findVisibleRatingsByOfficeId(
@@ -245,6 +253,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
     // "이미 숨겨진 리뷰"는 신고 흐름을 거치지 않고 픽스처로 직접 만든다 —
     // insert()는 이제 실제 작성 API가 쓰는 메서드라 hiddenAt을 받지 않는다.
@@ -341,6 +350,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
 
     await expect(
@@ -371,6 +381,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
 
     await expect(
@@ -394,6 +405,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
     const [before] = await db
       .select({ updatedAt: reviews.updatedAt })
@@ -408,6 +420,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
     const [after] = await db
       .select({ updatedAt: reviews.updatedAt })
@@ -432,6 +445,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
 
     await reviewRepository.deleteById(created.id);
@@ -454,6 +468,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       visitedYear: null,
       visitedMonth: null,
       tags: [],
+      photoKeys: [],
     });
     const reporterIds = await Promise.all(
       Array.from({ length: 5 }, (_, i) =>
@@ -495,6 +510,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["친절함", "응답 빠름"],
+        photoKeys: [],
       });
 
       expect(created.tags.sort()).toEqual(["응답 빠름", "친절함"]);
@@ -519,6 +535,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["친절함", "강매 없음"],
+        photoKeys: [],
       });
 
       const updated = await reviewRepository.update(created.id, {
@@ -529,6 +546,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       expect(updated.tags).toEqual([]);
@@ -549,6 +567,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["친절함"],
+        photoKeys: [],
       });
 
       const updated = await reviewRepository.update(created.id, {
@@ -559,9 +578,108 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["설명 꼼꼼", "허위매물 없음"],
+        photoKeys: [],
       });
 
       expect(updated.tags.sort()).toEqual(["설명 꼼꼼", "허위매물 없음"]);
+    });
+  });
+
+  describe("사진 (review-photo-upload)", () => {
+    it("AC11: insert 시 넘긴 photoKeys가 제출한 순서 그대로 review_photos를 왕복한다", async () => {
+      const userId = await insertUser("kakao-photos-1", "사용자사진1");
+
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+        photoKeys: ["uploads/first.jpg", "uploads/second.jpg", "uploads/third.jpg"],
+      });
+
+      expect(created.photos.map((p) => p.storageKey)).toEqual([
+        "uploads/first.jpg",
+        "uploads/second.jpg",
+        "uploads/third.jpg",
+      ]);
+
+      const [refetched] = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+      expect(refetched?.photos.map((p) => p.storageKey)).toEqual([
+        "uploads/first.jpg",
+        "uploads/second.jpg",
+        "uploads/third.jpg",
+      ]);
+    });
+
+    it("update에서 photoKeys를 생략하면(빈 배열) 기존 사진이 전부 삭제된다(전체교체)", async () => {
+      const userId = await insertUser("kakao-photos-2", "사용자사진2");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+        photoKeys: ["uploads/a.jpg", "uploads/b.jpg"],
+      });
+
+      const updated = await reviewRepository.update(created.id, {
+        rating: 4,
+        content: CONTENT,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+        photoKeys: [],
+      });
+
+      expect(updated.photos).toEqual([]);
+      const [refetched] = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+      expect(refetched?.photos).toEqual([]);
+    });
+
+    it("update에서 photoKeys를 다른 조합·순서로 바꾸면 기존 사진은 사라지고 새 순서만 남는다", async () => {
+      const userId = await insertUser("kakao-photos-3", "사용자사진3");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+        photoKeys: ["uploads/old.jpg"],
+      });
+
+      const updated = await reviewRepository.update(created.id, {
+        rating: 5,
+        content: CONTENT,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+        photoKeys: ["uploads/new-2.jpg", "uploads/new-1.jpg"],
+      });
+
+      expect(updated.photos.map((p) => p.storageKey)).toEqual([
+        "uploads/new-2.jpg",
+        "uploads/new-1.jpg",
+      ]);
     });
   });
 
@@ -581,6 +699,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["친절함"],
+        photoKeys: [],
       });
       const hidden = await reviewRepository.insert({
         officeId: OFFICE.id,
@@ -593,6 +712,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["친절함"],
+        photoKeys: [],
       });
       await db
         .update(reviews)
@@ -622,6 +742,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["친절함"],
+        photoKeys: [],
       });
       await reviewRepository.insert({
         officeId: otherOffice.id,
@@ -634,6 +755,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: ["응답 빠름"],
+        photoKeys: [],
       });
 
       const result = await officeRepository.findTopTagCountsByOfficeIds(
@@ -661,6 +783,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       const first = await reviewRepository.toggleHelpful(review.id, voter);
@@ -683,6 +806,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       const result = await reviewRepository.toggleHelpful(review.id, author);
@@ -705,6 +829,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       await reviewRepository.toggleHelpful(review.id, voterA);
@@ -728,6 +853,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       await reviewRepository.toggleHelpful(review.id, voter);
 
@@ -824,6 +950,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       await reviewRepository.toggleHelpful(review.id, voter);
 
@@ -835,6 +962,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       expect(updated.helpfulCount).toBe(1);
@@ -858,6 +986,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       await reviewRepository.insert({
         officeId: otherOffice.id,
@@ -870,6 +999,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       const myReviews = await reviewRepository.findByUserId(me, 10);
@@ -891,6 +1021,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       await db
         .update(reviews)
@@ -965,6 +1096,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       for (const reporterId of reporters) {
         await reviewRepository.insertReport(hidden.id, reporterId);
@@ -981,6 +1113,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       const hiddenRows = await reviewRepository.findHidden(10);
@@ -1005,6 +1138,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       const hiddenRows = await reviewRepository.findHidden(10);
@@ -1025,6 +1159,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       await db
         .update(reviews)
@@ -1053,6 +1188,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       await reviewRepository.insertReport(created.id, reporter);
       await db
@@ -1084,6 +1220,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       await db.delete(users).where(eq(users.id, author));
@@ -1110,6 +1247,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       const reviewB = await reviewRepository.insert({
         officeId: OFFICE.id,
@@ -1122,6 +1260,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       await db.delete(users).where(eq(users.id, authorA));
@@ -1150,6 +1289,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       await db.delete(users).where(eq(users.id, author));
@@ -1175,6 +1315,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
       await reviewRepository.toggleHelpful(review.id, voter);
 
@@ -1198,6 +1339,7 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
         visitedYear: null,
         visitedMonth: null,
         tags: [],
+        photoKeys: [],
       });
 
       const reporterIds: string[] = [];

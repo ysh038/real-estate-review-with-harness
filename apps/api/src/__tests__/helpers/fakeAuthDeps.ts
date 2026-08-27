@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 
 import type { IKakaoOAuthClient } from "../../lib/kakaoOAuthClient";
+import type { IPhotoStorage } from "../../lib/photoStorage";
 import type {
   IAuthUser,
   ISessionRepository,
@@ -91,4 +92,7 @@ export const createFakeAuthAppDeps = () => ({
   isProduction: false,
   /** 기본은 "관리자 기능 꺼짐" — admin 라우트를 테스트하는 곳에서만 override한다. */
   adminApiKey: undefined as string | undefined,
+  /** 기본은 "사진 업로드 꺼짐" — uploadsRoute를 테스트하는 곳에서만 override한다. */
+  photoStorage: undefined as IPhotoStorage | undefined,
+  photoPublicUrl: undefined as string | undefined,
 });

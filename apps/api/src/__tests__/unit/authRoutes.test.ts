@@ -23,6 +23,8 @@ const buildApp = () => {
     webBaseUrl: WEB_BASE_URL,
     isProduction: false,
     adminApiKey: undefined,
+    photoStorage: undefined,
+    photoPublicUrl: undefined,
   });
   return { app, sessionRepository, userRepository };
 };

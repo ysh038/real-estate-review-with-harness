@@ -281,6 +281,96 @@
   opacity: 0.6;
 }
 
+.photoThumbnailList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photoThumbnailButton {
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.photoThumbnailImage {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.photoSection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.photoPreviewList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photoPreviewItem {
+  position: relative;
+}
+
+.photoPreviewImage {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.photoRemoveButton {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-text-inverse);
+  cursor: pointer;
+  background-color: var(--color-secondary);
+  border: none;
+  border-radius: var(--radius-full);
+}
+
+.photoAddLabel {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.photoFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
 .loginPrompt {
   margin: 0;
   padding-top: var(--space-2);
