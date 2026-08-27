@@ -2,6 +2,11 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 9e85dd2 회원 탈퇴 + 리뷰 익명화 (Phase 9 나머지, 명세:
+  docs/specs/member-account-deletion-and-anonymization.md — AC1~18 전부 확인.
+  reviews.user_id를 nullable + ON DELETE SET NULL로 마이그레이션, DELETE
+  /api/users/me, /mypage/settings 페이지. findByOfficeId·findHidden·restore의
+  innerJoin→leftJoin 전환 필요성을 실DB 통합 테스트로 확인. Phase 9 전체 완료)
 - 2026-08-26 c9e1044 사무소 검색바 (Phase 13, 명세: docs/specs/office-search-bar.md
   — AC1~21 전부 확인. 브라우저 검증에서 실버그 2건 발견·수정(ORDER BY 별칭 오류,
   panTo/setLevel 경합 → setCenter로 교체). 카카오 Places 지역명 검색은 별도 명세로
