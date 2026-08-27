@@ -4,15 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useMyReviews } from "../../hooks/useMyReviews";
 
-const { fetchMyReviews, updateReview, deleteReview } = vi.hoisted(() => ({
+const { fetchMyReviews, updateReview, deleteReview, uploadPhoto } = vi.hoisted(() => ({
   fetchMyReviews: vi.fn(),
   updateReview: vi.fn(),
   deleteReview: vi.fn(),
+  uploadPhoto: vi.fn(),
 }));
 vi.mock("../../lib/reviewsApi", () => ({
   fetchMyReviews,
   updateReview,
   deleteReview,
+  uploadPhoto,
   ReviewApiError: class ReviewApiError extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -53,6 +55,7 @@ describe("useMyReviews", () => {
     fetchMyReviews.mockReset();
     updateReview.mockReset();
     deleteReview.mockReset();
+    uploadPhoto.mockReset();
   });
 
   it("마운트되면 내 리뷰 목록을 불러오고 로딩 상태가 끝난다", async () => {
@@ -125,6 +128,71 @@ describe("useMyReviews", () => {
     expect(result.current.reviews.find((r) => r.id === "review-1")?.rating).toBe(1);
     expect(result.current.reviews.find((r) => r.id === "review-2")?.rating).toBe(5);
     expect(result.current.reviews).toHaveLength(2);
+  });
+
+  it("AC1(review-edit-photo-changes): newPhotoFiles 생략 시 업로드 없이 input 그대로 PATCH된다", async () => {
+    fetchMyReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useMyReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const input = { rating: 4, content: "충분히 긴 리뷰 본문입니다 열 자 이상", photoKeys: [] };
+    updateReview.mockResolvedValue({ ...buildMyReview("review-1"), ...input });
+
+    await act(async () => {
+      await result.current.updateReview("review-1", input);
+    });
+
+    expect(uploadPhoto).not.toHaveBeenCalled();
+    expect(updateReview).toHaveBeenCalledWith("review-1", input);
+  });
+
+  it("AC2(review-edit-photo-changes): newPhotoFiles가 있으면 순차 업로드 후 photoKeys 뒤에 이어붙여 PATCH된다", async () => {
+    fetchMyReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useMyReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    uploadPhoto
+      .mockResolvedValueOnce({ storageKey: "new-key-1" })
+      .mockResolvedValueOnce({ storageKey: "new-key-2" });
+    updateReview.mockResolvedValue(buildMyReview("review-1"));
+
+    const input = {
+      rating: 4,
+      content: "충분히 긴 리뷰 본문입니다 열 자 이상",
+      photoKeys: ["kept-key-1"],
+    };
+    const fileA = new File(["a"], "a.jpg", { type: "image/jpeg" });
+    const fileB = new File(["b"], "b.jpg", { type: "image/jpeg" });
+
+    await act(async () => {
+      await result.current.updateReview("review-1", input, [fileA, fileB]);
+    });
+
+    expect(uploadPhoto).toHaveBeenNthCalledWith(1, fileA);
+    expect(uploadPhoto).toHaveBeenNthCalledWith(2, fileB);
+    expect(updateReview).toHaveBeenCalledWith("review-1", {
+      ...input,
+      photoKeys: ["kept-key-1", "new-key-1", "new-key-2"],
+    });
+  });
+
+  it("AC3(review-edit-photo-changes): 업로드가 실패하면 PATCH를 보내지 않고 예외를 던진다", async () => {
+    fetchMyReviews.mockResolvedValue(PAGE_1);
+    const { result } = renderHook(() => useMyReviews());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    uploadPhoto.mockRejectedValue(new Error("upload failed"));
+    const file = new File(["a"], "a.jpg", { type: "image/jpeg" });
+
+    await expect(
+      result.current.updateReview(
+        "review-1",
+        { rating: 4, content: "충분히 긴 리뷰 본문입니다 열 자 이상", photoKeys: [] },
+        [file],
+      ),
+    ).rejects.toThrow();
+
+    expect(updateReview).not.toHaveBeenCalled();
   });
 
   it("AC4(review-edit-and-delete-ui): deleteReview 성공 시 그 id의 항목이 제거된다", async () => {

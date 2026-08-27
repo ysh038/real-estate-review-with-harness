@@ -3,7 +3,12 @@
 import type { TMyReview, TUpdateReviewRequest } from "@repo/types";
 import { useCallback, useEffect, useState } from "react";
 
-import { deleteReview as deleteReviewRequest, fetchMyReviews, updateReview as updateReviewRequest } from "../lib/reviewsApi";
+import {
+  deleteReview as deleteReviewRequest,
+  fetchMyReviews,
+  updateReview as updateReviewRequest,
+  uploadPhoto,
+} from "../lib/reviewsApi";
 
 export interface IUseMyReviewsResult {
   reviews: TMyReview[];
@@ -11,8 +16,17 @@ export interface IUseMyReviewsResult {
   isLoading: boolean;
   error: Error | null;
   loadMore: () => Promise<void>;
-  /** 성공하면 그 id의 항목만 새 값으로 교체한다(review-edit-and-delete-ui AC3). */
-  updateReview: (reviewId: string, input: TUpdateReviewRequest) => Promise<void>;
+  /**
+   * 성공하면 그 id의 항목만 새 값으로 교체한다(review-edit-and-delete-ui AC3).
+   * `newPhotoFiles`가 있으면 먼저 순차 업로드해 그 storageKey들을
+   * `input.photoKeys` 뒤에 이어붙인 뒤 PATCH한다 — 하나라도 실패하면 PATCH
+   * 자체를 보내지 않는다(review-edit-photo-changes AC1~AC3).
+   */
+  updateReview: (
+    reviewId: string,
+    input: TUpdateReviewRequest,
+    newPhotoFiles?: File[],
+  ) => Promise<void>;
   /** 성공하면 그 id의 항목을 목록에서 제거한다(review-edit-and-delete-ui AC4). */
   deleteReview: (reviewId: string) => Promise<void>;
 }
@@ -60,8 +74,24 @@ export const useMyReviews = (): IUseMyReviewsResult => {
   }, [nextCursor]);
 
   const updateReview = useCallback(
-    async (reviewId: string, input: TUpdateReviewRequest) => {
-      const updated = await updateReviewRequest(reviewId, input);
+    async (
+      reviewId: string,
+      input: TUpdateReviewRequest,
+      newPhotoFiles: File[] = [],
+    ) => {
+      // 작성 폼(useOfficeReviews.submitReview)과 동일한 원칙 — 새 파일을 순차
+      // 업로드하고, 하나라도 실패하면 PATCH 자체를 보내지 않는다.
+      const uploadedKeys: string[] = [];
+      for (const file of newPhotoFiles) {
+        const { storageKey } = await uploadPhoto(file);
+        uploadedKeys.push(storageKey);
+      }
+      const finalInput: TUpdateReviewRequest =
+        uploadedKeys.length > 0
+          ? { ...input, photoKeys: [...(input.photoKeys ?? []), ...uploadedKeys] }
+          : input;
+
+      const updated = await updateReviewRequest(reviewId, finalInput);
       setReviews((current) =>
         current.map((review) =>
           review.id === reviewId ? { ...review, ...updated } : review,

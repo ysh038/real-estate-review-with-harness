@@ -330,4 +330,162 @@ describe("MyPageReviewsPage", () => {
       expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
     });
   });
+
+  describe("사진 변경 (review-edit-photo-changes)", () => {
+    const REVIEW_WITH_PHOTOS: TMyReview = {
+      ...REVIEW,
+      photos: [
+        { storageKey: "reviews/existing-1.jpg", url: "https://example.com/existing-1.jpg" },
+        { storageKey: "reviews/existing-2.jpg", url: "https://example.com/existing-2.jpg" },
+      ],
+    };
+
+    it("AC4: 편집 진입 시 기존 사진이 각각 제거 버튼과 함께 썸네일로 보인다", async () => {
+      useMyReviews.mockReturnValue({ ...baseHookState, reviews: [REVIEW_WITH_PHOTOS] });
+      const user = userEvent.setup();
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+
+      expect(screen.getByAltText("기존 사진 1")).toHaveAttribute(
+        "src",
+        "https://example.com/existing-1.jpg",
+      );
+      expect(screen.getByAltText("기존 사진 2")).toHaveAttribute(
+        "src",
+        "https://example.com/existing-2.jpg",
+      );
+      expect(
+        screen.getByRole("button", { name: "기존 사진 1 삭제" }),
+      ).toBeInTheDocument();
+    });
+
+    it("AC5: 기존 사진의 제거 버튼을 누르면 미리보기에서 사라진다", async () => {
+      useMyReviews.mockReturnValue({ ...baseHookState, reviews: [REVIEW_WITH_PHOTOS] });
+      const user = userEvent.setup();
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+      await user.click(screen.getByRole("button", { name: "기존 사진 1 삭제" }));
+
+      // 삭제 후 남은 한 장만 보인다(라벨은 다시 1번부터 매겨지므로 src로 식별).
+      const remainingImages = screen.getAllByRole("img");
+      expect(remainingImages).toHaveLength(1);
+      expect(remainingImages[0]).toHaveAttribute(
+        "src",
+        "https://example.com/existing-2.jpg",
+      );
+    });
+
+    it("AC6: 파일을 새로 선택하면 로컬 미리보기가 제거 버튼과 함께 추가된다", async () => {
+      useMyReviews.mockReturnValue({ ...baseHookState, reviews: [REVIEW] });
+      const user = userEvent.setup();
+      const file = new File(["a"], "new.jpg", { type: "image/jpeg" });
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+
+      expect(screen.getByAltText("새 사진 1")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "새 사진 1 삭제" }),
+      ).toBeInTheDocument();
+    });
+
+    it("AC7: 기존+신규 합이 3장이 되면 '사진 추가' 입력이 사라진다", async () => {
+      useMyReviews.mockReturnValue({ ...baseHookState, reviews: [REVIEW_WITH_PHOTOS] });
+      const user = userEvent.setup();
+      const file = new File(["a"], "new.jpg", { type: "image/jpeg" });
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+      expect(screen.getByLabelText("사진 추가")).toBeInTheDocument();
+
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+
+      expect(screen.queryByLabelText("사진 추가")).not.toBeInTheDocument();
+    });
+
+    it("AC8: 저장 시 새 파일을 업로드하고 photoKeys가 '남은 기존 + 신규' 순서로 채워진다", async () => {
+      const updateReview = vi.fn().mockResolvedValue(undefined);
+      useMyReviews.mockReturnValue({
+        ...baseHookState,
+        reviews: [REVIEW_WITH_PHOTOS],
+        updateReview,
+      });
+      const user = userEvent.setup();
+      const file = new File(["a"], "new.jpg", { type: "image/jpeg" });
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+      await user.click(screen.getByRole("button", { name: "기존 사진 1 삭제" }));
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+      await user.click(screen.getByRole("button", { name: "저장" }));
+
+      expect(updateReview).toHaveBeenCalledWith(
+        "review-1",
+        expect.objectContaining({ photoKeys: ["reviews/existing-2.jpg"] }),
+        [file],
+      );
+    });
+
+    it("AC9: 취소를 누르면 사진 변경 내역도 원래대로 되돌아간다", async () => {
+      useMyReviews.mockReturnValue({ ...baseHookState, reviews: [REVIEW_WITH_PHOTOS] });
+      const user = userEvent.setup();
+      const file = new File(["a"], "new.jpg", { type: "image/jpeg" });
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+      await user.click(screen.getByRole("button", { name: "기존 사진 1 삭제" }));
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+      await user.click(screen.getByRole("button", { name: "취소" }));
+
+      await user.click(screen.getByRole("button", { name: "수정" }));
+      expect(screen.getByAltText("기존 사진 1")).toBeInTheDocument();
+      expect(screen.queryByAltText("새 사진 1")).not.toBeInTheDocument();
+    });
+
+    it("AC10: 사진이 없던 리뷰는 기존 썸네일 없이 저장하면 photoKeys: []로 PATCH된다", async () => {
+      const updateReview = vi.fn().mockResolvedValue(undefined);
+      useMyReviews.mockReturnValue({
+        ...baseHookState,
+        reviews: [REVIEW],
+        updateReview,
+      });
+      const user = userEvent.setup();
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+
+      expect(screen.queryByAltText(/기존 사진/)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "저장" }));
+
+      expect(updateReview).toHaveBeenCalledWith("review-1", {
+        rating: REVIEW.rating,
+        content: REVIEW.content,
+        photoKeys: [],
+      });
+    });
+
+    it("AC11: 업로드가 실패하면 에러가 보이고 편집 폼이 사진 변경 내역을 유지한 채 열려 있다", async () => {
+      const updateReview = vi.fn().mockRejectedValue(new Error("사진 업로드에 실패했습니다"));
+      useMyReviews.mockReturnValue({
+        ...baseHookState,
+        reviews: [REVIEW],
+        updateReview,
+      });
+      const user = userEvent.setup();
+      const file = new File(["a"], "new.jpg", { type: "image/jpeg" });
+
+      render(<MyPageReviewsPage />);
+      await user.click(screen.getByRole("button", { name: "수정" }));
+      await user.upload(screen.getByLabelText("사진 추가"), file);
+      await user.click(screen.getByRole("button", { name: "저장" }));
+
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(screen.getByAltText("새 사진 1")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
+    });
+  });
 });
