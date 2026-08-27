@@ -2,6 +2,18 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 290be5f 정형 설문 항목 - 전문성 평가 + 하자 대응 경험 (Phase
+  12-C, 명세: docs/specs/review-structured-survey.md — AC1~12 전부 확인).
+  원본도 항목 미확정 상태였던 것을 이 저장소가 먼저 확정 — 전문성 평가(3단계)·
+  하자 대응 경험(3지선다, 원본의 예/아니오 제안을 사용자 확정으로 확장)을
+  기존 태그와 안 겹치게 새로 설계. dealType/dealResult와 동일한 패턴으로
+  DB·API·작성 폼·카드 표시·draft까지 전체 반영. 기존 fixture 68곳을
+  스크립트로 일괄 갱신하다 발견한 실수 2건(HTTP 바디에 잘못 넣은 null이
+  optional() 스키마에서 400을 내던 것, 무관한 테스트의 exact-match가 깨진
+  것)을 직접 수정. Vitest 41건 신규/확장, sabotage-verify로 신규 테스트의
+  실효성 확인, 브라우저로 오피스 상세·리뷰 목록 API 무회귀 확인(작성 폼은
+  카카오 로그인 필요해 단위 테스트로 대체).
+
 - 2026-08-27 cc409b8 리뷰 로딩/빈/에러 상태 일관화 + 작성 임시저장 (Phase 11
   마무리, 명세: docs/specs/review-ux-consistency-and-draft.md — AC1~16 전부
   확인). Skeleton/ReviewListSkeleton·EmptyState·ErrorState 공유 컴포넌트로
