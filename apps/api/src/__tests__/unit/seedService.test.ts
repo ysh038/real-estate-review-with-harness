@@ -19,10 +19,18 @@ const buildGyeonggiClient = (rows: TGyeonggiRawRow[]) => ({
   fetchAllBySigungu: vi.fn(async () => rows),
 });
 
+/**
+ * matchConfidence는 이 스위트 대부분과 무관한 관심사(insert 모양·skip 로직 등)라
+ * resolver는 여전히 {lat, lng}만 넘기고, 여기서 고정값 1을 채워 IGeocodedPoint를
+ * 완성한다(geocoding-match-confidence 명세 — 신뢰도 계산 자체는 kakaoGeocoder.test.ts가 검증).
+ */
 const buildKakaoGeocoder = (
   resolver: (query: IGeocodeOfficeQuery) => { lat: number; lng: number } | null,
 ) => ({
-  geocodeOffice: vi.fn(async (query: IGeocodeOfficeQuery) => resolver(query)),
+  geocodeOffice: vi.fn(async (query: IGeocodeOfficeQuery) => {
+    const point = resolver(query);
+    return point ? { ...point, matchConfidence: 1 } : null;
+  }),
 });
 
 const buildOfficeRepository = () => {
@@ -94,9 +102,26 @@ describe("seedService.seedSigungu", () => {
         sigungu: "성남시",
         lat: 37.4,
         lng: 127.1,
+        matchConfidence: 1,
       },
     ]);
     expect(summary).toEqual({ fetched: 1, upserted: 1, skipped: 0 });
+  });
+
+  it("AC5(geocoding-match-confidence): 지오코더가 준 matchConfidence를 그대로 upsert 행에 담는다", async () => {
+    const gyeonggiClient = buildGyeonggiClient([buildRow()]);
+    const officeRepository = buildOfficeRepository();
+    const service = createSeedService({
+      gyeonggiClient,
+      kakaoGeocoder: {
+        geocodeOffice: vi.fn(async () => ({ lat: 37.4, lng: 127.1, matchConfidence: 0.5 })),
+      },
+      officeRepository,
+    });
+
+    await service.seedSigungu("성남시");
+
+    expect(officeRepository.inserted[0]?.matchConfidence).toBe(0.5);
   });
 
   it("지오코딩 쿼리로 법정동명 + 사무소명을 넘긴다", async () => {

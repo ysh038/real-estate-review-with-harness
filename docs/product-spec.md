@@ -129,10 +129,17 @@ AC20~22, my-reviews-list `MyReviewsPanel`)뿐이며 `docs/decisions.md`에 후�
 
 #### Phase 4 — 데이터 확장
 
-- [ ] 시드 스크립트 다른 시군 지정 지원 확인/정리 (`SEED_TARGET_SIGUNGU` 파라미터화)
-- [ ] 경기도 외 지역 데이터 소스 검토 (원본은 data.go.kr 전국 API로 대체 — 참고만 하고
-      구현 코드는 복사하지 않는다, `docs/decisions.md` #9 통제변인 원칙과 동일 기준)
-- [ ] 지오코딩 매칭 신뢰도(`match_confidence`) 컬럼 + 낮은 신뢰도 배지
+**신뢰도 배지 완료, 시군 파라미터화는 이미 완료 확인, 전국 데이터소스는 조사만**
+(명세: `specs/geocoding-match-confidence.md` — AC1~9 전부 확인, 실DB 통합 테스트 +
+실 브라우저 스모크 테스트).
+
+- [x] 시드 스크립트 다른 시군 지정 지원 확인/정리 (`SEED_TARGET_SIGUNGU` 파라미터화) —
+      `seed-sigungu.md` AC7·AC8로 이미 완료돼 있었음을 재확인
+- [x] 지오코딩 매칭 신뢰도(`match_confidence`) 컬럼 + 낮은 신뢰도 배지 — rank 기반
+      신뢰도(`1/(rank+1)`), 임계값 0.5 미만이면 `OfficeInfoFields`에 배지
+- [ ] 경기도 외 지역 데이터 소스 검토 (원본은 data.go.kr `MOLIT_API_KEY` 필요 전국
+      API를 씀 — 이 저장소엔 아직 키가 없어 조사만 하고 착수는 키 발급 후로 미룸,
+      `docs/decisions.md` #9 통제변인 원칙과 동일 기준)
 
 #### Phase 5 — 운영 자동화
 

@@ -81,7 +81,12 @@ export const createSeedService = (deps: ISeedServiceDeps) => ({
         skipped += 1;
         continue;
       }
-      inserts.push({ ...row, lat: point.lat, lng: point.lng });
+      inserts.push({
+        ...row,
+        lat: point.lat,
+        lng: point.lng,
+        matchConfidence: point.matchConfidence,
+      });
     }
 
     const upserted = await deps.officeRepository.upsertMany(inserts);

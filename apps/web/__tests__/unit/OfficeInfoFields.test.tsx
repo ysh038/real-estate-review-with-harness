@@ -13,6 +13,7 @@ const OFFICE: TOfficeSummary = {
   sigungu: "성남시",
   lat: 37.4,
   lng: 127.1,
+  matchConfidence: null,
   tagCounts: [],
 };
 
@@ -31,5 +32,29 @@ describe("OfficeInfoFields", () => {
     );
 
     expect(screen.getAllByText("정보 없음")).toHaveLength(2);
+  });
+
+  it("AC8(geocoding-match-confidence): matchConfidence가 0.5 미만이면 낮은 신뢰도 배지가 보인다", () => {
+    render(<OfficeInfoFields office={{ ...OFFICE, matchConfidence: 0.333 }} />);
+
+    expect(
+      screen.getByText("위치 정보 정확도가 낮을 수 있어요"),
+    ).toBeInTheDocument();
+  });
+
+  it("AC9(geocoding-match-confidence): matchConfidence가 0.5 이상이면 배지가 안 보인다", () => {
+    render(<OfficeInfoFields office={{ ...OFFICE, matchConfidence: 0.5 }} />);
+
+    expect(
+      screen.queryByText("위치 정보 정확도가 낮을 수 있어요"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("AC9(geocoding-match-confidence): matchConfidence가 null이면 배지가 안 보인다(모름 ≠ 낮음)", () => {
+    render(<OfficeInfoFields office={{ ...OFFICE, matchConfidence: null }} />);
+
+    expect(
+      screen.queryByText("위치 정보 정확도가 낮을 수 있어요"),
+    ).not.toBeInTheDocument();
   });
 });

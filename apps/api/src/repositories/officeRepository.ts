@@ -58,6 +58,7 @@ export const createOfficeRepository = (
         sigungu: offices.sigungu,
         lat: offices.lat,
         lng: offices.lng,
+        matchConfidence: offices.matchConfidence,
       })
       .from(offices)
       // 경계선 위의 좌표는 포함한다 (gte/lte) — 인접 bbox 사이에서 마커가 사라지면 안 된다.
@@ -82,6 +83,7 @@ export const createOfficeRepository = (
         sigungu: offices.sigungu,
         lat: offices.lat,
         lng: offices.lng,
+        matchConfidence: offices.matchConfidence,
       })
       .from(offices)
       .where(eq(offices.id, id))
@@ -168,6 +170,7 @@ export const createOfficeRepository = (
         sigungu: offices.sigungu,
         lat: offices.lat,
         lng: offices.lng,
+        matchConfidence: offices.matchConfidence,
       })
       .from(offices)
       .leftJoin(
@@ -199,6 +202,7 @@ export const createOfficeRepository = (
           sigungu: sql`excluded.sigungu`,
           lat: sql`excluded.lat`,
           lng: sql`excluded.lng`,
+          matchConfidence: sql`excluded.match_confidence`,
           updatedAt: sql`now()`,
         },
       });

@@ -33,6 +33,7 @@ const OFFICE_A: TOfficeSummary = {
   sigungu: "성남시",
   lat: 37.45,
   lng: 127.15,
+  matchConfidence: null,
   tagCounts: [],
 };
 

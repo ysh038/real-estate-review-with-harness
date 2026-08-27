@@ -33,6 +33,11 @@ export const offices = pgTable(
     sigungu: text("sigungu").notNull(),
     lat: doublePrecision("lat").notNull(),
     lng: doublePrecision("lng").notNull(),
+    /**
+     * 지오코딩 매칭 신뢰도(0~1). 시딩 이전 데이터나 수동 입력 행은 null —
+     * "낮은 신뢰도"와 "모름"을 구분한다(근거: docs/specs/geocoding-match-confidence.md).
+     */
+    matchConfidence: doublePrecision("match_confidence"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -1,6 +1,13 @@
 export interface IGeocodedPoint {
   lat: number;
   lng: number;
+  /**
+   * 채택한 후보가 Kakao 검색 결과에서 몇 번째였는지로 계산한 신뢰도 —
+   * `1 / (rank + 1)`(1위=1.0, 2위=0.5, 3위=0.333...). 여러 지오코딩 전략의 성공
+   * 단계로 등급을 매기는 원본과 달리, 이 저장소는 키워드 검색 1회뿐이라 이미 받은
+   * 응답 안에서 얻을 수 있는 신호를 쓴다(근거: docs/specs/geocoding-match-confidence.md).
+   */
+  matchConfidence: number;
 }
 
 export interface IGeocodeOfficeQuery {
@@ -37,11 +44,11 @@ const matchesLegalDong = (docAddress: string | undefined, legalDong: string): bo
   return normalizeSido(docAddress).startsWith(normalizeSido(legalDong));
 };
 
-const toPoint = (doc: IKakaoKeywordDoc): IGeocodedPoint | null => {
+const toPoint = (doc: IKakaoKeywordDoc, rank: number): IGeocodedPoint | null => {
   const lat = Number(doc.y);
   const lng = Number(doc.x);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return { lat, lng };
+  return { lat, lng, matchConfidence: 1 / (rank + 1) };
 };
 
 /**
@@ -61,11 +68,12 @@ export const createKakaoGeocoder = (restApiKey: string): IKakaoGeocoder => ({
     if (!res.ok) return null;
 
     const body = (await res.json()) as IKakaoKeywordResponse;
-    const hit = (body.documents ?? []).find((doc) =>
+    const documents = body.documents ?? [];
+    const rank = documents.findIndex((doc) =>
       matchesLegalDong(doc.road_address_name ?? doc.address_name, legalDong),
     );
-    if (!hit) return null;
+    if (rank === -1) return null;
 
-    return toPoint(hit);
+    return toPoint(documents[rank]!, rank);
   },
 });

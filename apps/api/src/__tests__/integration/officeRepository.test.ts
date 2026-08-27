@@ -89,6 +89,41 @@ describe.skipIf(!isDbReachable)("officeRepository (real DB)", () => {
     expect(rows[0]?.phone).toBe("031-999-9999");
   });
 
+  it("AC4·AC6(geocoding-match-confidence): match_confidence가 저장되고 재시딩 시 최신값으로 갱신된다", async () => {
+    const id = "41135-TEST-CONFIDENCE";
+    await repository.upsertMany([
+      buildOffice(id, 37.4, 127.1, { matchConfidence: 1 }),
+    ]);
+
+    const [beforeUpdate] = await repository.findByBbox(
+      { minLng: 127.0, minLat: 37.3, maxLng: 127.2, maxLat: 37.5 },
+      10,
+    );
+    expect(beforeUpdate?.matchConfidence).toBe(1);
+
+    await repository.upsertMany([
+      buildOffice(id, 37.4, 127.1, { matchConfidence: 0.5 }),
+    ]);
+
+    const [afterUpdate] = await repository.findByBbox(
+      { minLng: 127.0, minLat: 37.3, maxLng: 127.2, maxLat: 37.5 },
+      10,
+    );
+    expect(afterUpdate?.matchConfidence).toBe(0.5);
+  });
+
+  it("match_confidence를 안 주면 null로 저장된다(기존/수동 데이터와 동일한 상태)", async () => {
+    const id = "41135-TEST-NO-CONFIDENCE";
+    await repository.upsertMany([buildOffice(id, 37.4, 127.1)]);
+
+    const [row] = await repository.findByBbox(
+      { minLng: 127.0, minLat: 37.3, maxLng: 127.2, maxLat: 37.5 },
+      10,
+    );
+
+    expect(row?.matchConfidence).toBeNull();
+  });
+
   it("AC3: bbox 안의 사무소만 반환하고, 경계선 위의 좌표는 포함한다", async () => {
     await repository.upsertMany([
       buildOffice("inside", 37.4, 127.1),

@@ -56,6 +56,13 @@ export const bboxQuerySchema = z.object({
     .pipe(bboxSchema),
 });
 
+/**
+ * 낮은 신뢰도 배지 임계값 — rank 2(3순위) 이상부터. rank 0·1(1·2순위)은 Kakao 자신의
+ * 관련도 랭킹에서도 상위권이라 위양성 가능성이 낮다고 판단했다
+ * (근거: docs/specs/geocoding-match-confidence.md 설계 메모).
+ */
+export const LOW_MATCH_CONFIDENCE_THRESHOLD = 0.5;
+
 export const officeSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -65,6 +72,8 @@ export const officeSummarySchema = z.object({
   sigungu: z.string(),
   lat: z.number(),
   lng: z.number(),
+  /** 지오코딩 매칭 신뢰도(0~1). 계산된 적 없는 기존/수동 데이터는 null. */
+  matchConfidence: z.number().min(0).max(1).nullable(),
   /**
    * bbox 목록은 상위 2개(TOP_TAGS_PER_OFFICE)로 제한, 상세는 전체 — 인터페이스는
    * 같은 스키마를 공유하고 개수 제한은 서비스 레이어에서 건다 (review-tags AC9/AC10).

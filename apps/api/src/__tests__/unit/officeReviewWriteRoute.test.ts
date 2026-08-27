@@ -19,6 +19,7 @@ const OFFICE: TOfficeSummaryRow = {
   sigungu: "성남시",
   lat: 37.4,
   lng: 127.1,
+  matchConfidence: null,
 };
 
 const VALID_BODY = { rating: 5, content: "열 자를 넘기는 충분한 길이의 리뷰" };

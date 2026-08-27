@@ -64,6 +64,13 @@
       "when": 1787800713334,
       "tag": "0008_chief_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787804562769,
+      "tag": "0009_tranquil_demogoblin",
+      "breakpoints": true
     }
   ]
 }
