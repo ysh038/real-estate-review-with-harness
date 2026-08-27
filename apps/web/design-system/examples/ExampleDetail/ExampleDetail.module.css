@@ -40,16 +40,18 @@
 
 /*
  * 배경색마다 실제 대비비가 달라(addon-a11y 실측, WCAG AA 4.5:1 기준) 글자색을
- * 톤별로 따로 정한다 — success·warning은 진한 글자, error는 흰 글자라야
- * 넘는다. info(#0284c7)는 흰 글자(4.10:1)·진한 글자(4.36:1) 둘 다 이 글자
- * 크기에서는 기준 미달이라 이 예제에서는 렌더하지 않는다 — 배지 색으로
- * 쓰기엔 --color-info 자체를 다시 봐야 한다(design-system 감사 별도 항목).
+ * 톤별로 따로 정한다. 청기와 팔레트(design-system 감사 후속 반영)로
+ *   success #1f6b4f  + 흰 글자   5.4:1  ✓  (진한 글자 2.5:1 ✗ — 이전과 반대)
+ *   warning #e0a227  + 진한 글자 7.3:1  ✓  (흰 글자 2.2:1 ✗)
+ *   error   #b3261e  + 흰 글자   5.4:1  ✓
+ *   info    #1b5c8c  + 흰 글자   7.1:1  ✓  ← 이전 #0284c7의 AA 미달 해소,
+ *                                           더 이상 렌더 제외하지 않는다.
  */
-.success,
 .warning {
   color: var(--color-text);
 }
 
+.success,
 .error,
 .info {
   color: var(--color-text-inverse);

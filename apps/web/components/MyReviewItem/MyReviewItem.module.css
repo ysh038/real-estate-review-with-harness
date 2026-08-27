@@ -22,7 +22,9 @@
 
 .rating {
   font-size: var(--font-size-sm);
-  color: var(--color-warning);
+  /* warning(#e0a227)은 배지 배경 전용 — 글자·아이콘으로 쓰면 대비 2.2:1 밖에
+     안 된다. 별점에는 반드시 rating 토큰을 쓴다. */
+  color: var(--color-rating); /* on #fff 5.9:1 */
 }
 
 .content {

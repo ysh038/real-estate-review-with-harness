@@ -7,6 +7,8 @@ const ROWS: IExampleTableRow[] = [
   { id: "1", name: "성남시 시딩", status: "success", updatedAt: "2026-08-15" },
   { id: "2", name: "판교 지역 지오코딩", status: "warning", updatedAt: "2026-08-20" },
   { id: "3", name: "전국 데이터 소스", status: "error", updatedAt: "2026-08-27" },
+  // 청기와 팔레트로 --color-info 대비비 미달을 해소해 다시 렌더한다(design-system 감사).
+  { id: "4", name: "카카오 Places 카테고리 필터", status: "info", updatedAt: "2026-08-28" },
 ];
 
 const meta = {
@@ -56,5 +58,6 @@ export const Interaction: TStory = {
       "갱신일",
     ]);
     await expect(canvas.getByText("오류")).toBeInTheDocument();
+    await expect(canvas.getByText("안내")).toBeInTheDocument();
   },
 };

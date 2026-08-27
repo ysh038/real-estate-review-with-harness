@@ -27,7 +27,9 @@
   margin: 0;
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-sm);
-  color: var(--color-warning);
+  /* warning(#e0a227)은 배경으로 쓸 때만 대비가 나온다 — 연한 surface 배경 위
+     텍스트로 쓰면 2.2:1 밖에 안 된다. 대비가 확보된 rating 토큰을 재사용한다. */
+  color: var(--color-rating); /* on surface 5.9:1 */
   background-color: var(--color-surface);
   border-radius: var(--radius-sm);
 }

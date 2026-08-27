@@ -35,6 +35,16 @@ export const WithStatus: TStory = {
   },
 };
 
+// 청기와 팔레트로 --color-info 대비비 미달을 해소해 다시 렌더한다(design-system 감사).
+export const WithInfoStatus: TStory = {
+  args: {
+    title: "정자동 하나공인중개사",
+    status: { label: "개설등록 확인", tone: "info" },
+    fields: FIELDS,
+    onClose: fn(),
+  },
+};
+
 export const Interaction: TStory = {
   args: {
     title: "분당공인중개사사무소",

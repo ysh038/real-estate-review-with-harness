@@ -27,13 +27,14 @@
 
 .truncatedNotice {
   position: absolute;
-  /* top: space-4(16px)이면 검색바·로그인 위젯과 같은 상단 띠(16~55px)에
-     걸쳐 좁은 화면에서 겹친다(UX 감사 리포트 Critical #2) — 그 아래로
-     내린다. */
-  top: 64px;
+  /* 검색바 아래로 내린다(UX 감사 리포트 Critical #2). 카테고리 필터 칩이
+     추가되면서(kakao-places-category-filter) 좁은 화면에서 칩이 2줄로
+     감싸져 검색바 자체가 더 길어졌다 — 64px로는 다시 겹쳐 150px로 늘렸다.
+     칩이 3줄 이상 감싸지는 아주 좁은 화면까지는 보장하지 못한다(정직한 한계). */
+  top: 150px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 10;
+  z-index: var(--z-map-overlay);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   background-color: var(--color-warning);

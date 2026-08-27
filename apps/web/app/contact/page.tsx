@@ -32,7 +32,7 @@ const ContactPage = () => (
           href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("[경기도 공인중개사 리뷰] 문의")}`}
           className={styles.primaryButton}
         >
-          ✉ {CONTACT_EMAIL}
+          이메일로 문의 보내기
         </a>
       </section>
 

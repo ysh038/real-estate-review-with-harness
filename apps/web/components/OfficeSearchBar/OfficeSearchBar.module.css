@@ -2,33 +2,83 @@
   position: fixed;
   top: var(--space-4);
   left: var(--space-4);
-  z-index: 30;
-  /* 오른쪽 위 로그인 위젯(카카오 로그인 텍스트 기준 실측 폭 ~140px, 로그인
-     후에는 닉네임·마이페이지·로그아웃까지 붙어 더 넓어질 수 있다)과 겹치지
-     않을 만큼만 넓힌다 — 검색창 자체 폭(320px)이 화면을 거의 다 차지하는
-     좁은 화면(375px 등)에서 검색창 오른쪽 끝이 로그인 위젯과 겹치던 문제
-     (UX 감사 리포트 Critical #2). 아주 긴 닉네임까지 완전히 보장하진
-     못한다는 한계는 있다.
-  */
-  width: min(320px, calc(100% - 190px));
+  z-index: var(--z-header-widget);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* 오른쪽 위 로그인 위젯(z-index 동일 레이어)과 겹치지 않을 만큼만 넓힌다 —
+     UX 감사 리포트 Critical #2. 밀도를 넉넉하게 잡아 320px → 340px. */
+  width: min(340px, calc(100% - 190px));
 }
 
 .input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  /* 16px 미만이면 iOS Safari가 이 입력창에 포커스될 때 화면을 자동으로
-     확대해버린다(UX 감사 리포트 High #1) — font-size-base(14px)보다 키운다. */
-  font-size: 16px;
+  padding: var(--space-3);
+  /* 16px 미만이면 iOS Safari가 포커스 시 화면을 확대한다(감사 High #1) —
+     의도가 주석 없이도 남도록 전용 토큰을 쓴다. */
+  font-size: var(--font-size-input);
+  font-family: var(--font-family-base);
   color: var(--color-text);
   background-color: var(--color-background);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
 
+.input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+  border-color: var(--color-focus);
+}
+
+/* ===== Places 카테고리 필터 (감사 미해결 항목) ===== */
+.categoryFilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.categoryChip,
+.categoryChipSelected {
+  /* 44px 미만이면 모바일 터치 타깃이 부족하다 — 높이를 눌러 두지 않는다. */
+  min-height: 32px;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.categoryChip {
+  color: var(--color-text);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border-strong);
+}
+
+.categoryChip:hover {
+  background-color: var(--color-surface);
+}
+
+.categoryChipSelected {
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.categoryChip:focus-visible,
+.categoryChipSelected:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .dropdown {
   max-height: 60vh;
-  margin: var(--space-1) 0 0;
+  margin: 0;
   padding: var(--space-1) 0;
   overflow-y: auto;
   list-style: none;

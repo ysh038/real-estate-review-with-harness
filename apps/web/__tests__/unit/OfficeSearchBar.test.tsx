@@ -12,7 +12,10 @@ vi.mock("../../hooks/useOfficeSearch", () => ({ useOfficeSearch }));
 const { useKakaoPlacesSearch } = vi.hoisted(() => ({
   useKakaoPlacesSearch: vi.fn(),
 }));
-vi.mock("../../hooks/useKakaoPlacesSearch", () => ({ useKakaoPlacesSearch }));
+vi.mock("../../hooks/useKakaoPlacesSearch", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../hooks/useKakaoPlacesSearch")>();
+  return { ...actual, useKakaoPlacesSearch };
+});
 
 const PLACES_IDLE = {
   places: [] as IKakaoPlace[],
@@ -316,5 +319,57 @@ describe("OfficeSearchBar", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("검색에 실패했습니다");
     expect(screen.getByRole("option", { name: /역삼동/ })).toBeInTheDocument();
+  });
+
+  describe("장소 카테고리 필터 (kakao-places-category-filter)", () => {
+    it("칩 4개(중개업소/지하철역/학교/은행)가 항상 보이고 초기엔 전부 선택 안 됨이다", () => {
+      render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+
+      for (const label of ["중개업소", "지하철역", "학교", "은행"]) {
+        expect(
+          screen.getByRole("button", { name: label, pressed: false }),
+        ).toBeInTheDocument();
+      }
+    });
+
+    it("칩을 누르면 선택되고 useKakaoPlacesSearch에 그 카테고리 코드가 전달된다", async () => {
+      const user = userEvent.setup();
+      render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+
+      await user.click(screen.getByRole("button", { name: "중개업소" }));
+
+      expect(
+        screen.getByRole("button", { name: "중개업소", pressed: true }),
+      ).toBeInTheDocument();
+      expect(useKakaoPlacesSearch).toHaveBeenLastCalledWith("", "AG2");
+    });
+
+    it("선택된 칩을 다시 누르면 해제되고 categoryCode가 다시 null이 된다", async () => {
+      const user = userEvent.setup();
+      render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+
+      const chip = screen.getByRole("button", { name: "중개업소" });
+      await user.click(chip);
+      await user.click(chip);
+
+      expect(screen.getByRole("button", { name: "중개업소", pressed: false }));
+      expect(useKakaoPlacesSearch).toHaveBeenLastCalledWith("", null);
+    });
+
+    it("다른 칩을 누르면 이전 선택은 해제되고 새 칩만 선택된다(단일 선택)", async () => {
+      const user = userEvent.setup();
+      render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+
+      await user.click(screen.getByRole("button", { name: "중개업소" }));
+      await user.click(screen.getByRole("button", { name: "지하철역" }));
+
+      expect(
+        screen.getByRole("button", { name: "중개업소", pressed: false }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "지하철역", pressed: true }),
+      ).toBeInTheDocument();
+      expect(useKakaoPlacesSearch).toHaveBeenLastCalledWith("", "SW8");
+    });
   });
 });

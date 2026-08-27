@@ -2,61 +2,98 @@
  * 디자인 토큰 정본 — 색상은 반드시 이 변수들만 사용한다 (stylelint가 원시값을 error 처리).
  * 존재하지 않는 토큰 이름을 발명하지 말 것. 필요하면 여기와 tokens.ts 양쪽에 먼저 추가한다.
  *
- * TODO: 아래 중립 회색 기본값을 프로젝트 브랜드 값으로 교체하세요.
+ * 브랜드: "청기와" — 짙은 청록(기와) + 황동. 지도 위 UI와 붙는 쿨톤이지만
+ * 스캐폴딩 인디고(#4f46e5)와 확실히 다른 채도·명도 대역을 쓴다. 라이트 모드만 정의한다.
+ * 대비비는 모두 WCAG AA(작은 글씨 4.5:1) 기준으로 실측 계산해 주석에 적었다.
  */
 :root {
     /* ===== 색상 (stylelint 강제 대상) ===== */
     /* 브랜드 */
-    --color-primary: #4f46e5; /* TODO: 브랜드 주 색상 */
-    --color-primary-hover: #4338ca;
-    --color-secondary: #64748b;
+    --color-primary: #0e5a6b; /* on #fff 7.8:1 / 흰 글자 7.4:1 */
+    --color-primary-hover: #084653;
+    --color-primary-soft: #e7f1f3; /* primary 계열 연한 배경(선택된 칩·강조 블록) */
+    --color-secondary: #516066; /* on #fff 6.4:1 */
 
     /* 표면·배경 */
     --color-background: #ffffff;
-    --color-surface: #f8fafc;
-    --color-border: #e2e8f0;
+    --color-surface: #f5f8f9;
+    --color-surface-strong: #eaf0f2; /* 칩·헤더 등 한 단계 진한 표면 */
+    --color-border: #dce4e7;
+    --color-border-strong: #c6d2d6; /* 입력창 등 형태를 분명히 해야 하는 경계 */
     /** 모달 등 오버레이 배경. rgb() 자체는 원시값이지만 값이 alpha 채널을 쓰는 반투명
      * 검정 하나뿐이라 hex로 표현이 안 된다 — stylelint 예외 없이 토큰화로 우회한다. */
-    --color-overlay: rgb(0 0 0 / 0.4);
+    --color-overlay: rgb(16 34 42 / 0.55);
     /** 오버레이 위에 뜨는 반투명 컨트롤(라이트박스 닫기/이전·다음 버튼) 배경. */
     --color-overlay-control: rgb(255 255 255 / 0.15);
 
     /* 텍스트 */
-    --color-text: #0f172a;
-    --color-text-muted: #64748b;
+    --color-text: #10222a; /* on #fff 15.4:1 */
+    --color-text-muted: #5f6c71; /* on #fff 5.5:1 — 12~13px에도 AA 통과 */
     --color-text-inverse: #ffffff;
 
-    /* 상태 */
-    --color-success: #16a34a;
-    --color-warning: #d97706;
-    --color-error: #dc2626;
-    --color-info: #0284c7;
+    /* 상태 — 배지 배경으로 쓸 때의 글자색을 주석에 못 박아 둔다 */
+    --color-success: #1f6b4f; /* 배경으로 쓰면 흰 글자(5.4:1). 진한 글자는 미달 */
+    --color-warning: #e0a227; /* 배경으로 쓰면 진한 글자(text 7.3:1). 흰 글자는 미달 */
+    --color-error: #b3261e; /* 배경으로 쓰면 흰 글자(5.4:1) / 글자색으로도 5.4:1 */
+    /** 이전 --color-info(#0284c7)는 흰 글자 4.10:1 · 진한 글자 4.36:1 로 어떤
+     * 글자색을 써도 작은 글씨에서 AA 미달이었다(감사 항목). 명도를 낮춰 흰 글자
+     * 7.1:1 로 통과시키고, primary(청록)와 색상각을 벌려 구분되게 했다. */
+    --color-info: #1b5c8c; /* 배경으로 쓰면 흰 글자(7.1:1) / 글자색으로도 7.1:1 */
+
+    /** 별점·평점 표시용. warning(#e0a227)은 배지 배경 전용이라 글자·아이콘으로
+     * 쓰면 대비가 2.2:1 밖에 안 된다 — 별점에는 반드시 이 토큰을 쓴다. */
+    --color-rating: #8a5a0f; /* on #fff 5.9:1 */
+    /** 포커스 링. 비텍스트 대비 3:1 기준 통과(5.1:1). */
+    --color-focus: #12798f;
 
     /* ===== 간격 (v0.1은 강제 안 함 — 토큰이 채워지면 stylelint.config.js 에서 켤 것) ===== */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
     --space-4: 16px;
+    --space-5: 20px;
     --space-6: 24px;
     --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
 
-    /* ===== radius ===== */
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 16px;
+    /* ===== radius — "각" 방향. 카드도 4px을 넘기지 않는다 ===== */
+    --radius-sm: 2px;
+    --radius-md: 4px;
+    --radius-lg: 6px;
     --radius-full: 9999px;
 
-    /* ===== shadow ===== */
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px rgb(0 0 0 / 0.1);
+    /* ===== shadow — 청록 잉크 기반. 회색 그림자보다 배경에 덜 뜬다 ===== */
+    --shadow-sm: 0 1px 2px rgb(16 34 42 / 0.06);
+    --shadow-md: 0 2px 6px rgb(16 34 42 / 0.08);
+    --shadow-lg: 0 12px 28px rgb(16 34 42 / 0.14);
 
     /* ===== 타이포 (v0.1은 강제 안 함) ===== */
-    --font-size-sm: 12px;
-    --font-size-base: 14px;
-    --font-size-lg: 16px;
-    --font-size-xl: 20px;
+    /** Pretendard 하나로 본문·숫자까지 통일한다. 웹폰트 로드 실패 시 기존
+     * 시스템 한글 폰트로 떨어지도록 폴백을 유지한다. */
+    --font-family-base:
+        "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo",
+        system-ui, sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-base: 15px;
+    --font-size-lg: 17px;
+    --font-size-xl: 22px;
+    --font-size-2xl: 28px;
+    /** 입력창은 이 값 미만이면 iOS Safari가 포커스 시 화면을 확대한다(감사 High #1). */
+    --font-size-input: 16px;
+    --line-height-tight: 1.25;
+    --line-height-base: 1.6;
+    --letter-spacing-tight: -0.02em;
     --font-weight-normal: 400;
     --font-weight-medium: 500;
+    --font-weight-semibold: 600;
     --font-weight-bold: 700;
+
+    /* ===== z-index — 레이어 충돌(감사 Critical #1)을 값이 아니라 이름으로 관리한다 ===== */
+    --z-map-overlay: 10; /* 지도 위 안내·로딩 오버레이 */
+    --z-header-widget: 30; /* 검색바 · 로그인 위젯 */
+    --z-panel: 40; /* 상세 패널 — 위 두 개보다 반드시 위 */
+    --z-modal: 100; /* 확인 모달 */
+    --z-lightbox: 9999; /* 사진 라이트박스 */
 }

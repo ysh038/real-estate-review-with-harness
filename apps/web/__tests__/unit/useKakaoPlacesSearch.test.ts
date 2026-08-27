@@ -142,4 +142,62 @@ describe("useKakaoPlacesSearch", () => {
 
     expect(result.current.places[0]).toMatchObject({ lat: 37.5, lng: 127.036 });
   });
+
+  it("kakao-places-category-filter: categoryCode를 넘기면 keywordSearch 3번째 인자로 전달된다", async () => {
+    keywordSearch.mockImplementation((_keyword, callback) => {
+      callback([PLACE_ITEM()], "OK");
+    });
+    renderHook(() => useKakaoPlacesSearch("역삼동", "AG2"));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(keywordSearch).toHaveBeenCalledWith(
+      "역삼동",
+      expect.any(Function),
+      { category_group_code: "AG2" },
+    );
+  });
+
+  it("kakao-places-category-filter: categoryCode가 없으면(null) 기존처럼 2개 인자로만 호출한다", async () => {
+    keywordSearch.mockImplementation((_keyword, callback) => {
+      callback([PLACE_ITEM()], "OK");
+    });
+    renderHook(() => useKakaoPlacesSearch("역삼동", null));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    // 인자 개수까지 비교되므로(toHaveBeenCalledWith), categoryCode가 없을 때
+    // 3번째 인자를 아예 생략해야 기존 AC2~AC7의 2개 인자 호출 형태와 호환된다.
+    expect(keywordSearch).toHaveBeenCalledWith("역삼동", expect.any(Function));
+  });
+
+  it("kakao-places-category-filter: categoryCode만 바뀌어도(같은 query) 디바운스 후 다시 검색한다", async () => {
+    keywordSearch.mockImplementation((_keyword, callback) => {
+      callback([PLACE_ITEM()], "OK");
+    });
+    const { rerender } = renderHook(
+      ({ categoryCode }: { categoryCode: "AG2" | "SW8" | null }) =>
+        useKakaoPlacesSearch("역삼동", categoryCode),
+      { initialProps: { categoryCode: null as "AG2" | "SW8" | null } },
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    keywordSearch.mockClear();
+
+    rerender({ categoryCode: "SW8" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(keywordSearch).toHaveBeenCalledWith(
+      "역삼동",
+      expect.any(Function),
+      { category_group_code: "SW8" },
+    );
+  });
 });

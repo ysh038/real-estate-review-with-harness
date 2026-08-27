@@ -4,8 +4,8 @@ import type { TOfficeSummary } from "@repo/types";
 import { Fragment, useId, useState, type KeyboardEvent } from "react";
 
 import styles from "./OfficeSearchBar.module.css";
-import type { IKakaoPlace } from "../../hooks/useKakaoPlacesSearch";
-import { useKakaoPlacesSearch } from "../../hooks/useKakaoPlacesSearch";
+import type { IKakaoPlace, TPlaceCategoryCode } from "../../hooks/useKakaoPlacesSearch";
+import { PLACE_CATEGORIES, useKakaoPlacesSearch } from "../../hooks/useKakaoPlacesSearch";
 import { useOfficeSearch } from "../../hooks/useOfficeSearch";
 import { EmptyState } from "../EmptyState";
 import { ErrorState } from "../ErrorState";
@@ -32,8 +32,9 @@ export const OfficeSearchBar = ({ onSelect, onSelectPlace }: IOfficeSearchBarPro
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [categoryCode, setCategoryCode] = useState<TPlaceCategoryCode | null>(null);
   const { results, isLoading, error } = useOfficeSearch(query);
-  const { places } = useKakaoPlacesSearch(query);
+  const { places } = useKakaoPlacesSearch(query, categoryCode);
   const listboxId = useId();
   const getOptionId = (index: number) => `${listboxId}-option-${index}`;
 
@@ -44,6 +45,10 @@ export const OfficeSearchBar = ({ onSelect, onSelectPlace }: IOfficeSearchBarPro
   // kakao-places-location-search AC8·AC9: 두 섹션이 공존할 때만 라벨을 보여준다 —
   // 한쪽만 있으면 기존처럼 라벨 없는 단일 목록.
   const isSectionLabelShown = results.length > 0 && places.length > 0;
+
+  const toggleCategory = (code: TPlaceCategoryCode) => {
+    setCategoryCode((current) => (current === code ? null : code));
+  };
 
   const closeDropdown = () => {
     setIsOpen(false);
@@ -109,6 +114,23 @@ export const OfficeSearchBar = ({ onSelect, onSelectPlace }: IOfficeSearchBarPro
         onChange={(event) => handleChange(event.target.value)}
         onKeyDown={handleKeyDown}
       />
+      <ul className={styles.categoryFilter} aria-label="장소 종류 필터">
+        {PLACE_CATEGORIES.map(({ code, label }) => {
+          const isSelected = categoryCode === code;
+          return (
+            <li key={code}>
+              <button
+                type="button"
+                aria-pressed={isSelected}
+                className={isSelected ? styles.categoryChipSelected : styles.categoryChip}
+                onClick={() => toggleCategory(code)}
+              >
+                {label}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
       {isOpen ? (
         <ul id={listboxId} role="listbox" className={styles.dropdown}>
           {entries.map((entry, index) => (

@@ -94,10 +94,16 @@ declare global {
         y: string;
       }
 
+      interface IKeywordSearchOptions {
+        /** 카테고리 그룹 코드로 결과를 좁힌다(예: "AG2" 부동산). */
+        category_group_code?: string;
+      }
+
       class Places {
         keywordSearch(
           keyword: string,
           callback: (data: IPlacesSearchResultItem[], status: Status) => void,
+          options?: IKeywordSearchOptions,
         ): void;
       }
     }
