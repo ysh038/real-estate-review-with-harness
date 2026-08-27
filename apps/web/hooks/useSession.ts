@@ -3,7 +3,12 @@
 import type { TAuthUser } from "@repo/types";
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchCurrentUser, logoutRequest, updateNickname as updateNicknameRequest } from "../lib/authApi";
+import {
+  deleteAccountRequest,
+  fetchCurrentUser,
+  logoutRequest,
+  updateNickname as updateNicknameRequest,
+} from "../lib/authApi";
 
 export type TSessionStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -13,6 +18,8 @@ export interface IUseSessionResult {
   logout: () => Promise<void>;
   /** 성공하면 로컬 user.nickname을 즉시 갱신한다 — 재조회 없이 (mypage-shell-and-profile AC22). */
   updateNickname: (nickname: string) => Promise<void>;
+  /** 회원 탈퇴. 성공하면 logout과 동일하게 로컬 상태를 비운다 (member-account-deletion AC16). */
+  deleteAccount: () => Promise<void>;
 }
 
 /** 앱 진입 시 `/api/me` 로 로그인 여부를 확인하고, 로그아웃을 노출한다. */
@@ -53,5 +60,11 @@ export const useSession = (): IUseSessionResult => {
     setUser(updated);
   }, []);
 
-  return { status, user, logout, updateNickname };
+  const deleteAccount = useCallback(async () => {
+    await deleteAccountRequest();
+    setUser(null);
+    setStatus("unauthenticated");
+  }, []);
+
+  return { status, user, logout, updateNickname, deleteAccount };
 };

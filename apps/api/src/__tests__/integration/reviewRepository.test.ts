@@ -1069,4 +1069,169 @@ describe.skipIf(!isDbReachable)("reviewRepository (real DB)", () => {
       expect(count).toBe(1);
     });
   });
+
+  describe("회원 탈퇴 + 리뷰 익명화 (member-account-deletion-and-anonymization)", () => {
+    it("AC1: 작성자를 삭제해도 리뷰는 남고 user_id가 null이 된다", async () => {
+      const author = await insertUser("kakao-deleted-1", "탈퇴예정1");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      await db.delete(users).where(eq(users.id, author));
+
+      const [row] = await db
+        .select()
+        .from(reviews)
+        .where(eq(reviews.id, created.id));
+      expect(row).toBeDefined();
+      expect(row!.userId).toBeNull();
+    });
+
+    it("AC3: user_id가 null인 리뷰가 같은 사무소에 여러 건이어도 유니크 제약을 위반하지 않는다", async () => {
+      const authorA = await insertUser("kakao-deleted-a", "탈퇴예정A");
+      const authorB = await insertUser("kakao-deleted-b", "탈퇴예정B");
+      const reviewA = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: authorA,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      const reviewB = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: authorB,
+        rating: 3,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      await db.delete(users).where(eq(users.id, authorA));
+      await db.delete(users).where(eq(users.id, authorB));
+
+      const rows = await db
+        .select()
+        .from(reviews)
+        .where(eq(reviews.officeId, OFFICE.id));
+      const ids = new Set([reviewA.id, reviewB.id]);
+      const anonymized = rows.filter((row) => ids.has(row.id));
+      expect(anonymized).toHaveLength(2);
+      expect(anonymized.every((row) => row.userId === null)).toBe(true);
+    });
+
+    it("AC7: 작성자가 탈퇴해도 공개 목록(findByOfficeId)에서 사라지지 않는다", async () => {
+      const author = await insertUser("kakao-deleted-list", "탈퇴예정목록");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 4,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      await db.delete(users).where(eq(users.id, author));
+
+      const list = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+      const found = list.find((row) => row.id === created.id);
+      expect(found).toBeDefined();
+      expect(found?.nickname).toBeNull();
+      expect(found?.profileImageUrl).toBeNull();
+    });
+
+    it("AC10: 도움돼요를 누른 사용자가 탈퇴하면 투표가 함께 삭제되고 helpfulCount가 감소한다", async () => {
+      const author = await insertUser("kakao-helpful-deleted-author", "글쓴이3");
+      const voter = await insertUser("kakao-helpful-deleted-voter", "탈퇴할투표자");
+      const review = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 5,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+      await reviewRepository.toggleHelpful(review.id, voter);
+
+      await db.delete(users).where(eq(users.id, voter));
+
+      const list = await reviewRepository.findByOfficeId(OFFICE.id, 10);
+      const found = list.find((row) => row.id === review.id);
+      expect(found?.helpfulCount).toBe(0);
+    });
+
+    it("AC11: 신고자 전원이 탈퇴해 신고 기록이 사라져도 이미 숨겨진 리뷰는 계속 숨김 상태다", async () => {
+      const author = await insertUser("kakao-hide-persist-author", "글쓴이4");
+      const created = await reviewRepository.insert({
+        officeId: OFFICE.id,
+        userId: author,
+        rating: 1,
+        content: CONTENT,
+        createdFromIp: null,
+        dealType: null,
+        dealResult: null,
+        visitedYear: null,
+        visitedMonth: null,
+        tags: [],
+      });
+
+      const reporterIds: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const reporterId = await insertUser(
+          `kakao-hide-persist-reporter-${i}`,
+          `신고자${i}`,
+        );
+        reporterIds.push(reporterId);
+        await reviewRepository.insertReport(created.id, reporterId);
+      }
+      await reviewRepository.hideIfThresholdReached(created.id, 5);
+
+      const [beforeRow] = await db
+        .select({ hiddenAt: reviews.hiddenAt })
+        .from(reviews)
+        .where(eq(reviews.id, created.id));
+      expect(beforeRow!.hiddenAt).not.toBeNull();
+
+      for (const reporterId of reporterIds) {
+        await db.delete(users).where(eq(users.id, reporterId));
+      }
+
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(reviewReports)
+        .where(eq(reviewReports.reviewId, created.id));
+      expect(count).toBe(0);
+
+      const [afterRow] = await db
+        .select({ hiddenAt: reviews.hiddenAt })
+        .from(reviews)
+        .where(eq(reviews.id, created.id));
+      expect(afterRow!.hiddenAt).not.toBeNull();
+    });
+  });
 });

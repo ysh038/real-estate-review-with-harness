@@ -20,6 +20,11 @@ export interface IUserRepository {
   findById: (userId: string) => Promise<IAuthUser | null>;
   /** 닉네임만 갱신하고 최신 사용자 정보를 반환한다 (mypage-shell-and-profile AC5·AC7). */
   updateNickname: (userId: string, nickname: string) => Promise<IAuthUser>;
+  /**
+   * 회원 탈퇴 — 계정을 하드 삭제한다. 작성한 리뷰는 DB의 `ON DELETE SET NULL`이
+   * 알아서 익명화한다 (member-account-deletion-and-anonymization 명세).
+   */
+  delete: (userId: string) => Promise<void>;
 }
 
 export interface ISessionRow {

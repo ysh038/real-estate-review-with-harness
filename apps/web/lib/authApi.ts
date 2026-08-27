@@ -42,5 +42,18 @@ export const logoutRequest = async (baseUrl: string = DEFAULT_BASE_URL): Promise
   }
 };
 
+/** 회원 탈퇴 (member-account-deletion-and-anonymization AC16). */
+export const deleteAccountRequest = async (
+  baseUrl: string = DEFAULT_BASE_URL,
+): Promise<void> => {
+  const response = await fetch(`${baseUrl}/api/users/me`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`회원 탈퇴 실패 (status ${response.status})`);
+  }
+};
+
 export const buildKakaoLoginUrl = (baseUrl: string = DEFAULT_BASE_URL): string =>
   `${baseUrl}/auth/kakao`;

@@ -10,6 +10,7 @@ export const colorTokens = {
     background: 'var(--color-background)',
     surface: 'var(--color-surface)',
     border: 'var(--color-border)',
+    overlay: 'var(--color-overlay)',
     text: 'var(--color-text)',
     textMuted: 'var(--color-text-muted)',
     textInverse: 'var(--color-text-inverse)',

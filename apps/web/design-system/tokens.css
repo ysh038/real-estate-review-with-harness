@@ -15,6 +15,9 @@
     --color-background: #ffffff;
     --color-surface: #f8fafc;
     --color-border: #e2e8f0;
+    /** 모달 등 오버레이 배경. rgb() 자체는 원시값이지만 값이 alpha 채널을 쓰는 반투명
+     * 검정 하나뿐이라 hex로 표현이 안 된다 — stylelint 예외 없이 토큰화로 우회한다. */
+    --color-overlay: rgb(0 0 0 / 0.4);
 
     /* 텍스트 */
     --color-text: #0f172a;

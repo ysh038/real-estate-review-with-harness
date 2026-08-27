@@ -84,9 +84,12 @@ export const reviews = pgTable(
     officeId: text("office_id")
       .notNull()
       .references(() => offices.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * 탈퇴한 사용자의 리뷰는 지우지 않고 익명화한다 — nullable + SET NULL
+     * (원본 `authorUserId` 와 동일한 FK 형태, 근거: docs/decisions.md,
+     * docs/specs/member-account-deletion-and-anonymization.md).
+     */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     rating: integer("rating").notNull(),
     content: text("content").notNull(),
     /** 신고 누적으로 숨겨진 시각. NULL이면 노출된다 (soft hide). */

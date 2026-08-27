@@ -50,6 +50,13 @@
       "when": 1787639048365,
       "tag": "0006_chunky_lightspeed",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787790503815,
+      "tag": "0007_pink_satana",
+      "breakpoints": true
     }
   ]
 }

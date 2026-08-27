@@ -178,6 +178,18 @@ describe("reviewService.listByOfficeId", () => {
       "oldest",
     );
   });
+
+  it("AC8(member-account-deletion-and-anonymization): 작성자가 탈퇴한 리뷰(nickname null)는 '탈퇴한 사용자'로 표시된다", async () => {
+    const row = { ...buildRow(1), nickname: null, profileImageUrl: "https://example.com/old.png" };
+    const service = createReviewService(createFakeRepository([row]));
+
+    const result = await service.listByOfficeId("office-1", { limit: 10 });
+
+    expect(result.reviews[0]?.author).toEqual({
+      nickname: "탈퇴한 사용자",
+      profileImageUrl: null,
+    });
+  });
 });
 
 describe("reviewService.create (review-write-and-report)", () => {
@@ -395,6 +407,21 @@ describe("reviewService.update (review-write-and-report)", () => {
     ).rejects.toThrow(ForbiddenReviewActionError);
   });
 
+  it("AC9(member-account-deletion-and-anonymization): 작성자가 탈퇴한 리뷰(userId null)는 아무도 수정할 수 없다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () => buildOwnedRow({ userId: null });
+    const service = createReviewService(repository);
+
+    await expect(
+      service.update({
+        reviewId: "review-1",
+        authUser: AUTH_USER,
+        rating: 5,
+        content: CONTENT,
+      }),
+    ).rejects.toThrow(ForbiddenReviewActionError);
+  });
+
   it("AC12: 본인 리뷰면 수정하고 작성자 정보를 포함해 반환한다", async () => {
     const repository = createFakeReviewRepository();
     repository.findById = async () => buildOwnedRow();
@@ -474,6 +501,17 @@ describe("reviewService.remove (review-write-and-report)", () => {
     expect(repository.deleteById).not.toHaveBeenCalled();
   });
 
+  it("AC9(member-account-deletion-and-anonymization): 작성자가 탈퇴한 리뷰(userId null)는 아무도 삭제할 수 없다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () => buildOwnedRow({ userId: null });
+    const service = createReviewService(repository);
+
+    await expect(
+      service.remove({ reviewId: "review-1", authUser: AUTH_USER }),
+    ).rejects.toThrow(ForbiddenReviewActionError);
+    expect(repository.deleteById).not.toHaveBeenCalled();
+  });
+
   it("AC13: 본인 리뷰면 삭제한다", async () => {
     const repository = createFakeReviewRepository();
     repository.findById = async () => buildOwnedRow();
@@ -504,6 +542,16 @@ describe("reviewService.report (review-write-and-report)", () => {
       service.report({ reviewId: "review-1", authUser: AUTH_USER }),
     ).rejects.toThrow(SelfReportError);
     expect(repository.insertReport).not.toHaveBeenCalled();
+  });
+
+  it("AC9(member-account-deletion-and-anonymization): 작성자가 탈퇴한 리뷰(userId null)도 신고할 수 있다", async () => {
+    const repository = createFakeReviewRepository();
+    repository.findById = async () => buildOwnedRow({ userId: null });
+    const service = createReviewService(repository);
+
+    await service.report({ reviewId: "review-1", authUser: AUTH_USER });
+
+    expect(repository.insertReport).toHaveBeenCalledWith("review-1", AUTH_USER.id);
   });
 
   it("AC17: 이미 신고한 리뷰면(unique 위반) DuplicateReportError 를 던진다", async () => {

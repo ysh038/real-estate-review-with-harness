@@ -10,6 +10,7 @@ import { RequireAuth } from "../../components/RequireAuth";
 const TABS = [
   { href: "/mypage/reviews", label: "리뷰" },
   { href: "/mypage/profile", label: "프로필" },
+  { href: "/mypage/settings", label: "설정" },
 ] as const;
 
 const MyPageLayout = ({ children }: { children: ReactNode }) => {

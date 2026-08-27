@@ -3,12 +3,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useSession } from "../../hooks/useSession";
 
-const { fetchCurrentUser, logoutRequest, updateNickname } = vi.hoisted(() => ({
-  fetchCurrentUser: vi.fn(),
-  logoutRequest: vi.fn(),
-  updateNickname: vi.fn(),
+const { fetchCurrentUser, logoutRequest, updateNickname, deleteAccountRequest } = vi.hoisted(
+  () => ({
+    fetchCurrentUser: vi.fn(),
+    logoutRequest: vi.fn(),
+    updateNickname: vi.fn(),
+    deleteAccountRequest: vi.fn(),
+  }),
+);
+vi.mock("../../lib/authApi", () => ({
+  fetchCurrentUser,
+  logoutRequest,
+  updateNickname,
+  deleteAccountRequest,
 }));
-vi.mock("../../lib/authApi", () => ({ fetchCurrentUser, logoutRequest, updateNickname }));
 
 const USER = { id: "u-1", nickname: "홍길동", profileImageUrl: null };
 
@@ -75,5 +83,21 @@ describe("useSession", () => {
 
     expect(updateNickname).toHaveBeenCalledWith("새닉네임");
     expect(result.current.user).toEqual(updatedUser);
+  });
+
+  it("AC16(member-account-deletion-and-anonymization): deleteAccount를 호출하면 unauthenticated로 돌아가고 user가 비워진다", async () => {
+    fetchCurrentUser.mockResolvedValue(USER);
+    deleteAccountRequest.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useSession());
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+
+    await act(async () => {
+      await result.current.deleteAccount();
+    });
+
+    expect(deleteAccountRequest).toHaveBeenCalled();
+    expect(result.current.status).toBe("unauthenticated");
+    expect(result.current.user).toBeNull();
   });
 });

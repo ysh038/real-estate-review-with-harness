@@ -71,4 +71,8 @@ export const createUserRepository = (db: TDatabase): IUserRepository => ({
     if (!row) throw new Error("존재하지 않는 사용자의 닉네임을 갱신하려 했습니다");
     return toAuthUser(row);
   },
+
+  delete: async (userId) => {
+    await db.delete(users).where(eq(users.id, userId));
+  },
 });

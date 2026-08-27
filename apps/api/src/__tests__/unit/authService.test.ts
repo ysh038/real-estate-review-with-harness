@@ -29,6 +29,7 @@ const buildUserRepository = (overrides: Partial<IUserRepository> = {}): IUserRep
   upsertByKakaoId: vi.fn(async () => USER),
   findById: vi.fn(async () => USER),
   updateNickname: vi.fn(async () => USER),
+  delete: vi.fn(async () => {}),
   ...overrides,
 });
 

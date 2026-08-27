@@ -45,4 +45,19 @@ describe("MyPageLayout", () => {
       "page",
     );
   });
+
+  it("AC12(member-account-deletion-and-anonymization): 설정 탭 링크가 있고, /mypage/settings에서 현재 탭이다", () => {
+    usePathname.mockReturnValue("/mypage/settings");
+
+    render(
+      <MyPageLayout>
+        <p>탭 내용</p>
+      </MyPageLayout>,
+    );
+
+    expect(screen.getByRole("link", { name: "설정" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
 });

@@ -36,18 +36,25 @@ export const createFakeUserRepository = (
   },
 ): IUserRepository & { current: IAuthUser } => {
   let current = user;
+  // 실 DB의 하드 삭제를 흉내낸다 — delete 이후엔 findById가 더는 이 사용자를 못 찾는다.
+  let isDeleted = false;
   return {
     get current() {
       return current;
     },
     upsertByKakaoId: vi.fn(async () => current),
-    findById: vi.fn(async (id: string) => (id === current.id ? current : null)),
+    findById: vi.fn(async (id: string) =>
+      !isDeleted && id === current.id ? current : null,
+    ),
     updateNickname: vi.fn(async (id: string, nickname: string) => {
       if (id !== current.id) {
         throw new Error("존재하지 않는 사용자의 닉네임을 갱신하려 했습니다");
       }
       current = { ...current, nickname };
       return current;
+    }),
+    delete: vi.fn(async (id: string) => {
+      if (id === current.id) isDeleted = true;
     }),
   };
 };

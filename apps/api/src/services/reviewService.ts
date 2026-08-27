@@ -24,7 +24,8 @@ export interface IReviewListRow {
   officeId: string;
   rating: number;
   content: string;
-  nickname: string;
+  /** 작성자가 탈퇴했으면 null(원본과 동일한 SET NULL 익명화, member-account-deletion 명세). */
+  nickname: string | null;
   profileImageUrl: string | null;
   createdAt: Date;
   dealType: string | null;
@@ -80,7 +81,8 @@ export class InvalidCursorError extends Error {
 export interface IReviewOwnedRow {
   id: string;
   officeId: string;
-  userId: string;
+  /** 작성자가 탈퇴했으면 null(SET NULL 익명화). 소유권 비교는 항상 항등 비교라 자연히 불일치로 처리된다. */
+  userId: string | null;
   rating: number;
   content: string;
   createdAt: Date;
@@ -220,12 +222,22 @@ export class ReviewAlreadyVisibleError extends Error {
 /** 신고가 이 개수에 도달하면 자동으로 숨겨진다 (AC18). */
 export const REPORT_HIDE_THRESHOLD = 5;
 
+/**
+ * 탈퇴한 사용자가 쓴 리뷰의 표시용 닉네임. 원본은 리뷰에 작성자 닉네임을 공개
+ * 노출하지 않아 참조할 인터페이스가 없다 — 독자적으로 정한 고정 문구
+ * (member-account-deletion-and-anonymization 명세 설계 메모).
+ */
+export const DELETED_USER_NICKNAME = "탈퇴한 사용자";
+
 const toReview = (row: IReviewListRow): TReview => ({
   id: row.id,
   officeId: row.officeId,
   rating: row.rating,
   content: row.content,
-  author: { nickname: row.nickname, profileImageUrl: row.profileImageUrl },
+  author:
+    row.nickname != null
+      ? { nickname: row.nickname, profileImageUrl: row.profileImageUrl }
+      : { nickname: DELETED_USER_NICKNAME, profileImageUrl: null },
   createdAt: row.createdAt.toISOString(),
   dealType: row.dealType as TReview["dealType"],
   dealResult: row.dealResult as TReview["dealResult"],

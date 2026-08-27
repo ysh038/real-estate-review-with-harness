@@ -168,7 +168,9 @@ export const createReviewRepository = (
         visitedMonth: reviews.visitedMonth,
       })
       .from(reviews)
-      .innerJoin(users, eq(reviews.userId, users.id))
+      // 탈퇴한 작성자의 리뷰는 user_id가 null이라 innerJoin이면 통째로 사라진다 —
+      // leftJoin이라야 익명화된 리뷰도 목록에 남는다(member-account-deletion AC7).
+      .leftJoin(users, eq(reviews.userId, users.id))
       .where(
         and(
           eq(reviews.officeId, officeId),
@@ -252,6 +254,11 @@ export const createReviewRepository = (
         .where(eq(reviews.id, id))
         .returning(OWNED_ROW_COLUMNS);
       if (!updated) throw new Error("리뷰 수정이 행을 반환하지 않았습니다");
+      // 서비스가 소유권 확인(existing.userId === authUser.id)을 먼저 통과시켜야만
+      // 여기 도달한다 — 탈퇴한(userId null) 리뷰는 절대 여기 오지 않는다.
+      if (updated.userId == null) {
+        throw new Error("탈퇴한 사용자의 리뷰는 수정할 수 없습니다");
+      }
 
       await replaceTags(tx, id, tags);
 
@@ -442,7 +449,8 @@ export const createReviewRepository = (
       })
       .from(reviews)
       .innerJoin(offices, eq(reviews.officeId, offices.id))
-      .innerJoin(users, eq(reviews.userId, users.id))
+      // findByOfficeId와 같은 이유로 leftJoin — 탈퇴한 작성자의 숨김 리뷰도 목록에 남아야 한다.
+      .leftJoin(users, eq(reviews.userId, users.id))
       .where(and(isNotNull(reviews.hiddenAt), afterCondition))
       .orderBy(desc(reviews.createdAt), desc(reviews.id))
       .limit(limit);
@@ -487,7 +495,8 @@ export const createReviewRepository = (
         visitedMonth: reviews.visitedMonth,
       })
       .from(reviews)
-      .innerJoin(users, eq(reviews.userId, users.id))
+      // 복구 대상 리뷰의 작성자가 이미 탈퇴했을 수도 있다 — leftJoin으로 둔다.
+      .leftJoin(users, eq(reviews.userId, users.id))
       .where(eq(reviews.id, updated.id))
       .limit(1);
     if (!row) return null;
