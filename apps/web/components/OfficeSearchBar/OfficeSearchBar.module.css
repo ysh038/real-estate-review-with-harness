@@ -3,14 +3,22 @@
   top: var(--space-4);
   left: var(--space-4);
   z-index: 30;
-  width: 320px;
-  max-width: calc(100% - var(--space-8));
+  /* 오른쪽 위 로그인 위젯(카카오 로그인 텍스트 기준 실측 폭 ~140px, 로그인
+     후에는 닉네임·마이페이지·로그아웃까지 붙어 더 넓어질 수 있다)과 겹치지
+     않을 만큼만 넓힌다 — 검색창 자체 폭(320px)이 화면을 거의 다 차지하는
+     좁은 화면(375px 등)에서 검색창 오른쪽 끝이 로그인 위젯과 겹치던 문제
+     (UX 감사 리포트 Critical #2). 아주 긴 닉네임까지 완전히 보장하진
+     못한다는 한계는 있다.
+  */
+  width: min(320px, calc(100% - 190px));
 }
 
 .input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-base);
+  /* 16px 미만이면 iOS Safari가 이 입력창에 포커스될 때 화면을 자동으로
+     확대해버린다(UX 감사 리포트 High #1) — font-size-base(14px)보다 키운다. */
+  font-size: 16px;
   color: var(--color-text);
   background-color: var(--color-background);
   border: 1px solid var(--color-border);
@@ -19,8 +27,10 @@
 }
 
 .dropdown {
+  max-height: 60vh;
   margin: var(--space-1) 0 0;
   padding: var(--space-1) 0;
+  overflow-y: auto;
   list-style: none;
   background-color: var(--color-background);
   border: 1px solid var(--color-border);

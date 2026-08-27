@@ -27,7 +27,10 @@
 
 .truncatedNotice {
   position: absolute;
-  top: var(--space-4);
+  /* top: space-4(16px)이면 검색바·로그인 위젯과 같은 상단 띠(16~55px)에
+     걸쳐 좁은 화면에서 겹친다(UX 감사 리포트 Critical #2) — 그 아래로
+     내린다. */
+  top: 64px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;

@@ -2,7 +2,11 @@
   position: absolute;
   top: 0;
   right: 0;
-  z-index: 20;
+  /* 로그인 위젯(z-index 30)·검색바(z-index 30)보다 위에 둔다 — 안 그러면
+     이 패널이 열려도 그 둘이 패널 헤더(제목·닫기 버튼) 위에 그대로 남아
+     클릭을 가로챈다(UX 감사 리포트 Critical #1 — 실제로 "닫기"를 눌러도
+     document.elementFromPoint가 로그인 링크를 반환했다). */
+  z-index: 40;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);

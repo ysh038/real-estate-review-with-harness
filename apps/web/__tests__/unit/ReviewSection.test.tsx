@@ -188,6 +188,18 @@ describe("ReviewSection", () => {
     expect(screen.getByText(/로그인하면 리뷰를 남길 수 있어요/)).toBeInTheDocument();
   });
 
+  it("UX 감사: 로그인 유도 문구가 실제로 클릭 가능한 카카오 로그인 링크다", () => {
+    render(<ReviewSection officeId="office-1" />);
+
+    const loginLink = screen.getByRole("link", {
+      name: "로그인하면 리뷰를 남길 수 있어요",
+    });
+    expect(loginLink).toHaveAttribute(
+      "href",
+      expect.stringContaining("/auth/kakao"),
+    );
+  });
+
   it("AC14: 로그인 상태면 별점 라디오 5개와 본문 입력이 보인다", () => {
     useSession.mockReturnValue(AUTHENTICATED_SESSION);
 

@@ -18,6 +18,7 @@ import styles from "./ReviewSection.module.css";
 import { useOfficeReviews } from "../../hooks/useOfficeReviews";
 import { useReviewDraft } from "../../hooks/useReviewDraft";
 import { useSession } from "../../hooks/useSession";
+import { buildKakaoLoginUrl } from "../../lib/authApi";
 import { EmptyState } from "../EmptyState";
 import { ErrorState } from "../ErrorState";
 import { PhotoLightbox } from "../PhotoLightbox";
@@ -596,7 +597,9 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
           </button>
         </form>
       ) : (
-        <p className={styles.loginPrompt}>로그인하면 리뷰를 남길 수 있어요</p>
+        <a className={styles.loginPrompt} href={buildKakaoLoginUrl()}>
+          로그인하면 리뷰를 남길 수 있어요
+        </a>
       )}
 
       {lightboxTarget ? (
