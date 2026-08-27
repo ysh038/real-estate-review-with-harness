@@ -214,8 +214,17 @@ AC1~12 전부 확인, Vitest 20건 신규 + 통합 테스트 + 브라우저 검�
       (`docs/decisions.md` #9 통제변인 원칙, 명세 "범위 밖" 참고)
 - [x] 리뷰 목록 정렬(최신순/오래된순) — "사진 있는 리뷰만"은 이 저장소에 사진 기능
       자체가 없어(Phase 2 미착수) 제외
-- [ ] 로딩 스켈레톤 + 빈 상태 + 에러 상태 일관화
-- [ ] 작성 중 임시저장(localStorage) + 이탈 경고 + draft 복원
+
+**로딩/빈/에러 상태 일관화 + 작성 임시저장 완료**
+(명세: `specs/review-ux-consistency-and-draft.md` — AC1~16 전부 확인, Vitest 33건
+신규/확장 + 브라우저 검증)
+
+- [x] 로딩 스켈레톤 + 빈 상태 + 에러 상태 일관화 — `Skeleton`/`ReviewListSkeleton`·
+      `EmptyState`·`ErrorState` 공유 컴포넌트로 `ReviewSection`·`mypage/reviews`·
+      `OfficeSearchBar` 통일. `OfficeSearchBar`가 `useOfficeSearch`의 `error`를
+      화면에 안 그리던 기존 누락도 함께 보완
+- [x] 작성 중 임시저장(localStorage) + 이탈 경고 + draft 복원 — `useReviewDraft`
+      훅으로 캡슐화, "이어서 작성/새로 작성" 배너
 
 #### Phase 12 — 리뷰 콘텐츠 고도화 (추가분)
 

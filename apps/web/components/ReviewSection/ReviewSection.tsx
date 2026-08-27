@@ -14,8 +14,12 @@ import { useEffect, useState } from "react";
 
 import styles from "./ReviewSection.module.css";
 import { useOfficeReviews } from "../../hooks/useOfficeReviews";
+import { useReviewDraft } from "../../hooks/useReviewDraft";
 import { useSession } from "../../hooks/useSession";
+import { EmptyState } from "../EmptyState";
+import { ErrorState } from "../ErrorState";
 import { PhotoLightbox } from "../PhotoLightbox";
+import { ReviewListSkeleton } from "../Skeleton";
 
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -91,6 +95,43 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
   const [lightboxTarget, setLightboxTarget] = useState<ILightboxTarget | null>(
     null,
   );
+
+  const { draftBanner, restoreDraft, dismissDraft, saveDraft, clearDraft } =
+    useReviewDraft(officeId, content);
+
+  // 필드가 하나라도 바뀌면 초안을 동기화한다(review-ux-consistency-and-draft AC10-11).
+  useEffect(() => {
+    saveDraft({
+      rating,
+      content,
+      dealType,
+      dealResult,
+      visitedYear,
+      visitedMonth,
+      tags: selectedTags,
+    });
+  }, [
+    saveDraft,
+    rating,
+    content,
+    dealType,
+    dealResult,
+    visitedYear,
+    visitedMonth,
+    selectedTags,
+  ]);
+
+  const handleRestoreDraft = () => {
+    const draft = restoreDraft();
+    if (!draft) return;
+    setRating(draft.rating);
+    setContent(draft.content);
+    setDealType(draft.dealType);
+    setDealResult(draft.dealResult);
+    setVisitedYear(draft.visitedYear);
+    setVisitedMonth(draft.visitedMonth);
+    setSelectedTags(draft.tags);
+  };
 
   // 개별 리뷰 퍼머링크(review-permalink-report-and-sort AC12): 이미 로드된 목록
   // 안에 해시가 가리키는 리뷰가 있으면 스크롤 + 잠깐 강조한다.
@@ -186,6 +227,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       setVisitedMonth(NOT_SELECTED);
       setSelectedTags([]);
       setPhotoFiles([]);
+      clearDraft();
     }
   };
 
@@ -197,7 +239,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
             ★ {detail.avgRating} · 리뷰 {detail.reviewCount}개
           </p>
         ) : (
-          <p className={styles.summaryText}>아직 리뷰가 없습니다</p>
+          <EmptyState message="아직 리뷰가 없습니다" />
         )}
         {detail && detail.tagCounts.length > 0 ? (
           <ul className={styles.tagList}>
@@ -210,10 +252,8 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
         ) : null}
       </div>
 
-      {isLoading ? <p className={styles.status}>불러오는 중…</p> : null}
-      {error ? (
-        <p className={styles.statusError}>리뷰를 불러오지 못했습니다</p>
-      ) : null}
+      {isLoading ? <ReviewListSkeleton /> : null}
+      {error ? <ErrorState message="리뷰를 불러오지 못했습니다" /> : null}
       {reportError ? (
         <p className={styles.statusError} role="alert">
           {reportError.message}
@@ -333,6 +373,28 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
         >
           더보기
         </button>
+      ) : null}
+
+      {status === "authenticated" && draftBanner ? (
+        <div className={styles.draftBanner}>
+          <span>이어서 작성하시겠어요?</span>
+          <div className={styles.draftBannerActions}>
+            <button
+              type="button"
+              className={styles.draftBannerButton}
+              onClick={handleRestoreDraft}
+            >
+              복원
+            </button>
+            <button
+              type="button"
+              className={styles.draftBannerButton}
+              onClick={dismissDraft}
+            >
+              새로 작성
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {status === "authenticated" ? (

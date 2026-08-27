@@ -5,6 +5,8 @@ import { useId, useState, type KeyboardEvent } from "react";
 
 import styles from "./OfficeSearchBar.module.css";
 import { useOfficeSearch } from "../../hooks/useOfficeSearch";
+import { EmptyState } from "../EmptyState";
+import { ErrorState } from "../ErrorState";
 
 export interface IOfficeSearchBarProps {
   onSelect: (office: TOfficeSummary) => void;
@@ -18,7 +20,7 @@ export const OfficeSearchBar = ({ onSelect }: IOfficeSearchBarProps) => {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const { results, isLoading } = useOfficeSearch(query);
+  const { results, isLoading, error } = useOfficeSearch(query);
   const listboxId = useId();
   const getOptionId = (index: number) => `${listboxId}-option-${index}`;
 
@@ -58,7 +60,11 @@ export const OfficeSearchBar = ({ onSelect }: IOfficeSearchBarProps) => {
   };
 
   const isEmptyState =
-    isOpen && !isLoading && query.trim().length > 0 && results.length === 0;
+    isOpen &&
+    !isLoading &&
+    !error &&
+    query.trim().length > 0 &&
+    results.length === 0;
 
   return (
     <div className={styles.wrapper}>
@@ -94,8 +100,18 @@ export const OfficeSearchBar = ({ onSelect }: IOfficeSearchBarProps) => {
               <span className={styles.optionAddress}>{office.address}</span>
             </li>
           ))}
+          {isLoading ? (
+            <li className={styles.loadingState}>검색 중…</li>
+          ) : null}
+          {error ? (
+            <li>
+              <ErrorState message="검색에 실패했습니다" />
+            </li>
+          ) : null}
           {isEmptyState ? (
-            <li className={styles.emptyState}>검색 결과가 없습니다</li>
+            <li>
+              <EmptyState message="검색 결과가 없습니다" />
+            </li>
           ) : null}
         </ul>
       ) : null}

@@ -131,6 +131,26 @@ describe("OfficeSearchBar", () => {
     expect(input).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("AC7(review-ux-consistency-and-draft): 로딩 중에는 로딩 문구가 보인다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, isLoading: true });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "공인");
+
+    expect(screen.getByText("검색 중…")).toBeInTheDocument();
+  });
+
+  it("AC8(review-ux-consistency-and-draft): 검색 실패 시 에러 상태가 role=alert로 보인다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, error: new Error("network fail") });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "공인");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("검색에 실패했습니다");
+  });
+
   it("AC19: 항목을 클릭하면 그 사무소로 onSelect가 호출된다", async () => {
     useOfficeSearch.mockReturnValue({ ...IDLE, results: [OFFICE_A, OFFICE_B] });
     const onSelect = vi.fn();

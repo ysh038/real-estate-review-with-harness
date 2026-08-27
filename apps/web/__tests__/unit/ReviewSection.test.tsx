@@ -89,6 +89,7 @@ describe("ReviewSection", () => {
   beforeEach(() => {
     useOfficeReviews.mockReset().mockReturnValue({ ...baseHookState });
     useSession.mockReset().mockReturnValue(UNAUTHENTICATED_SESSION);
+    localStorage.clear();
   });
 
   it("AC8: 집계 헤더에 평균 평점과 리뷰 개수가 보인다", () => {
@@ -128,6 +129,37 @@ describe("ReviewSection", () => {
     render(<ReviewSection officeId="office-1" />);
 
     expect(screen.getByText(/불러오는 중/)).toBeInTheDocument();
+  });
+
+  it("AC3(review-ux-consistency-and-draft): 로딩 중에는 스켈레톤이 보이고 기존 '불러오는 중…' 텍스트는 사라진다", () => {
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      isLoading: true,
+      detail: null,
+      reviews: [],
+    });
+
+    const { container } = render(<ReviewSection officeId="office-1" />);
+
+    expect(
+      container.querySelectorAll("[data-testid='review-skeleton-card']"),
+    ).toHaveLength(3);
+    expect(screen.queryByText("불러오는 중…")).not.toBeInTheDocument();
+  });
+
+  it("AC4(review-ux-consistency-and-draft): 목록 조회 실패 시 에러 상태가 role=alert로 보인다", () => {
+    useOfficeReviews.mockReturnValue({
+      ...baseHookState,
+      error: new Error("network fail"),
+      detail: null,
+      reviews: [],
+    });
+
+    render(<ReviewSection officeId="office-1" />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "리뷰를 불러오지 못했습니다",
+    );
   });
 
   it("AC12: nextCursor가 있으면 더보기 버튼이 보이고 누르면 loadMore가 호출된다", async () => {
@@ -676,6 +708,122 @@ describe("ReviewSection", () => {
       expect(
         screen.queryByRole("dialog", { name: "사진 보기" }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("작성 임시저장 (review-ux-consistency-and-draft)", () => {
+    const DRAFT_KEY = "review-draft-office-1";
+    const STORED_DRAFT = {
+      rating: 4,
+      content: "친절했어요",
+      dealType: "전세",
+      dealResult: "계약함",
+      visitedYear: "2026",
+      visitedMonth: "3",
+      tags: ["친절함"],
+    };
+
+    it("AC10: 본문을 입력하면 localStorage에 초안이 저장된다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.type(screen.getByRole("textbox"), "작성 중인 내용");
+
+      expect(
+        JSON.parse(localStorage.getItem(DRAFT_KEY)!).content,
+      ).toBe("작성 중인 내용");
+    });
+
+    it("AC11: 입력했던 본문을 모두 지우면 저장된 초안도 사라진다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      const textbox = screen.getByRole("textbox");
+      await user.type(textbox, "내용");
+      expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull();
+
+      await user.clear(textbox);
+
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it("AC12: 본문이 있는 초안이 저장되어 있으면 재진입 시 복원 배너가 보인다", () => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(STORED_DRAFT));
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+
+      render(<ReviewSection officeId="office-1" />);
+
+      expect(
+        screen.getByText("이어서 작성하시겠어요?"),
+      ).toBeInTheDocument();
+    });
+
+    it("AC13: '복원'을 누르면 초안 값이 폼에 채워지고 배너는 사라지지만 storage는 남는다", async () => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(STORED_DRAFT));
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.click(screen.getByRole("button", { name: "복원" }));
+
+      expect(screen.getByRole("textbox")).toHaveValue("친절했어요");
+      expect(screen.getByRole("radio", { name: "4점" })).toBeChecked();
+      expect(
+        screen.queryByText("이어서 작성하시겠어요?"),
+      ).not.toBeInTheDocument();
+      expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull();
+    });
+
+    it("AC14: '새로 작성'을 누르면 배너가 사라지고 storage도 지워지며 폼은 비어있다", async () => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(STORED_DRAFT));
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.click(screen.getByRole("button", { name: "새로 작성" }));
+
+      expect(
+        screen.queryByText("이어서 작성하시겠어요?"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("textbox")).toHaveValue("");
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it("AC15: 정상 제출하면 저장된 초안도 함께 지워진다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const submitReview = vi.fn().mockResolvedValue(true);
+      useOfficeReviews.mockReturnValue({ ...baseHookState, submitReview });
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.click(screen.getByRole("radio", { name: "5점" }));
+      await user.type(
+        screen.getByRole("textbox"),
+        "충분히 긴 리뷰 본문입니다 열 자 이상",
+      );
+      expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull();
+
+      await user.click(screen.getByRole("button", { name: "등록" }));
+
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it("AC16: 본문이 있는 상태에서 beforeunload가 발생하면 이탈 경고가 뜬다", async () => {
+      useSession.mockReturnValue(AUTHENTICATED_SESSION);
+      const user = userEvent.setup();
+
+      render(<ReviewSection officeId="office-1" />);
+      await user.type(screen.getByRole("textbox"), "작성 중");
+
+      const event = new Event("beforeunload", {
+        cancelable: true,
+      }) as BeforeUnloadEvent;
+      const preventDefaultSpy = vi.spyOn(event, "preventDefault");
+      window.dispatchEvent(event);
+
+      expect(preventDefaultSpy).toHaveBeenCalled();
     });
   });
 });

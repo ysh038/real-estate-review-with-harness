@@ -1,6 +1,9 @@
 "use client";
 
 import styles from "./page.module.css";
+import { EmptyState } from "../../../components/EmptyState";
+import { ErrorState } from "../../../components/ErrorState";
+import { ReviewListSkeleton } from "../../../components/Skeleton";
 import { useMyReviews } from "../../../hooks/useMyReviews";
 
 /** `MyReviewsPanel`(모달)을 대체하는 마이페이지 리뷰 탭. 데이터 로직은 그대로 재사용한다. */
@@ -11,12 +14,10 @@ const MyPageReviewsPage = () => {
     <section>
       <h1 className={styles.title}>내 리뷰</h1>
 
-      {isLoading ? <p className={styles.status}>불러오는 중…</p> : null}
-      {error ? (
-        <p className={styles.statusError}>리뷰를 불러오지 못했습니다</p>
-      ) : null}
+      {isLoading ? <ReviewListSkeleton /> : null}
+      {error ? <ErrorState message="리뷰를 불러오지 못했습니다" /> : null}
       {!isLoading && reviews.length === 0 ? (
-        <p className={styles.status}>아직 작성한 리뷰가 없습니다</p>
+        <EmptyState message="아직 작성한 리뷰가 없습니다" />
       ) : null}
 
       <ul className={styles.list}>

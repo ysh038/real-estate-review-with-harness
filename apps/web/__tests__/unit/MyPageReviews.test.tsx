@@ -76,6 +76,38 @@ describe("MyPageReviewsPage", () => {
     expect(screen.getByText("아직 작성한 리뷰가 없습니다")).toBeInTheDocument();
   });
 
+  it("AC6(review-ux-consistency-and-draft): 로딩 중에는 스켈레톤이 보인다", () => {
+    useMyReviews.mockReturnValue({
+      reviews: [],
+      nextCursor: null,
+      isLoading: true,
+      error: null,
+      loadMore: vi.fn(),
+    });
+
+    const { container } = render(<MyPageReviewsPage />);
+
+    expect(
+      container.querySelectorAll("[data-testid='review-skeleton-card']"),
+    ).toHaveLength(3);
+  });
+
+  it("AC6(review-ux-consistency-and-draft): 조회 실패 시 에러 상태가 role=alert로 보인다", () => {
+    useMyReviews.mockReturnValue({
+      reviews: [],
+      nextCursor: null,
+      isLoading: false,
+      error: new Error("network fail"),
+      loadMore: vi.fn(),
+    });
+
+    render(<MyPageReviewsPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "리뷰를 불러오지 못했습니다",
+    );
+  });
+
   it("AC17: nextCursor가 있으면 더보기 버튼이 있고 누르면 loadMore가 호출된다", async () => {
     const loadMore = vi.fn();
     useMyReviews.mockReturnValue({
