@@ -2,6 +2,16 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-27 5e01bdd 리뷰 수정 시 사진 변경(추가/삭제) — Phase 2 완료 (명세:
+  docs/specs/review-edit-photo-changes.md — AC1~11 전부 확인).
+  review-photo-upload·review-edit-and-delete-ui 두 명세에서 범위 밖으로
+  뗐던 마지막 항목. 편집 폼에서 기존 사진 제거·새 사진 추가 가능, 저장 시
+  "남은 기존 사진 → 새로 업로드한 사진" 순서로 photoKeys 구성. 작성 폼
+  (useOfficeReviews.submitReview)과 동일한 원칙으로 업로드 오케스트레이션을
+  useMyReviews.updateReview에 새 인자(newPhotoFiles)로 내렸다 — 실패 시 PATCH
+  자체를 안 보냄. Vitest 12건 신규, 브라우저로 RequireAuth 리다이렉트·무크래시
+  확인(첫 시도에 500 에러가 떴으나 원인은 직전 하네스 게이트의 next build가
+  next dev의 .next 캐시를 손상시킨 것 — 코드 문제 아님, .next 삭제로 해결).
 - 2026-08-27 c2a28f7 카카오 Places 지역명 검색 (Phase 13 마무리, 명세:
   docs/specs/kakao-places-location-search.md — AC1~16 전부 확인).
   office-search-bar에서 범위 밖으로 뗐던 항목 — 검색바가 우리 DB 사무소
