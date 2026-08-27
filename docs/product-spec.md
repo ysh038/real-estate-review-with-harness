@@ -254,14 +254,20 @@ AC1~12 전부 확인, Vitest 20건 신규 + 통합 테스트 + 브라우저 검�
 
 #### Phase 13 — 검색 & 탐색 UX
 
-**사무소 이름/주소 검색 완료** (명세: `specs/office-search-bar.md` — AC1~21 전부
+**사무소 이름/주소 검색** (명세: `specs/office-search-bar.md` — AC1~21 전부
 확인, Vitest 20건 신규 + 통합 테스트 + 브라우저 검증에서 실제 버그 2건 발견·수정)
 
 - [x] 사무소 이름/주소 검색 API(`GET /api/offices/search`) + 검색바 컴포넌트
 - [x] 디바운스 + 키보드 탐색(방향키/Enter/Esc), combobox ARIA
 - [x] 검색 결과 없음 상태
-- [ ] 주소/지역명 검색(카카오 Places) — 별도 데이터 소스·UI가 필요해 별도 명세로
-      분리(`docs/specs/office-search-bar.md` "범위 밖" 참고)
+
+**카카오 Places 지역명 검색** (명세: `specs/kakao-places-location-search.md` —
+AC1~16 전부 확인, Vitest 23건 신규 + 브라우저 검증에서 지도 로딩이 영영
+멈추는 실버그 1건 발견·수정)
+
+- [x] 지역명·장소 검색(카카오 Places `keywordSearch`, 클라이언트 직접 호출) —
+      사무소 검색과 병렬 실행, 결과 최대 3건 "장소" 섹션 표시
+- [x] 장소 선택 시 지도 이동·확대(상세 패널은 열지 않음)
 
 ## 하지 않기로 한 것
 

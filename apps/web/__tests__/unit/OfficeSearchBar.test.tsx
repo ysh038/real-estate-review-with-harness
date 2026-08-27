@@ -4,9 +4,37 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OfficeSearchBar } from "../../components/OfficeSearchBar";
+import type { IKakaoPlace } from "../../hooks/useKakaoPlacesSearch";
 
 const { useOfficeSearch } = vi.hoisted(() => ({ useOfficeSearch: vi.fn() }));
 vi.mock("../../hooks/useOfficeSearch", () => ({ useOfficeSearch }));
+
+const { useKakaoPlacesSearch } = vi.hoisted(() => ({
+  useKakaoPlacesSearch: vi.fn(),
+}));
+vi.mock("../../hooks/useKakaoPlacesSearch", () => ({ useKakaoPlacesSearch }));
+
+const PLACES_IDLE = {
+  places: [] as IKakaoPlace[],
+  isLoading: false,
+  error: null as Error | null,
+};
+
+const PLACE_A: IKakaoPlace = {
+  id: "place-a",
+  placeName: "역삼동",
+  addressName: "서울 강남구 역삼동",
+  lat: 37.5,
+  lng: 127.03,
+};
+
+const PLACE_B: IKakaoPlace = {
+  id: "place-b",
+  placeName: "역삼역",
+  addressName: "서울 강남구 테헤란로",
+  lat: 37.501,
+  lng: 127.036,
+};
 
 const OFFICE_A: TOfficeSummary = {
   id: "office-a",
@@ -33,10 +61,11 @@ const IDLE = { results: [] as TOfficeSummary[], isLoading: false, error: null as
 describe("OfficeSearchBar", () => {
   beforeEach(() => {
     useOfficeSearch.mockReset().mockReturnValue(IDLE);
+    useKakaoPlacesSearch.mockReset().mockReturnValue(PLACES_IDLE);
   });
 
   it("AC18: role=combobox 이고 초기엔 aria-expanded=false 다", () => {
-    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
 
     expect(screen.getByRole("combobox")).toHaveAttribute("aria-expanded", "false");
   });
@@ -45,7 +74,7 @@ describe("OfficeSearchBar", () => {
     useOfficeSearch.mockReturnValue({ ...IDLE, results: [OFFICE_A, OFFICE_B] });
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
     await user.type(screen.getByRole("combobox"), "공인");
 
     expect(screen.getByRole("option", { name: /분당공인중개사/ })).toBeInTheDocument();
@@ -57,7 +86,7 @@ describe("OfficeSearchBar", () => {
     useOfficeSearch.mockReturnValue({ ...IDLE, results: [] });
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
     await user.type(screen.getByRole("combobox"), "없는사무소");
 
     expect(screen.getByText("검색 결과가 없습니다")).toBeInTheDocument();
@@ -67,7 +96,7 @@ describe("OfficeSearchBar", () => {
     useOfficeSearch.mockReturnValue({ ...IDLE, results: [OFFICE_A, OFFICE_B] });
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
     const input = screen.getByRole("combobox");
     await user.type(input, "공인");
 
@@ -109,7 +138,7 @@ describe("OfficeSearchBar", () => {
     const onSelect = vi.fn();
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={onSelect} />);
+    render(<OfficeSearchBar onSelect={onSelect} onSelectPlace={vi.fn()} />);
     await user.type(screen.getByRole("combobox"), "공인");
     await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
 
@@ -120,7 +149,7 @@ describe("OfficeSearchBar", () => {
     useOfficeSearch.mockReturnValue({ ...IDLE, results: [OFFICE_A] });
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
     const input = screen.getByRole("combobox");
     await user.type(input, "공인");
     expect(screen.getByRole("listbox")).toBeInTheDocument();
@@ -135,7 +164,7 @@ describe("OfficeSearchBar", () => {
     useOfficeSearch.mockReturnValue({ ...IDLE, isLoading: true });
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
     await user.type(screen.getByRole("combobox"), "공인");
 
     expect(screen.getByText("검색 중…")).toBeInTheDocument();
@@ -145,7 +174,7 @@ describe("OfficeSearchBar", () => {
     useOfficeSearch.mockReturnValue({ ...IDLE, error: new Error("network fail") });
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={vi.fn()} />);
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
     await user.type(screen.getByRole("combobox"), "공인");
 
     expect(screen.getByRole("alert")).toHaveTextContent("검색에 실패했습니다");
@@ -156,10 +185,136 @@ describe("OfficeSearchBar", () => {
     const onSelect = vi.fn();
     const user = userEvent.setup();
 
-    render(<OfficeSearchBar onSelect={onSelect} />);
+    render(<OfficeSearchBar onSelect={onSelect} onSelectPlace={vi.fn()} />);
     await user.type(screen.getByRole("combobox"), "공인");
     await user.click(screen.getByRole("option", { name: /수정공인중개사/ }));
 
     expect(onSelect).toHaveBeenCalledWith(OFFICE_B);
+  });
+
+  it("AC8(kakao-places-location-search): 사무소·장소 결과가 모두 있으면 두 섹션 라벨로 나뉘어 보인다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, results: [OFFICE_A] });
+    useKakaoPlacesSearch.mockReturnValue({ ...PLACES_IDLE, places: [PLACE_A] });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "역삼");
+
+    expect(screen.getByText("사무소")).toBeInTheDocument();
+    expect(screen.getByText("장소")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /분당공인중개사/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /역삼동/ })).toBeInTheDocument();
+  });
+
+  it("AC9(kakao-places-location-search): 장소 결과만 있으면 섹션 라벨 없이 단일 목록으로 보인다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, results: [] });
+    useKakaoPlacesSearch.mockReturnValue({ ...PLACES_IDLE, places: [PLACE_A] });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "역삼");
+
+    expect(screen.queryByText("사무소")).not.toBeInTheDocument();
+    expect(screen.queryByText("장소")).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /역삼동/ })).toBeInTheDocument();
+  });
+
+  it("AC10(kakao-places-location-search): 방향키가 사무소 목록에서 장소 목록으로 이어서 순회한다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, results: [OFFICE_A] });
+    useKakaoPlacesSearch.mockReturnValue({
+      ...PLACES_IDLE,
+      places: [PLACE_A, PLACE_B],
+    });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "역삼");
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: /분당공인중개사/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: /역삼동/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: /역삼역/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    // 마지막(장소) 항목에서 더 내려도 순환하지 않는다.
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: /역삼역/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("AC11(kakao-places-location-search): 장소 항목을 클릭하면 onSelectPlace가 그 장소로 호출된다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, results: [] });
+    useKakaoPlacesSearch.mockReturnValue({ ...PLACES_IDLE, places: [PLACE_A] });
+    const onSelectPlace = vi.fn();
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={onSelect} onSelectPlace={onSelectPlace} />);
+    await user.type(screen.getByRole("combobox"), "역삼");
+    await user.click(screen.getByRole("option", { name: /역삼동/ }));
+
+    expect(onSelectPlace).toHaveBeenCalledWith(PLACE_A);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("AC11(kakao-places-location-search): 장소 항목에서 Enter를 눌러도 onSelectPlace가 호출된다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, results: [OFFICE_A] });
+    useKakaoPlacesSearch.mockReturnValue({ ...PLACES_IDLE, places: [PLACE_A] });
+    const onSelectPlace = vi.fn();
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={onSelectPlace} />);
+    await user.type(screen.getByRole("combobox"), "역삼");
+    await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+
+    expect(onSelectPlace).toHaveBeenCalledWith(PLACE_A);
+  });
+
+  it("AC12(kakao-places-location-search): 사무소·장소 결과가 모두 없으면 '검색 결과가 없습니다'가 보인다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, results: [] });
+    useKakaoPlacesSearch.mockReturnValue({ ...PLACES_IDLE, places: [] });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "없는지역명");
+
+    expect(screen.getByText("검색 결과가 없습니다")).toBeInTheDocument();
+  });
+
+  it("AC12(kakao-places-location-search): 장소 결과만 있으면 '검색 결과가 없습니다'가 보이지 않는다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, results: [] });
+    useKakaoPlacesSearch.mockReturnValue({ ...PLACES_IDLE, places: [PLACE_A] });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "역삼");
+
+    expect(screen.queryByText("검색 결과가 없습니다")).not.toBeInTheDocument();
+  });
+
+  it("AC13(kakao-places-location-search): 사무소 검색 에러여도 장소 결과는 그대로 보인다", async () => {
+    useOfficeSearch.mockReturnValue({ ...IDLE, error: new Error("network fail") });
+    useKakaoPlacesSearch.mockReturnValue({ ...PLACES_IDLE, places: [PLACE_A] });
+    const user = userEvent.setup();
+
+    render(<OfficeSearchBar onSelect={vi.fn()} onSelectPlace={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "역삼");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("검색에 실패했습니다");
+    expect(screen.getByRole("option", { name: /역삼동/ })).toBeInTheDocument();
   });
 });

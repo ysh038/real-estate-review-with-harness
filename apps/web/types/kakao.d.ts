@@ -74,6 +74,33 @@ declare global {
         handler: () => void,
       ): void;
     }
+
+    /** kakao-places-location-search: 지역명·장소 키워드 검색(클라이언트 직접 호출). */
+    namespace services {
+      enum Status {
+        OK = "OK",
+        ZERO_RESULT = "ZERO_RESULT",
+        ERROR = "ERROR",
+      }
+
+      interface IPlacesSearchResultItem {
+        id: string;
+        place_name: string;
+        address_name: string;
+        road_address_name: string;
+        /** 경도(문자열로 내려온다). */
+        x: string;
+        /** 위도(문자열로 내려온다). */
+        y: string;
+      }
+
+      class Places {
+        keywordSearch(
+          keyword: string,
+          callback: (data: IPlacesSearchResultItem[], status: Status) => void,
+        ): void;
+      }
+    }
   }
 
   interface IKakaoNamespace {
@@ -84,6 +111,7 @@ declare global {
       Marker: typeof kakao.maps.Marker;
       MarkerClusterer: typeof kakao.maps.MarkerClusterer;
       event: typeof kakao.maps.event;
+      services: typeof kakao.maps.services;
       load: (callback: () => void) => void;
     };
   }

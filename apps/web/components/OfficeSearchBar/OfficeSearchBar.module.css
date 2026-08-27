@@ -52,6 +52,13 @@
   color: var(--color-text-muted);
 }
 
+.sectionLabel {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
 .loadingState {
   padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-sm);

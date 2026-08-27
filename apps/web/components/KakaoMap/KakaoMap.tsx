@@ -5,6 +5,7 @@ import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./KakaoMap.module.css";
+import type { IKakaoPlace } from "../../hooks/useKakaoPlacesSearch";
 import { useOfficeMarkers } from "../../hooks/useOfficeMarkers";
 import { addMapListener, removeMapListener } from "../../lib/kakaoMapEvents";
 import { buildKakaoMapScriptUrl } from "../../lib/kakaoMapSdk";
@@ -43,6 +44,15 @@ export const KakaoMap = ({ initialOffice = null }: IKakaoMapProps = {}) => {
     map.setCenter(new window.kakao.maps.LatLng(office.lat, office.lng));
     map.setLevel(FOCUS_LEVEL);
     selectOffice(office);
+  };
+
+  // kakao-places-location-search AC14~AC16: 장소는 사무소가 아니므로 지도만 이동하고
+  // 상세 패널은 열지 않는다 — 이전에 열려 있던 패널이 있으면 닫는다.
+  const handleSearchSelectPlace = (place: IKakaoPlace) => {
+    if (!map) return;
+    map.setCenter(new window.kakao.maps.LatLng(place.lat, place.lng));
+    map.setLevel(FOCUS_LEVEL);
+    clearSelection();
   };
 
   // AC15: 백드롭 대신 지도 클릭으로 닫는다 — 패널이 열려 있어도 지도 조작이 살아 있어야
@@ -107,7 +117,10 @@ export const KakaoMap = ({ initialOffice = null }: IKakaoMapProps = {}) => {
         </p>
       ) : null}
       {status === "loaded" ? (
-        <OfficeSearchBar onSelect={handleSearchSelect} />
+        <OfficeSearchBar
+          onSelect={handleSearchSelect}
+          onSelectPlace={handleSearchSelectPlace}
+        />
       ) : null}
       <div ref={containerRef} className={styles.mapContainer} />
       {selectedOffice ? (
