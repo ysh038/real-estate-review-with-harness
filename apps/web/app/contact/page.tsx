@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import styles from "./page.module.css";
+import { LinkButton } from "../../design-system/components/LinkButton";
 
 export const metadata: Metadata = { title: "문의하기 | 경기도 공인중개사 리뷰" };
 
@@ -28,12 +29,12 @@ const ContactPage = () => (
           리뷰 삭제 요청, 사무소 정보 오류 제보, 기타 문의는 이메일로 보내주세요. 영업일
           기준 1~3일 이내에 답변드립니다.
         </p>
-        <a
+        <LinkButton
           href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("[경기도 공인중개사 리뷰] 문의")}`}
-          className={styles.primaryButton}
+          variant="primary"
         >
           이메일로 문의 보내기
-        </a>
+        </LinkButton>
       </section>
 
       <section className={styles.card}>
@@ -42,14 +43,9 @@ const ContactPage = () => (
           서비스 오작동이나 UI 개선 아이디어는 GitHub Issues로 남겨주시면 빠르게
           검토합니다.
         </p>
-        <a
-          href={ISSUES_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.secondaryButton}
-        >
+        <LinkButton href={ISSUES_URL} variant="ghost" external>
           GitHub Issues 열기
-        </a>
+        </LinkButton>
       </section>
 
       <div className={styles.faqPrompt}>

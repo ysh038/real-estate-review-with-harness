@@ -1,8 +1,9 @@
 # 계획: 청기와 기반 Atomic Design 전환 (atoms 후보 목록)
 
 - 작성일: 2026-08-28
-- 상태: **계획 (명세 이전 단계)** — 아직 `/spec`도 `/impl`도 시작하지 않았다
-- 다음 액션: 아래 "결정 필요" 항목을 확정한 뒤 청크 1(atoms)부터 `/spec`
+- 상태: **청크 1(atoms) 완료** — `docs/specs/design-system-atoms.md` AC1~27 전부 확인
+- 다음 액션: 청크 2(molecules) `/spec` — `RatingInput`·`TagChipGroup`·
+  `DealFieldSet`·`PhotoUploader`·`FormError`, `Badge` atom도 이때 함께
 
 > 다른 PC에서 이어서 작업할 수 있도록 조사 결과를 근거까지 남긴 문서다.
 > 목록만 보고 바로 만들지 말고 "결정 필요" 섹션을 먼저 읽을 것.
@@ -206,32 +207,41 @@ atoms가 확정된 뒤에 진행. 여기서 22개 중복이 실제로 해소된�
 
 ## 진행 순서 (청크 제안)
 
-1. **청크 1 — atoms**: A1~A5 (+ 스토리). 가장 확실한 5개만. A6·A7은 결정 후.
-2. **청크 2 — molecules**: 위 표 6종. 여기서 중복 22개 해소.
+1. **청크 1 — atoms ✅ 완료(2026-08-28)**: `Button`·`LinkButton`·`Chip`·`Select`·
+   `TextArea`·`Input`·`FieldRow` 7종, 각각 `.tsx`+`.module.css`+`.stories.tsx`+
+   `index.ts`. `apps/web/design-system/components/`에 있다. contact 페이지를
+   파일럿으로 교체 완료(AC24~27). 상세: `docs/specs/design-system-atoms.md`.
+   **다음 청크가 알아야 할 것**: `FieldRow`는 `<dt>`/`<dd>`만 그리므로 반드시
+   `<dl>`로 감싸서 써야 한다(안 그러면 axe 위반 — 스토리에서 실제로 발견함).
+2. **청크 2 — molecules**: 위 표 6종 + `Badge` atom(A6, 이번에 미룸). 여기서
+   중복 22개 해소.
 3. **청크 3 — ReviewSection·MyReviewItem 교체**: 진짜 리팩터. 99개 테스트가
    무수정 통과해야 함. 여기서 `:focus-visible` 드리프트가 자동 해소된다.
+   `reportButton`을 Button `ghost`로 볼지 Chip으로 볼지 이 청크 명세에서 확정
+   (청크 1의 열린 질문 1번, 미결).
 4. **청크 4 — 나머지 organisms**: OfficeSearchBar, PhotoLightbox, LoginButton,
    mypage 하위 페이지들.
 
-각 청크마다 `/spec` → `/impl` → `/ship`. 청크 1을 명세할 때 atom API(variant 이름,
-prop 형태)를 확정하면 이후가 규정되므로, **청크 1 명세에 가장 공을 들일 것.**
+각 청크마다 `/spec` → `/impl` → `/ship`.
 
-## 결정 필요 (착수 전 사용자 확인)
+## 결정 완료 (2026-08-28, 사용자 확정)
 
-1. **variant 이름 체계** — 위 표의 `primary`/`ghost`/`outline`/`danger`/`overlay`는
-   내가 실측 스타일에서 역산해 붙인 이름이지 확정이 아니다.
-   **확인 완료: 청기와 명세에는 버튼 variant 정의가 없다** — 토큰만 교체했고
-   컴포넌트 API는 건드리지 않았다. 즉 이 이름들은 이번에 새로 정하는 것이다.
-2. **`FieldRow`(A7)를 atom으로 볼 것인가 molecule로 볼 것인가** — label+value 두
-   요소의 조합이라 엄밀히는 molecule이지만, 실사용은 atom처럼 단순하다.
-3. **contact 페이지 `primaryButton`의 `bg: --color-text`** — 다른 primary 버튼은
-   전부 `--color-primary`인데 여기만 다르다. 의도된 디자인인지, 청기와 적용 때
-   누락된 드리프트인지 확인 후 `primary`로 통합할지 결정.
-   (참고: 청기와 명세의 "만질 파일" 목록에 `contact/page.module.css`가 없다 —
-   토큰 교체 대상에서 빠졌을 가능성이 있어 **드리프트 쪽에 무게**를 둔다.)
-4. **`photoRemoveButton`을 `IconButton` 별도 atom으로 뺄지, `Button size="icon"`으로
-   흡수할지.**
-5. **`Button` vs `LinkButton` 분리 여부** — 위 "링크형 버튼" 참고. (b) 분리 권장.
+1. **버튼 variant 이름 = `primary` / `ghost` / `outline` / `danger` / `overlay`**
+   (실측 스타일에서 역산한 이름 그대로 채택). 청기와 명세에는 버튼 variant 정의가
+   없어 — 토큰만 교체했고 컴포넌트 API는 안 건드렸다 — 이 이름 체계는 이번에
+   새로 정하는 것이다.
+2. **`FieldRow`(A7)는 atom으로 둔다.** label+value 두 요소 조합이라 엄밀히는
+   molecule이지만 실사용이 단순해 atom 취급한다.
+3. **contact `primaryButton`의 `bg: --color-text`는 드리프트로 보고 `--color-primary`로
+   통일한다.** 근거: 청기와 명세의 "만질 파일" 목록에 `contact/page.module.css`가
+   없다(`page.tsx`만 라벨 문구 때문에 포함) — 토큰 교체에서 누락된 것.
+   → `LinkButton variant="primary"`로 교체하면 자동 해소되지만, **화면 색이
+   실제로 바뀌는 유일한 지점**이므로 명세 AC로 명시하고 브라우저로 확인할 것.
+4. **`photoRemoveButton`은 별도 `IconButton`을 만들지 않고 `Button size="icon"`으로
+   흡수한다.** 사용처가 1종(두 곳에 중복)뿐이라 별도 컴포넌트는 과하다.
+5. **`Button` / `LinkButton` 두 atom으로 분리한다.** 다형 `as` prop을 쓰지 않는다 —
+   이 저장소가 `any` 금지 + `composes` 불가라 다형 타입의 비용이 크다.
+   스타일 공유는 className 문자열 연결로 한다.
 
 ## 참고 문서
 

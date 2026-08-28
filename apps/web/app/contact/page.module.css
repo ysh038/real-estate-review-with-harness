@@ -56,33 +56,6 @@
   line-height: 1.6;
 }
 
-.primaryButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-inverse);
-  background-color: var(--color-text);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-}
-
-.secondaryButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-}
-
 .faqPrompt {
   display: flex;
   flex-wrap: wrap;
