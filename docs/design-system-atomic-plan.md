@@ -1,9 +1,11 @@
 # 계획: 청기와 기반 Atomic Design 전환 (atoms 후보 목록)
 
 - 작성일: 2026-08-28
-- 상태: **청크 1(atoms) 완료** — `docs/specs/design-system-atoms.md` AC1~27 전부 확인
-- 다음 액션: 청크 2(molecules) `/spec` — `RatingInput`·`TagChipGroup`·
-  `DealFieldSet`·`PhotoUploader`·`FormError`, `Badge` atom도 이때 함께
+- 상태: **청크 1·2 완료.** atoms `docs/specs/design-system-atoms.md` AC1~27,
+  molecules `docs/specs/design-system-molecules.md` AC1~31.
+- 다음 액션: 청크 3 `/spec` — `ReviewSection`·`MyReviewItem`을 청크 2 molecule로
+  교체. 99개 테스트 무수정 통과. `reportButton`을 Button `ghost`로 볼지 Chip으로
+  볼지 이 명세에서 확정(청크 1 열린 질문 1번).
 
 > 다른 PC에서 이어서 작업할 수 있도록 조사 결과를 근거까지 남긴 문서다.
 > 목록만 보고 바로 만들지 말고 "결정 필요" 섹션을 먼저 읽을 것.
@@ -174,17 +176,21 @@ Chip(토글 가능)과 Badge(읽기 전용)는 역할이 달라 **분리 유지 
 
 ---
 
-## Molecules 후보 (다음 청크 — 참고용)
+## Molecules 후보 (청크 2 — 명세: `docs/specs/design-system-molecules.md`)
 
-atoms가 확정된 뒤에 진행. 여기서 22개 중복이 실제로 해소된다.
+atoms 확정 후 진행. **22개 중복의 실제 해소는 청크 3**이다. 청크 2는 흡수할
+molecule을 만들고 스토리로 고정한다.
 
-| molecule | 구성 | 대체 대상 |
+재실측으로 고친 행은 **굵게** 표시. 구현은 이 표가 아니라 명세 AC를 따른다.
+
+| molecule / atom | 구성 | 대체 대상 |
 |---|---|---|
+| `Badge` (atom, A6) | variant `tag`\|`warning` | `tagBadge`·`lowConfidenceBadge` |
 | `RatingInput` | Radio×5 | `ratingInput`+`ratingLabel` (2곳 중복) |
 | `RatingDisplay` | ★ 문자열 + `--color-rating` | `rating` (2곳 중복) |
-| `TagChipGroup` | Chip×6 | `tagChipGroup` (2곳 중복) |
-| `DealFieldSet` | Select×4 + NumberInput×1 | `dealFields` (2곳 중복) |
-| `PhotoUploader` | 미리보기 + IconButton + file input | `photoSection` 일체 (2곳 중복, 사진 편집 기능 포함) |
+| `TagChipGroup` | Chip×N | `tagChipGroup` (2곳 중복) |
+| `DealFieldSet` | **Select×5 + Input number** | `dealFields` (2곳 중복) |
+| `PhotoUploader` | 미리보기 + Button icon + file input. **items[]로 평평** (File vs kept는 부모) | `photoSection` 일체 |
 | `FormError` | role=alert 문구 | `formError` (2곳 중복) |
 
 ---
@@ -213,8 +219,10 @@ atoms가 확정된 뒤에 진행. 여기서 22개 중복이 실제로 해소된�
    파일럿으로 교체 완료(AC24~27). 상세: `docs/specs/design-system-atoms.md`.
    **다음 청크가 알아야 할 것**: `FieldRow`는 `<dt>`/`<dd>`만 그리므로 반드시
    `<dl>`로 감싸서 써야 한다(안 그러면 axe 위반 — 스토리에서 실제로 발견함).
-2. **청크 2 — molecules**: 위 표 6종 + `Badge` atom(A6, 이번에 미룸). 여기서
-   중복 22개 해소.
+2. **청크 2 — molecules ✅ 완료(2026-08-28)**:
+   `docs/specs/design-system-molecules.md` AC1~31. Badge atom + molecule 7종
+   (RatingInput·RatingDisplay·TagChipGroup·DealFieldSet·PhotoUploader·FormError),
+   스토리 37개, OfficeInfoFields Badge `warning` 파일럿. 중복 22개 해소는 청크 3.
 3. **청크 3 — ReviewSection·MyReviewItem 교체**: 진짜 리팩터. 99개 테스트가
    무수정 통과해야 함. 여기서 `:focus-visible` 드리프트가 자동 해소된다.
    `reportButton`을 Button `ghost`로 볼지 Chip으로 볼지 이 청크 명세에서 확정

@@ -1,6 +1,7 @@
 import { LOW_MATCH_CONFIDENCE_THRESHOLD, type TOfficeSummary } from "@repo/types";
 
 import styles from "./OfficeInfoFields.module.css";
+import { Badge } from "../../design-system/components/Badge";
 
 const EMPTY_VALUE = "정보 없음";
 
@@ -31,7 +32,7 @@ export const OfficeInfoFields = ({ office }: IOfficeInfoFieldsProps) => {
         <dt className={styles.label}>주소</dt>
         <dd className={styles.value}>{office.address}</dd>
         {isLowConfidence ? (
-          <p className={styles.lowConfidenceBadge}>위치 정보 정확도가 낮을 수 있어요</p>
+          <Badge variant="warning">위치 정보 정확도가 낮을 수 있어요</Badge>
         ) : null}
       </div>
       <div className={styles.field}>
