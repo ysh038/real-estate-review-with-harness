@@ -2,6 +2,18 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-28 dc12a88 ReviewSection·MyReviewItem을 atom/molecule로 교체 - Atomic
+  Design 청크 3 (명세: docs/specs/design-system-review-organisms.md — AC1~31 전부
+  확인, 계획: docs/design-system-atomic-plan.md). 두 organism의 CSS 22개 중복을
+  RatingInput·RatingDisplay·DealFieldSet·TagChipGroup·PhotoUploader·FormError
+  molecule과 Button·Chip·Badge atom으로 교체해 실제로 없앴다. reportButton은
+  Button ghost로 확정(청크 1 열린 질문 1번). PhotoUploader에 removeLabel 필드
+  추가(기존/새 사진 삭제 라벨 구분, 전역 인덱스로는 재구성 불가해 필요). 기존
+  테스트 78개(ReviewSection 53 + MyPageReviews 25) 무수정 통과, 전체 269 +
+  Storybook 94 무회귀. Docker 기동 후 실제 브라우저에서 시각 변경 실측 확인
+  (Chip 배경 통일, copyLink 버튼 pill→각짐). 다음 액션은 청크 4
+  (OfficeSearchBar·PhotoLightbox·LoginButton·mypage) `/spec`.
+
 - 2026-08-28 76c1c49 디자인시스템 molecules 6종 + Badge atom - Atomic Design 청크 2 (명세:
   docs/specs/design-system-molecules.md — AC1~31 전부 확인, 계획:
   docs/design-system-atomic-plan.md). 청크 1 atom만으로는 ReviewSection·
