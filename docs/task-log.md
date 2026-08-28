@@ -2,6 +2,16 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-28 76c1c49 디자인시스템 molecules 6종 + Badge atom - Atomic Design 청크 2 (명세:
+  docs/specs/design-system-molecules.md — AC1~31 전부 확인, 계획:
+  docs/design-system-atomic-plan.md). 청크 1 atom만으로는 ReviewSection·
+  MyReviewItem의 CSS 22개 중복이 안 풀려, 폼 조각 molecule을 스토리로 고정.
+  DealFieldSet는 계획의 Select×4가 아니라 재실측 Select×5+연도 Input.
+  PhotoUploader는 쓰기 File[]와 수정 kept+new가 달라 items[]로 평평하게 받음
+  (도메인 상수는 molecule이 import하지 않음). OfficeInfoFields 낮은 신뢰도
+  배지만 파일럿 교체. ReviewSection·MyReviewItem은 청크 3. Storybook 93
+  (신규 play 37) + 유닛 269 무회귀. 다음 액션은 청크 3 `/spec`.
+
 - 2026-08-28 a066168 디자인시스템 atoms 7종 - Atomic Design 청크 1 (명세:
   docs/specs/design-system-atoms.md — AC1~27 전부 확인, 계획:
   docs/design-system-atomic-plan.md). Button 클래스 25개+가 실측상 5개
