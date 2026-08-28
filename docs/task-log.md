@@ -2,6 +2,27 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-28 a066168 디자인시스템 atoms 7종 - Atomic Design 청크 1 (명세:
+  docs/specs/design-system-atoms.md — AC1~27 전부 확인, 계획:
+  docs/design-system-atomic-plan.md). Button 클래스 25개+가 실측상 5개
+  variant로 수렴, ReviewSection·MyReviewItem이 CSS 클래스 22개를 중복
+  정의(MyReviewItem의 :focus-visible 0개 vs ReviewSection 8개인 접근성
+  드리프트 이미 발생)한 것을 발견 — Button·LinkButton·Chip·Select·
+  TextArea·Input·FieldRow 7종을 apps/web/design-system/components/에
+  신설. aria-pressed 쓰는 기존 버튼 5개가 전부 pill이라 "pill 토글은
+  Chip이 흡수" 규칙 확정, contact 페이지 버튼 2개가 실제로 <a>였던 것을
+  발견해 LinkButton을 Button과 분리. contact 페이지를 파일럿으로 교체
+  (청기와 리브랜딩 누락 드리프트도 해소). 스토리 작성 중 FieldRow가
+  <dl> 없이 렌더되면 axe 위반이라는 진짜 버그 1건 발견, 스토리에 <dl>
+  데코레이터 추가로 해결. ReviewSection·MyReviewItem 교체는 청크 3으로
+  분리. Storybook 스토리 46개 신규(test:storybook 통과) + 유닛 테스트
+  269개 무회귀.
+  - **환경 메모**: 게이트의 build 단계와 커밋 훅이 dev 서버와 같은
+    apps/web/.next를 써서, 게이트를 돌리거나 커밋할 때마다 띄워둔 dev
+    서버가 500으로 깨졌다(총 3회 재현) — rm -rf .next뿐 아니라 build
+    자체가 원인. 매번 재기동으로 복구했다. dev 서버를 계속 띄워둔 채
+    게이트/커밋을 하는 워크플로 자체의 구조적 충돌이라 별도 확인 필요.
+
 - 2026-08-28 739d101 "청기와" 디자인시스템 적용 + Places 카테고리 필터 +
   문의 이메일 노출 제거 (명세: docs/specs/design-system-cheonggiwa-rebrand.md
   — AC1~13 전부 확인). Claude Design(claude.ai/design) 프로젝트에서
