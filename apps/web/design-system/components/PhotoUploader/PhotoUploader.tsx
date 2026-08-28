@@ -5,6 +5,9 @@ export interface IPhotoItem {
   id: string;
   src: string;
   alt: string;
+  /** 생략하면 `사진 ${index+1} 삭제`. 여러 리스트를 합쳐 렌더할 때(부모가
+   *  전역 인덱스로는 만들 수 없는 라벨이 필요할 때) 직접 지정한다. */
+  removeLabel?: string;
 }
 
 export interface IPhotoUploaderProps {
@@ -35,7 +38,7 @@ export const PhotoUploader = ({
             <Button
               size="icon"
               className={styles.removeButton}
-              aria-label={`사진 ${index + 1} 삭제`}
+              aria-label={item.removeLabel ?? `사진 ${index + 1} 삭제`}
               onClick={() => onRemove(item.id)}
             >
               ×

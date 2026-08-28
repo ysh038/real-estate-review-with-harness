@@ -55,51 +55,10 @@
   gap: var(--space-2);
 }
 
-.sortButton {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-/* primary 위 흰 글자(7.4:1) — 선택된 칩/정렬/도움돼요 버튼이 공유하는 상태. */
-.tagChipSelected,
-.sortButtonActive,
-.helpfulButton[aria-pressed="true"] {
-  color: var(--color-text-inverse);
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
 .itemActions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.copyLinkButton,
-.reportButton {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.copyLinkButton:hover,
-.reportButton:hover {
-  color: var(--color-text);
-  background-color: var(--color-background);
-}
-
-.reportButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .itemHeader {
@@ -113,13 +72,6 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text);
-}
-
-.rating {
-  font-size: var(--font-size-sm);
-  /* warning(#e0a227)은 배지 배경 전용 — 글자·아이콘으로 쓰면 대비 2.2:1 밖에
-     안 된다. 별점에는 반드시 rating 토큰을 쓴다. */
-  color: var(--color-rating); /* on #fff 5.9:1 */
 }
 
 .content {
@@ -143,30 +95,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.tagBadge {
-  padding: 0 var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.loadMoreButton {
-  padding: var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.loadMoreButton:hover {
-  color: var(--color-text);
-  background-color: var(--color-surface);
 }
 
 .form {
@@ -195,137 +123,6 @@
   gap: var(--space-2);
 }
 
-.draftBannerButton {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  cursor: pointer;
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.ratingInput {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.ratingLabel {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-}
-
-.textarea {
-  min-height: 96px;
-  padding: var(--space-3);
-  font-family: var(--font-family-base);
-  /* iOS 자동 확대 방지(감사 High #1) — 전용 토큰. */
-  font-size: var(--font-size-input);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  resize: vertical;
-}
-
-.dealFields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.tagChipGroup {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-}
-
-.tagChip {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.helpfulButton {
-  align-self: flex-start;
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-}
-
-.helpfulButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.dealSelect,
-.yearInput {
-  padding: var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.yearInput {
-  width: 6em;
-}
-
-.formError {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-error);
-}
-
-.submitButton {
-  /* 터치 타깃 44px 확보. */
-  min-height: 44px;
-  padding: var(--space-3) var(--space-5);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-inverse);
-  cursor: pointer;
-  background-color: var(--color-primary);
-  border: none;
-  border-radius: var(--radius-sm);
-}
-
-.submitButton:hover {
-  background-color: var(--color-primary-hover);
-}
-
-.submitButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* 키보드 포커스 링 — addon-a11y 키보드 접근성 항목. */
-.textarea:focus-visible,
-.dealSelect:focus-visible,
-.yearInput:focus-visible,
-.submitButton:focus-visible,
-.tagChip:focus-visible,
-.sortButton:focus-visible,
-.loadMoreButton:focus-visible,
-.helpfulButton:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
 .photoThumbnailList {
   display: flex;
   flex-wrap: wrap;
@@ -348,72 +145,6 @@
   height: 64px;
   object-fit: cover;
   border-radius: var(--radius-sm);
-}
-
-.photoSection {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.photoPreviewList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.photoPreviewItem {
-  position: relative;
-}
-
-.photoPreviewImage {
-  display: block;
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-}
-
-.photoRemoveButton {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  font-size: 11px;
-  line-height: 1;
-  color: var(--color-text-inverse);
-  cursor: pointer;
-  background-color: var(--color-secondary);
-  border: none;
-  border-radius: var(--radius-full);
-}
-
-.photoAddLabel {
-  display: flex;
-  align-items: center;
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  background-color: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.photoFileInput {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
 }
 
 .loginPrompt {

@@ -16,11 +16,35 @@ import {
 import { useState } from "react";
 
 import styles from "./MyReviewItem.module.css";
+import { Button } from "../../design-system/components/Button";
+import { DealFieldSet, type TDealField } from "../../design-system/components/DealFieldSet";
+import { FormError } from "../../design-system/components/FormError";
+import { PhotoUploader, type IPhotoItem } from "../../design-system/components/PhotoUploader";
+import { RatingDisplay } from "../../design-system/components/RatingDisplay";
+import { RatingInput } from "../../design-system/components/RatingInput";
+import { TagChipGroup } from "../../design-system/components/TagChipGroup";
+import { TextArea } from "../../design-system/components/TextArea";
 
-const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 const NOT_SELECTED = "";
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+// design-system-review-organisms: DealFieldSet은 도메인 옵션을 모른다 — ReviewSection과
+// 같은 매핑을 이 파일에도 둔다(옵션 자체가 4~5줄이라 공용 유틸로 뺄 이득이 작다).
+const DEAL_TYPE_OPTIONS = DEAL_TYPES.map((option) => ({ value: option, label: option }));
+const DEAL_RESULT_OPTIONS = DEAL_RESULTS.map((option) => ({ value: option, label: option }));
+const EXPERTISE_OPTIONS = EXPERTISE_LEVELS.map((option) => ({ value: option, label: option }));
+const DEFECT_RESPONSE_OPTIONS = DEFECT_RESPONSES.map((option) => ({
+  value: option,
+  label: option,
+}));
+const MONTH_SELECT_OPTIONS = MONTH_OPTIONS.map((month) => ({
+  value: String(month),
+  label: `${month}월`,
+}));
+
+const KEPT_ID_PREFIX = "kept-";
+const NEW_ID_PREFIX = "new-";
 
 export interface IMyReviewItemProps {
   review: TMyReview;
@@ -101,20 +125,69 @@ export const MyReviewItem = ({ review, onUpdate, onDelete }: IMyReviewItemProps)
     );
   };
 
+  const handleDealFieldChange = (field: TDealField, value: string) => {
+    switch (field) {
+      case "dealType":
+        setDealType(value);
+        break;
+      case "dealResult":
+        setDealResult(value);
+        break;
+      case "visitedYear":
+        setVisitedYear(value);
+        break;
+      case "visitedMonth":
+        setVisitedMonth(value);
+        break;
+      case "expertise":
+        setExpertise(value);
+        break;
+      case "defectResponse":
+        setDefectResponse(value);
+        break;
+    }
+  };
+
   const removeKeptPhoto = (index: number) => {
     setKeptPhotos((current) => current.filter((_, i) => i !== index));
   };
 
-  const handlePhotoFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files ?? []);
-    const room = REVIEW_PHOTOS_MAX - keptPhotos.length - newPhotoFiles.length;
-    setNewPhotoFiles((current) => [...current, ...selected.slice(0, room)]);
-    // 같은 파일을 다시 선택해도 change가 발생하도록 초기화한다.
-    event.target.value = "";
+  const addNewPhotoFiles = (files: File[]) => {
+    setNewPhotoFiles((current) => {
+      const room = REVIEW_PHOTOS_MAX - keptPhotos.length - current.length;
+      return [...current, ...files.slice(0, room)];
+    });
   };
 
   const removeNewPhotoFile = (index: number) => {
     setNewPhotoFiles((current) => current.filter((_, i) => i !== index));
+  };
+
+  // design-system-review-organisms: 기존 사진 + 새 파일 두 리스트를 PhotoUploader
+  // 하나가 받는 평평한 items로 합친다. id 접두사로 삭제 시 어느 리스트인지 구분하고,
+  // removeLabel은 각자의 로컬 인덱스로 미리 계산해 둔다(합친 뒤의 전역 인덱스로는
+  // "새 사진 1 삭제"를 재구성할 수 없다 — PhotoUploader 확장 설계 메모 참고).
+  const photoItems: IPhotoItem[] = [
+    ...keptPhotos.map((photo, index) => ({
+      id: `${KEPT_ID_PREFIX}${index}`,
+      src: photo.url,
+      alt: `기존 사진 ${index + 1}`,
+      removeLabel: `기존 사진 ${index + 1} 삭제`,
+    })),
+    ...newPhotoFiles.map((file, index) => ({
+      id: `${NEW_ID_PREFIX}${index}`,
+      src: URL.createObjectURL(file),
+      alt: `새 사진 ${index + 1}`,
+      removeLabel: `새 사진 ${index + 1} 삭제`,
+    })),
+  ];
+
+  const handleRemovePhotoItem = (id: string) => {
+    if (id.startsWith(KEPT_ID_PREFIX)) {
+      removeKeptPhoto(Number(id.slice(KEPT_ID_PREFIX.length)));
+    } else {
+      removeNewPhotoFile(Number(id.slice(NEW_ID_PREFIX.length)));
+    }
   };
 
   const handleDelete = async () => {
@@ -180,198 +253,45 @@ export const MyReviewItem = ({ review, onUpdate, onDelete }: IMyReviewItemProps)
   if (isEditing) {
     return (
       <li className={styles.item}>
-        <div className={styles.ratingInput} role="radiogroup" aria-label="별점">
-          {RATING_OPTIONS.map((option) => (
-            <label key={option} className={styles.ratingLabel}>
-              <input
-                type="radio"
-                name={`rating-${review.id}`}
-                value={option}
-                checked={rating === option}
-                onChange={() => setRating(option)}
-                aria-label={`${option}점`}
-              />
-              {option}
-            </label>
-          ))}
-        </div>
-        <textarea
-          className={styles.textarea}
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
+        <RatingInput name={`rating-${review.id}`} value={rating} onChange={setRating} />
+        <TextArea value={content} onChange={(event) => setContent(event.target.value)} />
+        <DealFieldSet
+          values={{
+            dealType,
+            dealResult,
+            visitedYear,
+            visitedMonth,
+            expertise,
+            defectResponse,
+          }}
+          onChange={handleDealFieldChange}
+          dealTypeOptions={DEAL_TYPE_OPTIONS}
+          dealResultOptions={DEAL_RESULT_OPTIONS}
+          monthOptions={MONTH_SELECT_OPTIONS}
+          expertiseOptions={EXPERTISE_OPTIONS}
+          defectResponseOptions={DEFECT_RESPONSE_OPTIONS}
         />
-        <div className={styles.dealFields}>
-          <select
-            className={styles.dealSelect}
-            aria-label="거래유형"
-            value={dealType}
-            onChange={(event) => setDealType(event.target.value)}
-          >
-            <option value={NOT_SELECTED}>선택 안 함</option>
-            {DEAL_TYPES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <select
-            className={styles.dealSelect}
-            aria-label="거래결과"
-            value={dealResult}
-            onChange={(event) => setDealResult(event.target.value)}
-          >
-            <option value={NOT_SELECTED}>선택 안 함</option>
-            {DEAL_RESULTS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            className={styles.yearInput}
-            aria-label="방문 연도"
-            value={visitedYear}
-            onChange={(event) => setVisitedYear(event.target.value)}
-          />
-          <select
-            className={styles.dealSelect}
-            aria-label="방문 월"
-            value={visitedMonth}
-            onChange={(event) => setVisitedMonth(event.target.value)}
-          >
-            <option value={NOT_SELECTED}>선택 안 함</option>
-            {MONTH_OPTIONS.map((month) => (
-              <option key={month} value={month}>
-                {month}월
-              </option>
-            ))}
-          </select>
-          <select
-            className={styles.dealSelect}
-            aria-label="전문성"
-            value={expertise}
-            onChange={(event) => setExpertise(event.target.value)}
-          >
-            <option value={NOT_SELECTED}>선택 안 함</option>
-            {EXPERTISE_LEVELS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <select
-            className={styles.dealSelect}
-            aria-label="하자 대응"
-            value={defectResponse}
-            onChange={(event) => setDefectResponse(event.target.value)}
-          >
-            <option value={NOT_SELECTED}>선택 안 함</option>
-            {DEFECT_RESPONSES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className={styles.photoSection}>
-          {keptPhotos.length > 0 ? (
-            <ul className={styles.photoPreviewList}>
-              {keptPhotos.map((photo, index) => (
-                <li key={photo.storageKey} className={styles.photoPreviewItem}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.url}
-                    alt={`기존 사진 ${index + 1}`}
-                    className={styles.photoPreviewImage}
-                  />
-                  <button
-                    type="button"
-                    className={styles.photoRemoveButton}
-                    aria-label={`기존 사진 ${index + 1} 삭제`}
-                    onClick={() => removeKeptPhoto(index)}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {newPhotoFiles.length > 0 ? (
-            <ul className={styles.photoPreviewList}>
-              {newPhotoFiles.map((file, index) => (
-                <li key={`${file.name}-${index}`} className={styles.photoPreviewItem}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={`새 사진 ${index + 1}`}
-                    className={styles.photoPreviewImage}
-                  />
-                  <button
-                    type="button"
-                    className={styles.photoRemoveButton}
-                    aria-label={`새 사진 ${index + 1} 삭제`}
-                    onClick={() => removeNewPhotoFile(index)}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {keptPhotos.length + newPhotoFiles.length < REVIEW_PHOTOS_MAX ? (
-            <label className={styles.photoAddLabel}>
-              + 사진 추가
-              <input
-                type="file"
-                aria-label="사진 추가"
-                accept={ALLOWED_PHOTO_TYPES.join(",")}
-                multiple
-                className={styles.photoFileInput}
-                onChange={handlePhotoFilesChange}
-              />
-            </label>
-          ) : null}
-        </div>
-        <div className={styles.tagChipGroup} role="group" aria-label="태그">
-          {REVIEW_TAGS.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              className={
-                selectedTags.includes(tag)
-                  ? `${styles.tagChip} ${styles.tagChipSelected}`
-                  : styles.tagChip
-              }
-              aria-pressed={selectedTags.includes(tag)}
-              onClick={() => toggleTag(tag)}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-        {formError ? (
-          <p className={styles.formError} role="alert">
-            {formError}
-          </p>
-        ) : null}
-        {!formError && submitError ? (
-          <p className={styles.formError} role="alert">
-            {submitError}
-          </p>
-        ) : null}
+        <PhotoUploader
+          items={photoItems}
+          max={REVIEW_PHOTOS_MAX}
+          accept={ALLOWED_PHOTO_TYPES.join(",")}
+          onAdd={addNewPhotoFiles}
+          onRemove={handleRemovePhotoItem}
+        />
+        <TagChipGroup
+          options={[...REVIEW_TAGS]}
+          selected={selectedTags}
+          onToggle={(tag) => toggleTag(tag as TReviewTag)}
+        />
+        {formError ? <FormError>{formError}</FormError> : null}
+        {!formError && submitError ? <FormError>{submitError}</FormError> : null}
         <div className={styles.editActions}>
-          <button
-            type="button"
-            className={styles.saveButton}
-            disabled={isSubmitting}
-            onClick={() => void handleSave()}
-          >
+          <Button variant="primary" disabled={isSubmitting} onClick={() => void handleSave()}>
             저장
-          </button>
-          <button type="button" className={styles.cancelButton} onClick={handleCancelEdit}>
+          </Button>
+          <Button variant="ghost" onClick={handleCancelEdit}>
             취소
-          </button>
+          </Button>
         </div>
       </li>
     );
@@ -381,31 +301,20 @@ export const MyReviewItem = ({ review, onUpdate, onDelete }: IMyReviewItemProps)
     <li className={styles.item}>
       <div className={styles.itemHeader}>
         <span className={styles.officeName}>{review.officeName}</span>
-        <span className={styles.rating} aria-label={`${review.rating}점`}>
-          {"★".repeat(review.rating)}
-          {"☆".repeat(5 - review.rating)}
-        </span>
+        <RatingDisplay value={review.rating} />
       </div>
       <p className={styles.content}>{review.content}</p>
       {review.isHidden ? (
         <p className={styles.hiddenNotice}>신고 누적으로 숨김</p>
       ) : null}
-      {deleteError ? (
-        <p className={styles.formError} role="alert">
-          {deleteError}
-        </p>
-      ) : null}
+      {deleteError ? <FormError>{deleteError}</FormError> : null}
       <div className={styles.itemActions}>
-        <button type="button" className={styles.editButton} onClick={handleStartEdit}>
+        <Button variant="ghost" onClick={handleStartEdit}>
           수정
-        </button>
-        <button
-          type="button"
-          className={styles.deleteButton}
-          onClick={() => void handleDelete()}
-        >
+        </Button>
+        <Button variant="ghost" onClick={() => void handleDelete()}>
           삭제
-        </button>
+        </Button>
       </div>
     </li>
   );

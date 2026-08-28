@@ -1,11 +1,13 @@
 # 계획: 청기와 기반 Atomic Design 전환 (atoms 후보 목록)
 
 - 작성일: 2026-08-28
-- 상태: **청크 1·2 완료.** atoms `docs/specs/design-system-atoms.md` AC1~27,
-  molecules `docs/specs/design-system-molecules.md` AC1~31.
-- 다음 액션: 청크 3 `/spec` — `ReviewSection`·`MyReviewItem`을 청크 2 molecule로
-  교체. 99개 테스트 무수정 통과. `reportButton`을 Button `ghost`로 볼지 Chip으로
-  볼지 이 명세에서 확정(청크 1 열린 질문 1번).
+- 상태: **청크 1·2·3 완료.** atoms `docs/specs/design-system-atoms.md` AC1~27,
+  molecules `docs/specs/design-system-molecules.md` AC1~31, organisms
+  `docs/specs/design-system-review-organisms.md` AC1~31.
+- 다음 액션: 청크 4 `/spec` — `OfficeSearchBar`·`PhotoLightbox`·`LoginButton`·
+  mypage 하위 페이지를 atom/molecule로 교체. `reportButton` 분류(청크 1 열린
+  질문 1번)는 청크 3에서 Button `ghost`로 확정됐다. `PhotoUploader`에
+  `removeLabel?: string`이 추가됐으니 새 소비처가 필요하면 재사용한다.
 
 > 다른 PC에서 이어서 작업할 수 있도록 조사 결과를 근거까지 남긴 문서다.
 > 목록만 보고 바로 만들지 말고 "결정 필요" 섹션을 먼저 읽을 것.
@@ -223,10 +225,12 @@ molecule을 만들고 스토리로 고정한다.
    `docs/specs/design-system-molecules.md` AC1~31. Badge atom + molecule 7종
    (RatingInput·RatingDisplay·TagChipGroup·DealFieldSet·PhotoUploader·FormError),
    스토리 37개, OfficeInfoFields Badge `warning` 파일럿. 중복 22개 해소는 청크 3.
-3. **청크 3 — ReviewSection·MyReviewItem 교체**: 진짜 리팩터. 99개 테스트가
-   무수정 통과해야 함. 여기서 `:focus-visible` 드리프트가 자동 해소된다.
-   `reportButton`을 Button `ghost`로 볼지 Chip으로 볼지 이 청크 명세에서 확정
-   (청크 1의 열린 질문 1번, 미결).
+3. **청크 3 — ReviewSection·MyReviewItem 교체 ✅ 완료(2026-08-28)**: 78개 테스트
+   (ReviewSection 53 + MyPageReviews 25) 무수정 통과. `:focus-visible` 드리프트가
+   atom/molecule로 옮겨가며 해소됐다. `reportButton`은 Button `ghost`로 확정
+   (근거: `docs/specs/design-system-review-organisms.md`). `PhotoUploader`에
+   `removeLabel?: string`을 추가해 MyReviewItem의 기존/새 사진 구분 라벨을 지원.
+   상세: `docs/specs/design-system-review-organisms.md`.
 4. **청크 4 — 나머지 organisms**: OfficeSearchBar, PhotoLightbox, LoginButton,
    mypage 하위 페이지들.
 

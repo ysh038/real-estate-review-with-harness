@@ -98,3 +98,26 @@ export const RemoveButtonIsIconPositioned: TStory = {
     await expect(getComputedStyle(item as HTMLElement).position).toBe("relative");
   },
 };
+
+/**
+ * design-system-review-organisms AC1~3: item.removeLabel을 넘기면 인덱스 기반
+ * 기본 라벨("사진 N 삭제") 대신 그 값이 삭제 버튼 접근 이름이 된다. MyReviewItem이
+ * 기존/새 사진 두 리스트를 하나로 합칠 때 전역 인덱스로는 "새 사진 1 삭제"를 만들
+ * 수 없어서 필요해진 확장이다.
+ */
+export const RemoveLabelOverride: TStory = {
+  args: {
+    items: [
+      { id: "kept-1", src: PIXEL, alt: "기존 사진 1", removeLabel: "기존 사진 1 삭제" },
+      { id: "new-1", src: PIXEL, alt: "새 사진 1", removeLabel: "새 사진 1 삭제" },
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      canvas.getByRole("button", { name: "기존 사진 1 삭제" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("button", { name: "새 사진 1 삭제" }),
+    ).toBeInTheDocument();
+  },
+};

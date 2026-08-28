@@ -15,6 +15,16 @@ import {
 import { useEffect, useState } from "react";
 
 import styles from "./ReviewSection.module.css";
+import { Badge } from "../../design-system/components/Badge";
+import { Button } from "../../design-system/components/Button";
+import { Chip } from "../../design-system/components/Chip";
+import { DealFieldSet, type TDealField } from "../../design-system/components/DealFieldSet";
+import { FormError } from "../../design-system/components/FormError";
+import { PhotoUploader, type IPhotoItem } from "../../design-system/components/PhotoUploader";
+import { RatingDisplay } from "../../design-system/components/RatingDisplay";
+import { RatingInput } from "../../design-system/components/RatingInput";
+import { TagChipGroup } from "../../design-system/components/TagChipGroup";
+import { TextArea } from "../../design-system/components/TextArea";
 import { useOfficeReviews } from "../../hooks/useOfficeReviews";
 import { useReviewDraft } from "../../hooks/useReviewDraft";
 import { useSession } from "../../hooks/useSession";
@@ -31,7 +41,6 @@ interface ILightboxTarget {
   index: number;
 }
 
-const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 const NOT_SELECTED = "";
 const SORT_OPTIONS: { value: TReviewSort; label: string }[] = [
@@ -41,6 +50,20 @@ const SORT_OPTIONS: { value: TReviewSort; label: string }[] = [
 const REVIEW_ANCHOR_PREFIX = "review-";
 const COPY_CONFIRMATION_MS = 2000;
 const HIGHLIGHT_MS = 2000;
+
+// design-system-review-organisms: DealFieldSet은 도메인 옵션을 모른다 — 값=라벨인
+// 문자열 상수는 그대로, 방문 월만 value(문자열 숫자)/label("N월")을 따로 만든다.
+const DEAL_TYPE_OPTIONS = DEAL_TYPES.map((option) => ({ value: option, label: option }));
+const DEAL_RESULT_OPTIONS = DEAL_RESULTS.map((option) => ({ value: option, label: option }));
+const EXPERTISE_OPTIONS = EXPERTISE_LEVELS.map((option) => ({ value: option, label: option }));
+const DEFECT_RESPONSE_OPTIONS = DEFECT_RESPONSES.map((option) => ({
+  value: option,
+  label: option,
+}));
+const MONTH_SELECT_OPTIONS = MONTH_OPTIONS.map((month) => ({
+  value: String(month),
+  label: `${month}월`,
+}));
 
 /** 거래유형·거래결과·방문시기 중 있는 것만 "·"로 이어 붙인다. 전부 없으면 null. */
 const formatDealInfo = (review: TReview): string | null => {
@@ -179,17 +202,45 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
     );
   };
 
-  const handlePhotoFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files ?? []);
-    const room = REVIEW_PHOTOS_MAX - photoFiles.length;
-    setPhotoFiles((current) => [...current, ...selected.slice(0, room)]);
-    // 같은 파일을 다시 선택해도 change가 발생하도록 초기화한다.
-    event.target.value = "";
+  const handleDealFieldChange = (field: TDealField, value: string) => {
+    switch (field) {
+      case "dealType":
+        setDealType(value);
+        break;
+      case "dealResult":
+        setDealResult(value);
+        break;
+      case "visitedYear":
+        setVisitedYear(value);
+        break;
+      case "visitedMonth":
+        setVisitedMonth(value);
+        break;
+      case "expertise":
+        setExpertise(value);
+        break;
+      case "defectResponse":
+        setDefectResponse(value);
+        break;
+    }
+  };
+
+  const addPhotoFiles = (files: File[]) => {
+    setPhotoFiles((current) => {
+      const room = REVIEW_PHOTOS_MAX - current.length;
+      return [...current, ...files.slice(0, room)];
+    });
   };
 
   const removePhotoFile = (index: number) => {
     setPhotoFiles((current) => current.filter((_, i) => i !== index));
   };
+
+  const photoItems: IPhotoItem[] = photoFiles.map((file, index) => ({
+    id: String(index),
+    src: URL.createObjectURL(file),
+    alt: `첨부 사진 ${index + 1}`,
+  }));
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -263,8 +314,10 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
         {detail && detail.tagCounts.length > 0 ? (
           <ul className={styles.tagList}>
             {detail.tagCounts.map(({ tag, count }) => (
-              <li key={tag} className={styles.tagBadge}>
-                {tag} {count}
+              <li key={tag}>
+                <Badge variant="tag">
+                  {tag} {count}
+                </Badge>
               </li>
             ))}
           </ul>
@@ -282,19 +335,13 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       {reviews.length > 0 ? (
         <div className={styles.sortToggle} role="group" aria-label="정렬">
           {SORT_OPTIONS.map((option) => (
-            <button
+            <Chip
               key={option.value}
-              type="button"
-              aria-pressed={sort === option.value}
-              className={
-                sort === option.value
-                  ? `${styles.sortButton} ${styles.sortButtonActive}`
-                  : styles.sortButton
-              }
-              onClick={() => setSort(option.value)}
+              selected={sort === option.value}
+              onToggle={() => setSort(option.value)}
             >
               {option.label}
-            </button>
+            </Chip>
           ))}
         </div>
       ) : null}
@@ -312,10 +359,7 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
           >
             <div className={styles.itemHeader}>
               <span className={styles.nickname}>{review.author.nickname}</span>
-              <span className={styles.rating} aria-label={`${review.rating}점`}>
-                {"★".repeat(review.rating)}
-                {"☆".repeat(5 - review.rating)}
-              </span>
+              <RatingDisplay value={review.rating} />
             </div>
             <p className={styles.content}>{review.content}</p>
             {formatDealInfo(review) ? (
@@ -330,8 +374,8 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
             {review.tags.length > 0 ? (
               <ul className={styles.tagList}>
                 {review.tags.map((tag) => (
-                  <li key={tag} className={styles.tagBadge}>
-                    {tag}
+                  <li key={tag}>
+                    <Badge variant="tag">{tag}</Badge>
                   </li>
                 ))}
               </ul>
@@ -359,31 +403,24 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
               </ul>
             ) : null}
             <div className={styles.itemActions}>
-              <button
-                type="button"
-                className={styles.helpfulButton}
-                aria-pressed={review.isHelpful === true}
+              <Chip
+                selected={review.isHelpful === true}
                 disabled={status !== "authenticated"}
-                onClick={() => void toggleHelpful(review.id)}
+                onToggle={() => void toggleHelpful(review.id)}
               >
                 도움돼요 {review.helpfulCount}
-              </button>
-              <button
-                type="button"
-                className={styles.copyLinkButton}
-                onClick={() => void handleCopyLink(review.id)}
-              >
+              </Chip>
+              <Button variant="ghost" onClick={() => void handleCopyLink(review.id)}>
                 {copiedReviewId === review.id ? "복사됨" : "링크 복사"}
-              </button>
+              </Button>
               {status === "authenticated" ? (
-                <button
-                  type="button"
-                  className={styles.reportButton}
+                <Button
+                  variant="ghost"
                   disabled={reportedReviewIds.has(review.id)}
                   onClick={() => void reportReview(review.id)}
                 >
                   {reportedReviewIds.has(review.id) ? "신고됨" : "신고"}
-                </button>
+                </Button>
               ) : null}
             </div>
           </li>
@@ -391,210 +428,70 @@ export const ReviewSection = ({ officeId }: IReviewSectionProps) => {
       </ul>
 
       {nextCursor ? (
-        <button
-          type="button"
-          className={styles.loadMoreButton}
-          onClick={() => void loadMore()}
-        >
+        <Button variant="ghost" onClick={() => void loadMore()}>
           더보기
-        </button>
+        </Button>
       ) : null}
 
       {status === "authenticated" && draftBanner ? (
         <div className={styles.draftBanner}>
           <span>이어서 작성하시겠어요?</span>
           <div className={styles.draftBannerActions}>
-            <button
-              type="button"
-              className={styles.draftBannerButton}
-              onClick={handleRestoreDraft}
-            >
+            <Button variant="outline" onClick={handleRestoreDraft}>
               복원
-            </button>
-            <button
-              type="button"
-              className={styles.draftBannerButton}
-              onClick={dismissDraft}
-            >
+            </Button>
+            <Button variant="outline" onClick={dismissDraft}>
               새로 작성
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
 
       {status === "authenticated" ? (
         <form className={styles.form} onSubmit={(event) => void handleSubmit(event)}>
-          <div className={styles.ratingInput} role="radiogroup" aria-label="별점">
-            {RATING_OPTIONS.map((option) => (
-              <label key={option} className={styles.ratingLabel}>
-                <input
-                  type="radio"
-                  name="rating"
-                  value={option}
-                  checked={rating === option}
-                  onChange={() => setRating(option)}
-                  aria-label={`${option}점`}
-                />
-                {option}
-              </label>
-            ))}
-          </div>
-          <textarea
-            className={styles.textarea}
+          <RatingInput name="rating" value={rating} onChange={setRating} />
+          <TextArea
             value={content}
             onChange={(event) => setContent(event.target.value)}
             placeholder="이용 경험을 10자 이상 남겨주세요"
           />
-          <div className={styles.dealFields}>
-            <select
-              className={styles.dealSelect}
-              aria-label="거래유형"
-              value={dealType}
-              onChange={(event) => setDealType(event.target.value)}
-            >
-              <option value={NOT_SELECTED}>선택 안 함</option>
-              {DEAL_TYPES.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.dealSelect}
-              aria-label="거래결과"
-              value={dealResult}
-              onChange={(event) => setDealResult(event.target.value)}
-            >
-              <option value={NOT_SELECTED}>선택 안 함</option>
-              {DEAL_RESULTS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              className={styles.yearInput}
-              aria-label="방문 연도"
-              placeholder="방문 연도"
-              value={visitedYear}
-              onChange={(event) => setVisitedYear(event.target.value)}
-            />
-            <select
-              className={styles.dealSelect}
-              aria-label="방문 월"
-              value={visitedMonth}
-              onChange={(event) => setVisitedMonth(event.target.value)}
-            >
-              <option value={NOT_SELECTED}>선택 안 함</option>
-              {MONTH_OPTIONS.map((month) => (
-                <option key={month} value={month}>
-                  {month}월
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.dealSelect}
-              aria-label="전문성"
-              value={expertise}
-              onChange={(event) => setExpertise(event.target.value)}
-            >
-              <option value={NOT_SELECTED}>선택 안 함</option>
-              {EXPERTISE_LEVELS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.dealSelect}
-              aria-label="하자 대응"
-              value={defectResponse}
-              onChange={(event) => setDefectResponse(event.target.value)}
-            >
-              <option value={NOT_SELECTED}>선택 안 함</option>
-              {DEFECT_RESPONSES.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.photoSection}>
-            {photoFiles.length > 0 ? (
-              <ul className={styles.photoPreviewList}>
-                {photoFiles.map((file, index) => (
-                  <li key={`${file.name}-${index}`} className={styles.photoPreviewItem}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`첨부 사진 ${index + 1}`}
-                      className={styles.photoPreviewImage}
-                    />
-                    <button
-                      type="button"
-                      className={styles.photoRemoveButton}
-                      aria-label={`사진 ${index + 1} 삭제`}
-                      onClick={() => removePhotoFile(index)}
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {photoFiles.length < REVIEW_PHOTOS_MAX ? (
-              <label className={styles.photoAddLabel}>
-                + 사진 추가
-                <input
-                  type="file"
-                  aria-label="사진 추가"
-                  accept={ALLOWED_PHOTO_TYPES.join(",")}
-                  multiple
-                  className={styles.photoFileInput}
-                  onChange={handlePhotoFilesChange}
-                />
-              </label>
-            ) : null}
-          </div>
-          <div className={styles.tagChipGroup} role="group" aria-label="태그">
-            {REVIEW_TAGS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                className={
-                  selectedTags.includes(tag)
-                    ? `${styles.tagChip} ${styles.tagChipSelected}`
-                    : styles.tagChip
-                }
-                aria-pressed={selectedTags.includes(tag)}
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-          {formError ? (
-            <p className={styles.formError} role="alert">
-              {formError}
-            </p>
-          ) : null}
-          {!formError && submitError ? (
-            <p className={styles.formError} role="alert">
-              {submitError.message}
-            </p>
-          ) : null}
-          <button
-            type="submit"
-            className={styles.submitButton}
-            disabled={isSubmitting}
-          >
+          <DealFieldSet
+            values={{
+              dealType,
+              dealResult,
+              visitedYear,
+              visitedMonth,
+              expertise,
+              defectResponse,
+            }}
+            onChange={handleDealFieldChange}
+            dealTypeOptions={DEAL_TYPE_OPTIONS}
+            dealResultOptions={DEAL_RESULT_OPTIONS}
+            monthOptions={MONTH_SELECT_OPTIONS}
+            expertiseOptions={EXPERTISE_OPTIONS}
+            defectResponseOptions={DEFECT_RESPONSE_OPTIONS}
+          />
+          <PhotoUploader
+            items={photoItems}
+            max={REVIEW_PHOTOS_MAX}
+            accept={ALLOWED_PHOTO_TYPES.join(",")}
+            onAdd={addPhotoFiles}
+            onRemove={(id) => removePhotoFile(Number(id))}
+          />
+          <TagChipGroup
+            options={[...REVIEW_TAGS]}
+            selected={selectedTags}
+            onToggle={(tag) => toggleTag(tag as TReviewTag)}
+          />
+          {formError ? <FormError>{formError}</FormError> : null}
+          {!formError && submitError ? <FormError>{submitError.message}</FormError> : null}
+          <Button type="submit" size="lg" disabled={isSubmitting}>
             {isSubmitting
               ? photoFiles.length > 0
                 ? "사진 업로드 중..."
                 : "등록 중..."
               : "등록"}
-          </button>
+          </Button>
         </form>
       ) : (
         <a className={styles.loginPrompt} href={buildKakaoLoginUrl()}>
