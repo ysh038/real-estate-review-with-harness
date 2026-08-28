@@ -2,6 +2,20 @@
 
 > `/ship` 시 맨 위에 한 줄씩 추가된다. 형식: `- YYYY-MM-DD <해시 7자> <요약>`
 
+- 2026-08-28 4454eca 나머지 organism을 atom으로 교체 - Atomic Design 청크 4,
+  마지막 (명세: docs/specs/design-system-remaining-organisms.md — AC1~32 전부
+  확인, 계획: docs/design-system-atomic-plan.md). OfficeSearchBar·PhotoLightbox·
+  LoginButton·OfficeDetailPanel·OfficeInfoFields·mypage 하위 3개 페이지를
+  Button·Chip·Input·FieldRow·FormError atom으로 교체. mypage/profile·settings의
+  버튼은 className이 아예 없는 완전 네이티브 button이었다 — "기본 브라우저
+  같다" 피드백의 실제 원인. Chip에 className, Button에 ref를 확장(둘 다
+  Storybook Red→Green으로 증명, 진짜 Red 신호는 typecheck였음). FieldRow
+  사용처는 계획 예측 3곳이 아니라 OfficeInfoFields 1곳으로 실측 정정. 관련
+  테스트 82개 무수정 통과, 전체 269 + Storybook 96(94+2) 무회귀. Docker로
+  비로그인 상태 요소는 실측 확인(OfficeDetailPanel 닫기 버튼의 마운트 시
+  포커스 이동까지 확인), 로그인 필요한 mypage·LoginButton 로그아웃은 카카오
+  OAuth 제약으로 미확인. 이 청크로 atomic-plan 4개 청크 전부 완료.
+
 - 2026-08-28 dc12a88 ReviewSection·MyReviewItem을 atom/molecule로 교체 - Atomic
   Design 청크 3 (명세: docs/specs/design-system-review-organisms.md — AC1~31 전부
   확인, 계획: docs/design-system-atomic-plan.md). 두 organism의 CSS 22개 중복을
