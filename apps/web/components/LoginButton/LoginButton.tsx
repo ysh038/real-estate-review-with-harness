@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import styles from "./LoginButton.module.css";
+import { Button } from "../../design-system/components/Button";
 import { useSession } from "../../hooks/useSession";
 import { buildKakaoLoginUrl } from "../../lib/authApi";
 
@@ -42,13 +43,9 @@ export const LoginButton = () => {
       <Link className={styles.myPageLink} href="/mypage">
         마이페이지
       </Link>
-      <button
-        type="button"
-        className={styles.logoutButton}
-        onClick={() => void handleLogout()}
-      >
+      <Button variant="ghost" onClick={() => void handleLogout()}>
         로그아웃
-      </button>
+      </Button>
     </div>
   );
 };

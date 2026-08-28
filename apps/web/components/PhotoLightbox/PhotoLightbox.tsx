@@ -4,6 +4,7 @@ import type { TReviewPhoto } from "@repo/types";
 import { useCallback, useEffect, useState } from "react";
 
 import styles from "./PhotoLightbox.module.css";
+import { Button } from "../../design-system/components/Button";
 
 export interface IPhotoLightboxProps {
   photos: TReviewPhoto[];
@@ -56,9 +57,15 @@ export const PhotoLightbox = ({ photos, startIndex, onClose }: IPhotoLightboxPro
       aria-label="사진 보기"
       onClick={onClose}
     >
-      <button type="button" className={styles.closeButton} aria-label="닫기" onClick={onClose}>
+      <Button
+        variant="overlay"
+        size="icon"
+        className={styles.closeButton}
+        aria-label="닫기"
+        onClick={onClose}
+      >
         ×
-      </button>
+      </Button>
 
       {photos.length > 1 ? (
         <p className={styles.counter}>
@@ -67,8 +74,9 @@ export const PhotoLightbox = ({ photos, startIndex, onClose }: IPhotoLightboxPro
       ) : null}
 
       {hasPrev ? (
-        <button
-          type="button"
+        <Button
+          variant="overlay"
+          size="icon"
           className={`${styles.navButton} ${styles.navButtonPrev}`}
           aria-label="이전 사진"
           onClick={(event) => {
@@ -77,12 +85,13 @@ export const PhotoLightbox = ({ photos, startIndex, onClose }: IPhotoLightboxPro
           }}
         >
           ‹
-        </button>
+        </Button>
       ) : null}
 
       {hasNext ? (
-        <button
-          type="button"
+        <Button
+          variant="overlay"
+          size="icon"
           className={`${styles.navButton} ${styles.navButtonNext}`}
           aria-label="다음 사진"
           onClick={(event) => {
@@ -91,7 +100,7 @@ export const PhotoLightbox = ({ photos, startIndex, onClose }: IPhotoLightboxPro
           }}
         >
           ›
-        </button>
+        </Button>
       ) : null}
 
       {/* eslint-disable-next-line @next/next/no-img-element */}

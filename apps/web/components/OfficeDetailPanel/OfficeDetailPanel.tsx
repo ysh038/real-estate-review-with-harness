@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
 
 import styles from "./OfficeDetailPanel.module.css";
+import { Button } from "../../design-system/components/Button";
 import { OfficeInfoFields } from "../OfficeInfoFields";
 import { ReviewSection } from "../ReviewSection";
 
@@ -45,14 +46,14 @@ export const OfficeDetailPanel = ({
         <h2 className={styles.title} id={titleId}>
           {office.name}
         </h2>
-        <button
+        <Button
+          variant="ghost"
           className={styles.closeButton}
           onClick={onClose}
           ref={closeButtonRef}
-          type="button"
         >
           닫기
-        </button>
+        </Button>
       </div>
       <OfficeInfoFields office={office} />
       <Link className={styles.detailLink} href={`/offices/${office.id}`}>

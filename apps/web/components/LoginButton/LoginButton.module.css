@@ -35,23 +35,8 @@
   text-decoration: none;
 }
 
-.logoutButton {
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-sm);
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0;
-}
-
-.logoutButton:hover {
-  color: var(--color-text);
-}
-
 .link:focus-visible,
-.myPageLink:focus-visible,
-.logoutButton:focus-visible {
+.myPageLink:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }

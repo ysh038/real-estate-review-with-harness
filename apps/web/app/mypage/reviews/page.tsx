@@ -5,6 +5,7 @@ import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
 import { MyReviewItem } from "../../../components/MyReviewItem";
 import { ReviewListSkeleton } from "../../../components/Skeleton";
+import { Button } from "../../../design-system/components/Button";
 import { useMyReviews } from "../../../hooks/useMyReviews";
 
 /** `MyReviewsPanel`(모달)을 대체하는 마이페이지 리뷰 탭. 데이터 로직은 그대로 재사용한다. */
@@ -34,13 +35,9 @@ const MyPageReviewsPage = () => {
       </ul>
 
       {nextCursor ? (
-        <button
-          type="button"
-          className={styles.loadMoreButton}
-          onClick={() => void loadMore()}
-        >
+        <Button variant="ghost" onClick={() => void loadMore()}>
           더보기
-        </button>
+        </Button>
       ) : null}
     </section>
   );

@@ -8,22 +8,16 @@
   background-color: var(--color-overlay);
 }
 
+/* Button overlay+icon 위에 이 오버레이 전용 위치·크기만 얹는다. 색상·radius는
+   Button이 이미 갖고 있다(design-system-remaining-organisms — 청크 3 PhotoUploader
+   removeButton과 같은 캐스케이드 순서에 의존). */
 .closeButton {
   position: absolute;
   top: var(--space-4);
   right: var(--space-4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 40px;
   height: 40px;
   font-size: var(--font-size-lg);
-  line-height: 1;
-  color: var(--color-text-inverse);
-  cursor: pointer;
-  background-color: var(--color-overlay-control);
-  border: none;
-  border-radius: var(--radius-full);
 }
 
 .counter {
@@ -39,17 +33,9 @@
 .navButton {
   position: absolute;
   top: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 44px;
   height: 44px;
   font-size: 22px;
-  color: var(--color-text-inverse);
-  cursor: pointer;
-  background-color: var(--color-overlay-control);
-  border: none;
-  border-radius: var(--radius-full);
   transform: translateY(-50%);
 }
 

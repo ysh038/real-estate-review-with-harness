@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useRef } from "react";
 import { expect, fn } from "storybook/test";
 
 import { Button } from "./Button";
@@ -111,5 +112,29 @@ export const KeyboardFocusable: TStory = {
     const button = canvas.getByRole("button", { name: "포커스" });
     button.focus();
     await expect(button).toHaveFocus();
+  },
+};
+
+const RefFocusHarness = () => {
+  const ref = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <Button ref={ref}>대상</Button>
+      <button type="button" onClick={() => ref.current?.focus()}>
+        ref로 포커스
+      </button>
+    </>
+  );
+};
+
+/**
+ * design-system-remaining-organisms AC4~5: ref를 넘기면 실제 <button> DOM 노드를
+ * 가리킨다. OfficeDetailPanel이 마운트 시 닫기 버튼에 포커스를 옮기는 데 필요하다.
+ */
+export const RefAttachesToButtonElement: TStory = {
+  render: () => <RefFocusHarness />,
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "ref로 포커스" }));
+    await expect(canvas.getByRole("button", { name: "대상" })).toHaveFocus();
   },
 };

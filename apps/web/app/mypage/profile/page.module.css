@@ -33,21 +33,6 @@
   gap: var(--space-2);
 }
 
-.input {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-base);
-  color: var(--color-text);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.error {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-error);
-}
-
 .kakaoBadge {
   align-self: flex-start;
   padding: var(--space-1) var(--space-2);

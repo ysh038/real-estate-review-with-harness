@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 
 import styles from "./Button.module.css";
 
@@ -8,6 +8,8 @@ export type TButtonSize = "sm" | "md" | "lg" | "icon";
 export interface IButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: TButtonVariant;
   size?: TButtonSize;
+  /** React 19라 forwardRef 불필요 — 명시적으로 받아 <button>에 붙인다. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 const VARIANT_CLASS: Record<TButtonVariant, string> = {
@@ -34,9 +36,11 @@ export const Button = ({
   size = "md",
   type = "button",
   className,
+  ref,
   ...props
 }: IButtonProps) => (
   <button
+    ref={ref}
     type={type}
     className={[styles.button, VARIANT_CLASS[variant], SIZE_CLASS[size], className]
       .filter(Boolean)

@@ -72,3 +72,16 @@ export const KeyboardFocusable: TStory = {
     await expect(chip).toHaveFocus();
   },
 };
+
+/**
+ * design-system-remaining-organisms AC1~3: className을 넘기면 기본 클래스 뒤에
+ * 이어 붙는다. OfficeSearchBar의 카테고리 칩처럼 소비처 전용 크기·그림자를
+ * 오버라이드할 때 필요하다.
+ */
+export const CustomClassNameIsApplied: TStory = {
+  args: { selected: false, className: "storyCustomChip" },
+  play: async ({ canvas }) => {
+    const chip = canvas.getByRole("button", { name: "친절함" });
+    await expect(chip.className).toContain("storyCustomChip");
+  },
+};

@@ -1,13 +1,18 @@
 # 계획: 청기와 기반 Atomic Design 전환 (atoms 후보 목록)
 
 - 작성일: 2026-08-28
-- 상태: **청크 1·2·3 완료.** atoms `docs/specs/design-system-atoms.md` AC1~27,
-  molecules `docs/specs/design-system-molecules.md` AC1~31, organisms
-  `docs/specs/design-system-review-organisms.md` AC1~31.
-- 다음 액션: 청크 4 `/spec` — `OfficeSearchBar`·`PhotoLightbox`·`LoginButton`·
-  mypage 하위 페이지를 atom/molecule로 교체. `reportButton` 분류(청크 1 열린
-  질문 1번)는 청크 3에서 Button `ghost`로 확정됐다. `PhotoUploader`에
-  `removeLabel?: string`이 추가됐으니 새 소비처가 필요하면 재사용한다.
+- 상태: **청크 1·2·3·4 전부 완료 — 이 계획은 끝났다.** atoms
+  `docs/specs/design-system-atoms.md` AC1~27, molecules
+  `docs/specs/design-system-molecules.md` AC1~31, organisms
+  `docs/specs/design-system-review-organisms.md` AC1~31,
+  `docs/specs/design-system-remaining-organisms.md` AC1~32.
+- 다음 액션: 없음. `apps/web/design-system/components/`의 atom·molecule이 전부
+  실제 소비처를 최소 하나씩 갖는다. 새 화면·컴포넌트를 만들 때는
+  `.cursor/rules/30-design-system.mdc`대로 이 디렉터리를 먼저 확인하는 것으로
+  충분하다. 남겨둔 것: `mypage/profile`의 "가입일" 필드는 FieldRow로 통일하지
+  않기로 확정(청크 4 열린 질문), `LoginButton`·`mypage` 버튼의 실제 브라우저
+  검증은 카카오 로그인이 필요해 완료하지 못함(청크 4 실행 결과 참고) — 필요하면
+  사용자가 로그인해서 확인.
 
 > 다른 PC에서 이어서 작업할 수 있도록 조사 결과를 근거까지 남긴 문서다.
 > 목록만 보고 바로 만들지 말고 "결정 필요" 섹션을 먼저 읽을 것.
@@ -231,8 +236,11 @@ molecule을 만들고 스토리로 고정한다.
    (근거: `docs/specs/design-system-review-organisms.md`). `PhotoUploader`에
    `removeLabel?: string`을 추가해 MyReviewItem의 기존/새 사진 구분 라벨을 지원.
    상세: `docs/specs/design-system-review-organisms.md`.
-4. **청크 4 — 나머지 organisms**: OfficeSearchBar, PhotoLightbox, LoginButton,
-   mypage 하위 페이지들.
+4. **청크 4 — 나머지 organisms ✅ 완료(2026-08-28)**: OfficeSearchBar·PhotoLightbox·
+   LoginButton·OfficeDetailPanel·OfficeInfoFields·mypage 하위 3개 페이지 전부 교체.
+   `Chip`에 `className`, `Button`에 `ref`를 확장(둘 다 Storybook Red→Green으로
+   증명). 관련 테스트 82개 무수정 통과. 상세:
+   `docs/specs/design-system-remaining-organisms.md`.
 
 각 청크마다 `/spec` → `/impl` → `/ship`.
 

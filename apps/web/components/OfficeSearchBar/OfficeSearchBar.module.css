@@ -11,22 +11,15 @@
   width: min(340px, calc(100% - 190px));
 }
 
+/* Input 기본 크롬(radius-sm·shadow 없음) 위에 지도-위-플로팅 위젯 전용 값만 얹는다. */
 .input {
-  width: 100%;
   padding: var(--space-3);
-  /* 16px 미만이면 iOS Safari가 포커스 시 화면을 확대한다(감사 High #1) —
-     의도가 주석 없이도 남도록 전용 토큰을 쓴다. */
-  font-size: var(--font-size-input);
-  font-family: var(--font-family-base);
-  color: var(--color-text);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border-strong);
+  border-color: var(--color-border-strong);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
 
 .input:focus-visible {
-  outline: 2px solid var(--color-focus);
   outline-offset: 1px;
   border-color: var(--color-focus);
 }
@@ -41,39 +34,20 @@
   list-style: none;
 }
 
-.categoryChip,
-.categoryChipSelected {
+/* Chip 기본 크기(sm) 위에 이 위젯 전용 터치 타깃·굵기·그림자만 얹는다.
+   색상·radius·선택 상태·:focus-visible은 Chip 자체가 갖고 있다. */
+.categoryChip {
   /* 44px 미만이면 모바일 터치 타깃이 부족하다 — 높이를 눌러 두지 않는다. */
   min-height: 32px;
   padding: var(--space-2) var(--space-3);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
 }
 
-.categoryChip {
-  color: var(--color-text);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border-strong);
-}
-
-.categoryChip:hover {
+/* aria-pressed로 구분한다 — Chip의 선택 클래스는 이 모듈 스코프에서 직접 참조할
+   수 없고, :hover가 선택된(primary 배경) 칩까지 덮으면 안 되기 때문이다. */
+.categoryChip[aria-pressed="false"]:hover {
   background-color: var(--color-surface);
-}
-
-.categoryChipSelected {
-  color: var(--color-text-inverse);
-  background-color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-}
-
-.categoryChip:focus-visible,
-.categoryChipSelected:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
 }
 
 .dropdown {

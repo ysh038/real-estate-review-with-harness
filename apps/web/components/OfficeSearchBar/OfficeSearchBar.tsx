@@ -4,6 +4,8 @@ import type { TOfficeSummary } from "@repo/types";
 import { Fragment, useId, useState, type KeyboardEvent } from "react";
 
 import styles from "./OfficeSearchBar.module.css";
+import { Chip } from "../../design-system/components/Chip";
+import { Input } from "../../design-system/components/Input";
 import type { IKakaoPlace, TPlaceCategoryCode } from "../../hooks/useKakaoPlacesSearch";
 import { PLACE_CATEGORIES, useKakaoPlacesSearch } from "../../hooks/useKakaoPlacesSearch";
 import { useOfficeSearch } from "../../hooks/useOfficeSearch";
@@ -99,8 +101,8 @@ export const OfficeSearchBar = ({ onSelect, onSelectPlace }: IOfficeSearchBarPro
 
   return (
     <div className={styles.wrapper}>
-      <input
-        type="text"
+      <Input
+        label="사무소 검색"
         role="combobox"
         aria-expanded={isOpen}
         aria-controls={listboxId}
@@ -111,7 +113,7 @@ export const OfficeSearchBar = ({ onSelect, onSelectPlace }: IOfficeSearchBarPro
         placeholder="사무소 이름·주소·지역명 검색"
         className={styles.input}
         value={query}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
       />
       <ul className={styles.categoryFilter} aria-label="장소 종류 필터">
@@ -119,14 +121,13 @@ export const OfficeSearchBar = ({ onSelect, onSelectPlace }: IOfficeSearchBarPro
           const isSelected = categoryCode === code;
           return (
             <li key={code}>
-              <button
-                type="button"
-                aria-pressed={isSelected}
-                className={isSelected ? styles.categoryChipSelected : styles.categoryChip}
-                onClick={() => toggleCategory(code)}
+              <Chip
+                selected={isSelected}
+                onToggle={() => toggleCategory(code)}
+                className={styles.categoryChip}
               >
                 {label}
-              </button>
+              </Chip>
             </li>
           );
         })}

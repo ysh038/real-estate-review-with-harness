@@ -3,6 +3,9 @@
 import { useState } from "react";
 
 import styles from "./page.module.css";
+import { Button } from "../../../design-system/components/Button";
+import { FormError } from "../../../design-system/components/FormError";
+import { Input } from "../../../design-system/components/Input";
 import { useSession } from "../../../hooks/useSession";
 
 const formatJoinDate = (iso: string): string => {
@@ -43,27 +46,27 @@ const MyPageProfilePage = () => {
         <span className={styles.label}>닉네임</span>
         {isEditing ? (
           <div className={styles.editRow}>
-            <input
-              className={styles.input}
+            <Input
+              label="닉네임"
               value={draftNickname}
-              onChange={(event) => setDraftNickname(event.target.value)}
+              onChange={setDraftNickname}
             />
-            <button type="button" onClick={() => void handleSave()}>
+            <Button variant="primary" onClick={() => void handleSave()}>
               저장
-            </button>
-            <button type="button" onClick={() => setIsEditing(false)}>
+            </Button>
+            <Button variant="ghost" onClick={() => setIsEditing(false)}>
               취소
-            </button>
+            </Button>
           </div>
         ) : (
           <div className={styles.editRow}>
             <span className={styles.value}>{user.nickname}</span>
-            <button type="button" onClick={handleEdit}>
+            <Button variant="ghost" onClick={handleEdit}>
               수정
-            </button>
+            </Button>
           </div>
         )}
-        {error ? <p className={styles.error}>{error}</p> : null}
+        {error ? <FormError>{error}</FormError> : null}
       </div>
 
       <div className={styles.field}>

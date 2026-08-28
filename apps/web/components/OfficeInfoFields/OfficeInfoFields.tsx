@@ -2,6 +2,7 @@ import { LOW_MATCH_CONFIDENCE_THRESHOLD, type TOfficeSummary } from "@repo/types
 
 import styles from "./OfficeInfoFields.module.css";
 import { Badge } from "../../design-system/components/Badge";
+import { FieldRow } from "../../design-system/components/FieldRow";
 
 const EMPTY_VALUE = "정보 없음";
 
@@ -24,10 +25,7 @@ export const OfficeInfoFields = ({ office }: IOfficeInfoFieldsProps) => {
 
   return (
     <dl className={styles.fields}>
-      <div className={styles.field}>
-        <dt className={styles.label}>대표자명</dt>
-        <dd className={styles.value}>{office.ownerName ?? EMPTY_VALUE}</dd>
-      </div>
+      <FieldRow label="대표자명" value={office.ownerName} fallback={EMPTY_VALUE} />
       <div className={styles.field}>
         <dt className={styles.label}>주소</dt>
         <dd className={styles.value}>{office.address}</dd>
@@ -35,10 +33,7 @@ export const OfficeInfoFields = ({ office }: IOfficeInfoFieldsProps) => {
           <Badge variant="warning">위치 정보 정확도가 낮을 수 있어요</Badge>
         ) : null}
       </div>
-      <div className={styles.field}>
-        <dt className={styles.label}>전화번호</dt>
-        <dd className={styles.value}>{office.phone ?? EMPTY_VALUE}</dd>
-      </div>
+      <FieldRow label="전화번호" value={office.phone} fallback={EMPTY_VALUE} />
     </dl>
   );
 };
